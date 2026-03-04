@@ -1,0 +1,574 @@
+/* Import Modern Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* =====================
+   GAMING DARK THEME
+   ===================== */
+
+:root {
+    --bg-dark: #0d0d0d;
+    --bg-card: #161616;
+    --bg-card2: #1e1e1e;
+    --accent: #c89b3c;
+    /* WoW gold */
+    --accent-dim: #8c6a23;
+    --accent-glow: rgba(200, 155, 60, .55);
+    --red: #c0392b;
+    --text: #e8e8e8;
+    --text-muted: #888;
+    --border: #2a2a2a;
+    --border-gold: #3d3020;
+}
+
+/* General Body */
+body {
+    background-color: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 80px;
+    font-family: 'Outfit', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+main {
+    flex: 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 700;
+}
+
+/* ── Accent text ── */
+.text-accent {
+    color: var(--accent) !important;
+}
+
+.text-accent-dim {
+    color: var(--accent-dim);
+}
+
+/* ── Section title decoration ── */
+.section-title h2 {
+    color: var(--text);
+    font-size: 2rem;
+    letter-spacing: 1px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: .75rem;
+}
+
+.section-title h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 2px;
+}
+
+/* ============================================
+   GAMING CARD
+   ============================================ */
+.game-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-top: 3px solid var(--accent);
+    border-radius: 8px;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .6);
+}
+
+.game-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, .7), 0 0 20px var(--accent-glow);
+}
+
+.game-card .card-body {
+    padding: 1.75rem;
+}
+
+.game-card .card-img-top {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-bottom: 2px solid var(--border-gold);
+    /* fade bottom edge into the card bg */
+    mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+}
+
+.game-card .card-title {
+    color: var(--accent);
+    font-size: 1.1rem;
+    margin-bottom: .5rem;
+}
+
+.game-card .card-text {
+    color: var(--text-muted);
+    font-size: .9rem;
+}
+
+/* ── Step icon container ── */
+.step-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--bg-card2);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.2rem;
+    box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.step-icon i {
+    font-size: 1.8rem;
+}
+
+/* ── Realmlist badge ── */
+.realmlist-badge {
+    background: #000;
+    border: 1px solid var(--accent-dim);
+    border-radius: 6px;
+    padding: .5rem 1rem;
+    color: var(--accent);
+    font-family: monospace;
+    font-size: .95rem;
+    letter-spacing: .5px;
+}
+
+/* ============================================
+   VIDEO HERO
+   ============================================ */
+.video-container {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    overflow: hidden;
+    margin-top: -80px;
+}
+
+#bg-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    object-fit: cover;
+    opacity: 0.55;
+}
+
+/* Strong bottom fade so main content starts on dark bg */
+.video-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+            rgba(0, 0, 0, .15) 0%,
+            rgba(0, 0, 0, .3) 50%,
+            rgba(13, 13, 13, 1) 100%);
+    z-index: 1;
+}
+
+.video-header {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    z-index: 2;
+}
+
+.overlay-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Logo */
+.logo-container {
+    margin-bottom: 2rem;
+}
+
+.logo-container img {
+    max-height: 320px;
+    max-width: 90%;
+    filter: drop-shadow(0 4px 24px rgba(200, 155, 60, .45));
+    transition: transform .35s ease;
+}
+
+.logo-container img:hover {
+    transform: scale(1.04);
+}
+
+/* Hero text */
+.hero-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 24px rgba(200, 155, 60, .6), 0 2px 6px rgba(0, 0, 0, .8);
+    letter-spacing: 1px;
+}
+
+.hero-lead {
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, .75);
+    font-weight: 300;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn-gold {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    color: #000;
+    font-weight: 700;
+    letter-spacing: .5px;
+    border: none;
+    border-radius: 6px;
+    padding: .75rem 2.2rem;
+    text-transform: uppercase;
+    font-size: .95rem;
+    transition: all .25s ease;
+    box-shadow: 0 4px 18px rgba(200, 155, 60, .35);
+}
+
+.btn-gold:hover {
+    background: linear-gradient(135deg, #ddb84a, var(--accent));
+    box-shadow: 0 6px 24px rgba(200, 155, 60, .6);
+    transform: translateY(-2px);
+    color: #000;
+}
+
+.btn-outline-gold {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: .75rem 2.2rem;
+    font-weight: 600;
+    font-size: .95rem;
+    text-transform: uppercase;
+    transition: all .25s ease;
+}
+
+.btn-outline-gold:hover {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 4px 18px rgba(200, 155, 60, .45);
+    transform: translateY(-2px);
+}
+
+.btn-game-green {
+    background: linear-gradient(135deg, #1a7a3c, #155e30);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: .65rem 1.6rem;
+    transition: all .25s ease;
+    box-shadow: 0 3px 14px rgba(26, 122, 60, .4);
+}
+
+.btn-game-green:hover {
+    background: linear-gradient(135deg, #21994a, #1a7a3c);
+    box-shadow: 0 5px 20px rgba(26, 122, 60, .6);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+/* Keep Bootstrap btn-primary mapped to gold */
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    border: none;
+    color: #000;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 6px;
+    padding: .75rem 2rem;
+    transition: all .25s ease;
+    box-shadow: 0 4px 18px rgba(200, 155, 60, .35);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #ddb84a, var(--accent));
+    color: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(200, 155, 60, .6);
+}
+
+.btn-secondary {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: 6px;
+    padding: .75rem 2rem;
+    transition: all .25s ease;
+}
+
+.btn-secondary:hover {
+    background: #2a2a2a;
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   NAVBAR
+   ============================================ */
+#mainNavbar {
+    z-index: 1030;
+    background: transparent;
+    transition: background .35s ease, box-shadow .35s ease, padding .35s ease;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+#mainNavbar.navbar-scrolled {
+    background: rgba(13, 13, 13, .95) !important;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, .6);
+    border-bottom: 1px solid var(--border-gold);
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+}
+
+.dropdown-menu.game-dropdown {
+    background: #111;
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    min-width: 200px;
+}
+
+.dropdown-menu.game-dropdown .dropdown-item {
+    color: var(--text);
+    padding: .6rem 1.2rem;
+    transition: background .2s, color .2s;
+}
+
+.dropdown-menu.game-dropdown .dropdown-item:hover,
+.dropdown-menu.game-dropdown .dropdown-item.active {
+    background: var(--bg-card2);
+    color: var(--accent);
+}
+
+.dropdown-menu.game-dropdown .dropdown-divider {
+    border-color: var(--border);
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.status-online {
+    background: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71;
+}
+
+.status-offline {
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+}
+
+/* Status bar */
+.server-status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1.2rem 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.server-status-bar .stat-item {
+    font-size: .95rem;
+}
+
+.server-status-bar .stat-label {
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.server-status-bar .stat-value {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ============================================
+   FORM STYLING
+   ============================================ */
+.form-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-top: 3px solid var(--accent);
+    padding: 2.5rem;
+    border-radius: 10px;
+    margin: 2rem auto;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+}
+
+.form-control {
+    background: #111;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .75rem 1rem;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.form-control:focus {
+    background: #151515;
+    color: var(--text);
+    border-color: var(--accent-dim);
+    box-shadow: 0 0 0 .2rem rgba(200, 155, 60, .2);
+}
+
+.form-control::placeholder {
+    color: #555;
+}
+
+.form-label {
+    color: #bbb;
+    font-weight: 500;
+    margin-bottom: .4rem;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+footer.footer {
+    flex-shrink: 0;
+    background-color: transparent !important;
+    border-top: 1px solid var(--border-gold);
+}
+
+/* ============================================
+   CONTENT SECTIONS
+   ============================================ */
+.content-section {
+    padding: 4rem 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-lead {
+        font-size: 1rem;
+    }
+
+    .logo-container img {
+        max-height: 140px;
+    }
+}
+
+@media (max-width: 576px) {
+
+    .btn-gold,
+    .btn-outline-gold {
+        width: 100%;
+        margin-bottom: .5rem;
+    }
+}
+
+/* ============================================
+   WoW CLASS COLORS
+   ============================================ */
+.class-warrior {
+    color: #C79C6E;
+}
+
+.class-paladin {
+    color: #F58CBA;
+}
+
+.class-hunter {
+    color: #ABD473;
+}
+
+.class-rogue {
+    color: #FFF569;
+}
+
+.class-priest {
+    color: #FFFFFF;
+}
+
+.class-deathknight {
+    color: #C41F3B;
+}
+
+.class-shaman {
+    color: #0070DE;
+}
+
+.class-mage {
+    color: #69CCF0;
+}
+
+.class-warlock {
+    color: #9482C9;
+}
+
+.class-monk {
+    color: #00FF96;
+}
+
+.class-druid {
+    color: #FF7D0A;
+}
+
+.class-default {
+    color: #CCCCCC;
+}
+
+/* ============================================
+   LEGACY COMPAT – .glass-card aliases .game-card
+   ============================================ */
+.glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-top: 3px solid var(--accent);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .6);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, .7), 0 0 20px var(--accent-glow);
+}

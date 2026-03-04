@@ -1,0 +1,29 @@
+# Enable Rewrite Engine
+RewriteEngine On
+
+# Disable directory listings and MultiViews globally
+Options -Indexes -MultiViews
+
+# --- Rules for Pretty URLs ---
+
+# 1. Prevent rewriting for existing files and directories (assets, favicon, etc.)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 2. Route /page → pages/page.php (pages/ directory)
+RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
+RewriteRule ^([^/]+)/?$ pages/$1.php [L,QSA]
+
+# 3. Fallback: Route /page → page.php in root (for index.php and any root-level files)
+RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+RewriteRule ^([^/]+)/?$ $1.php [L,QSA]
+
+# --- Optional: Force HTTPS (Uncomment if needed) ---
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# --- Optional: Force www or non-www (Uncomment ONE block if needed) ---
+# Force non-www
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^(.*)$ http://%1/$1 [R=301,L]

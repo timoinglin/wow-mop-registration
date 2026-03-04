@@ -1,0 +1,10 @@
+# Server Config
+config.php
+
+# PHP Dependencies
+vendor/
+composer.lock
+
+# Logs or Cache
+*.log
+.DS_Store

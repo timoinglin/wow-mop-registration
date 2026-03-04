@@ -1,0 +1,8 @@
+# Deny direct PHP execution in the uploads directory for security
+<FilesMatch "\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Also deny .htaccess overrides in this folder
+Options -Indexes
