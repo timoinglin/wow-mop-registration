@@ -4,6 +4,36 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
+## Table of Contents
+
+- [Features](#features)
+- [Preview](#preview)
+  - [Home Page](#home-page)
+  - [User Dashboard](#user-dashboard)
+  - [Admin Dashboard - Overview](#admin-dashboard---overview)
+  - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
+  - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
+- [Quick Start](#quick-start)
+- [Requirements](#requirements)
+  - [Recommended: XAMPP](#recommended-xampp)
+  - [PHP Extensions](#php-extensions)
+- [Installation](#installation)
+  - [1. Download](#1-download)
+  - [2. Configure](#2-configure)
+  - [3. Database Setup](#3-database-setup)
+  - [4. Feature Flags](#4-feature-flags)
+  - [5. Social Links & Content](#5-social-links--content)
+  - [6. Dependencies](#6-dependencies)
+  - [7. Enable mod_rewrite](#7-enable-mod_rewrite)
+- [Admin Dashboard](#admin-dashboard)
+- [Customization](#customization)
+  - [Changing Text and Labels](#changing-text-and-labels)
+  - [Replacing Images and Logo](#replacing-images-and-logo)
+- [Project Structure](#project-structure)
+- [Security Notes](#security-notes)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
 ## Features
 
 - 🔒 **Security** — CSRF tokens, Google reCAPTCHA v2, PDO prepared statements, PHP-execution blocking on uploads
