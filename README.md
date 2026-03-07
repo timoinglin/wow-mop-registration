@@ -134,19 +134,8 @@ It also sets `site.base_url` to `http://localhost` and leaves social/client link
 
 After the installer finishes, open `config.php` and add your reCAPTCHA keys and SMTP settings before enabling those features.
 
-> [!IMPORTANT]
-> The installer expects a prepared GitHub Release asset named `wow-legends-release.zip`. That release ZIP should contain the application files exactly as they should land in `htdocs`, including `vendor/`.
-
 > [!WARNING]
 > The installer is designed for a fresh local XAMPP setup. If `C:\xampp\htdocs\` already contains files, it offers to back them up and then replaces the web root contents so the app can run at `http://localhost/`.
-
-### Release Packaging For The Installer
-
-For the one-click installer to work reliably, publish a release ZIP that contains:
-
-- the app files at the archive root
-- `vendor/` with Composer dependencies already installed
-- `.htaccess`, `assets/`, `includes/`, `lang/`, `pages/`, `sql/`, `templates/`, and `uploads/`
 
 ---
 
