@@ -1,19 +1,18 @@
 <?php
+require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-// Feature guard
-if (empty($config['features']['tickets'])) {
-    header('Location: /dashboard');
-    exit;
-}
-
-require_once __DIR__ . '/../templates/header.php';
-
 // Auth check
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
+    exit;
+}
+
+// Feature guard
+if (empty($config['features']['tickets'])) {
+    header('Location: /dashboard');
     exit;
 }
 
@@ -175,6 +174,8 @@ try {
 
 $open_count = count(array_filter($my_tickets, fn($t) => $t['status'] === 'open'));
 $progress_count = count(array_filter($my_tickets, fn($t) => $t['status'] === 'in_progress'));
+
+require_once __DIR__ . '/../templates/header.php';
 ?>
 
 <style>

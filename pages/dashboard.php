@@ -1,15 +1,17 @@
 <?php
+require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/login_history.php';
-require_once __DIR__ . '/../templates/header.php';
 
 // --- Auth ---
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
     exit;
 }
+
+require_once __DIR__ . '/../templates/header.php';
 
 $user_id = $_SESSION['user_id'];
 $user = null;

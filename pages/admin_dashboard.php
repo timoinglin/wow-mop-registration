@@ -1,8 +1,8 @@
 <?php
+require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/../templates/header.php';
 
 // --- Admin Access Check ---
 if (!isset($_SESSION['user_id'])) { header('Location: /login'); exit; }
@@ -11,6 +11,8 @@ $_gm_check->execute(['id' => $_SESSION['user_id']]);
 $_gm = (int)($_gm_check->fetchColumn() ?: 0);
 if ($_gm < 9) { header('Location: /dashboard'); exit; }
 $_SESSION['gm_level'] = $_gm;
+
+require_once __DIR__ . '/../templates/header.php';
 
 $errors     = [];
 $admin_data = [];
