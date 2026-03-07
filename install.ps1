@@ -7,13 +7,17 @@ param(
     [string]$XamppRoot = 'C:\xampp',
     [string]$InstallRoot = 'C:\xampp\htdocs',
     [switch]$AllowExistingXampp,
-    [switch]$SkipBrowser
+    [switch]$SkipBrowser,
+    [switch]$NoPause
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$script:InstallerLogPath = Join-Path ([IO.Path]::GetTempPath()) ("wow-legends-installer-{0}.log" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
+$script:TranscriptStarted = $false
 
 function Write-Rule {
     param(
@@ -58,7 +62,35 @@ function Show-Banner {
     Write-Rule
     Write-Host ' WoW Legends One-Click Installer' -ForegroundColor Cyan
     Write-Host ' Fresh local website setup for TrinityCore-based repacks' -ForegroundColor Gray
+    Write-Host (" Log file: {0}" -f $script:InstallerLogPath) -ForegroundColor DarkGray
     Write-Rule
+}
+
+function Pause-BeforeExit {
+    param([string]$Prompt = 'Press Enter to close this installer window')
+
+    if (-not $NoPause) {
+        Read-Host -Prompt $Prompt | Out-Null
+    }
+}
+
+function Start-InstallerTranscript {
+    try {
+        Start-Transcript -Path $script:InstallerLogPath -Force | Out-Null
+        $script:TranscriptStarted = $true
+    } catch {
+        Write-WarnMessage ("Could not start transcript logging: {0}" -f $_.Exception.Message)
+    }
+}
+
+function Stop-InstallerTranscript {
+    if ($script:TranscriptStarted) {
+        try {
+            Stop-Transcript | Out-Null
+        } catch {
+        }
+        $script:TranscriptStarted = $false
+    }
 }
 
 function Show-IntroPanel {
@@ -245,8 +277,17 @@ function Copy-DirectoryContents {
         [string]$Destination
     )
 
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        New-Item -ItemType Directory -Path $Destination | Out-Null
+    }
+
     foreach ($item in Get-ChildItem -LiteralPath $Source -Force) {
-        Copy-Item -LiteralPath $item.FullName -Destination $Destination -Recurse -Force
+        Write-Info ("Copying {0}" -f $item.Name)
+        try {
+            Copy-Item -LiteralPath $item.FullName -Destination $Destination -Recurse -Force
+        } catch {
+            throw ("Failed while copying '{0}' into '{1}': {2}" -f $item.FullName, $Destination, $_.Exception.Message)
+        }
     }
 }
 
@@ -260,11 +301,13 @@ function Enable-PHPExtensions {
 
     foreach ($extension in $Extensions) {
         $pattern = "(?i)^\s*;?\s*extension\s*=\s*(?:php_)?{0}(?:\.dll)?\s*$" -f [Regex]::Escape($extension)
-        $matchIndexes = for ($index = 0; $index -lt $lines.Count; $index++) {
-            if ($lines[$index] -match $pattern) {
-                $index
+        $matchIndexes = @(
+            for ($index = 0; $index -lt $lines.Count; $index++) {
+                if ($lines[$index] -match $pattern) {
+                    $index
+                }
             }
-        }
+        )
 
         if ($matchIndexes.Count -eq 0) {
             $lines += "extension=$extension"
@@ -347,6 +390,7 @@ if (!is_array($settings)) {
 
 $result = [
     'ok' => false,
+    'server' => ['ok' => false, 'message' => 'Not tested', 'databases' => []],
     'auth' => ['ok' => false, 'message' => 'Not tested'],
     'chars' => ['ok' => false, 'message' => 'Not tested'],
     'import' => ['attempted' => false, 'ok' => false, 'message' => 'Skipped'],
@@ -358,14 +402,57 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES => false,
 ];
 
-function try_connection(array $db, string $name, array $options): array {
+function connect_server(array $db, array $options): array {
+    try {
+        $dsn = sprintf('mysql:host=%s;port=%s;charset=utf8mb4', $db['host'], $db['port']);
+        $pdo = new PDO($dsn, $db['user'], $db['password'], $options);
+        $pdo->query('SELECT 1');
+        $databases = $pdo->query('SHOW DATABASES')->fetchAll(PDO::FETCH_COLUMN);
+        sort($databases);
+
+        return [
+            'ok' => true,
+            'message' => 'Connected to MySQL server.',
+            'pdo' => $pdo,
+            'databases' => $databases,
+        ];
+    } catch (Throwable $e) {
+        return [
+            'ok' => false,
+            'message' => $e->getMessage(),
+            'pdo' => null,
+            'databases' => [],
+        ];
+    }
+}
+
+function try_database(array $db, string $label, array $availableDatabases, array $options): array {
+    if (!in_array($db['name'], $availableDatabases, true)) {
+        return [
+            'ok' => false,
+            'exists' => false,
+            'message' => sprintf('Database "%s" was not found for %s.', $db['name'], $label),
+            'pdo' => null,
+        ];
+    }
+
     try {
         $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $db['host'], $db['port'], $db['name']);
         $pdo = new PDO($dsn, $db['user'], $db['password'], $options);
         $pdo->query('SELECT 1');
-        return ['ok' => true, 'message' => sprintf('Connected to %s database.', $name), 'pdo' => $pdo];
+        return [
+            'ok' => true,
+            'exists' => true,
+            'message' => sprintf('Connected to %s database "%s".', $label, $db['name']),
+            'pdo' => $pdo,
+        ];
     } catch (Throwable $e) {
-        return ['ok' => false, 'message' => $e->getMessage(), 'pdo' => null];
+        return [
+            'ok' => false,
+            'exists' => true,
+            'message' => $e->getMessage(),
+            'pdo' => null,
+        ];
     }
 }
 
@@ -397,12 +484,24 @@ function import_sql(PDO $pdo, string $sqlFile): array {
     return ['ok' => true, 'message' => 'Support tables imported successfully.'];
 }
 
-$authConnection = try_connection($settings['auth'], 'auth', $options);
-$charsConnection = try_connection($settings['chars'], 'characters', $options);
+$serverConnection = connect_server($settings['auth'], $options);
+$result['server']['ok'] = $serverConnection['ok'];
+$result['server']['message'] = $serverConnection['message'];
+$result['server']['databases'] = $serverConnection['databases'];
+
+if (!$serverConnection['ok']) {
+    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    exit(1);
+}
+
+$authConnection = try_database($settings['auth'], 'auth', $serverConnection['databases'], $options);
+$charsConnection = try_database($settings['chars'], 'characters', $serverConnection['databases'], $options);
 
 $result['auth']['ok'] = $authConnection['ok'];
+$result['auth']['exists'] = $authConnection['exists'];
 $result['auth']['message'] = $authConnection['message'];
 $result['chars']['ok'] = $charsConnection['ok'];
+$result['chars']['exists'] = $charsConnection['exists'];
 $result['chars']['message'] = $charsConnection['message'];
 
 if (!empty($settings['import']) && $authConnection['ok']) {
@@ -416,8 +515,7 @@ if (!empty($settings['import']) && $authConnection['ok']) {
         $result['import']['message'] = $e->getMessage();
     }
 }
-
-$result['ok'] = $result['auth']['ok'];
+$result['ok'] = $result['server']['ok'] && $result['auth']['ok'] && $result['chars']['ok'];
 echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 exit($result['ok'] ? 0 : 1);
 '@
@@ -439,6 +537,7 @@ function Invoke-DatabaseHelper {
         return @{
             Result = [pscustomobject]@{
                 ok = $false
+                server = [pscustomobject]@{ ok = $false; message = 'Database helper did not return any output.'; databases = @() }
                 auth = [pscustomobject]@{ ok = $false; message = 'Database helper did not return any output.' }
                 chars = [pscustomobject]@{ ok = $false; message = 'Database helper did not run.' }
                 import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
@@ -461,6 +560,7 @@ function Invoke-DatabaseHelper {
         return @{
             Result = [pscustomobject]@{
                 ok = $false
+                server = [pscustomobject]@{ ok = $false; message = 'Database helper returned invalid output.'; databases = @() }
                 auth = [pscustomobject]@{ ok = $false; message = 'Database helper returned invalid output.' }
                 chars = [pscustomobject]@{ ok = $false; message = 'Database helper returned invalid output.' }
                 import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
@@ -484,6 +584,7 @@ function Invoke-DatabaseHelper {
         return @{
             Result = [pscustomobject]@{
                 ok = $false
+                server = [pscustomobject]@{ ok = $false; message = 'Database helper JSON could not be parsed.'; databases = @() }
                 auth = [pscustomobject]@{ ok = $false; message = 'Database helper JSON could not be parsed.' }
                 chars = [pscustomobject]@{ ok = $false; message = 'Database helper JSON could not be parsed.' }
                 import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
@@ -514,6 +615,8 @@ function Start-XamppApache {
 }
 
 try {
+    Start-InstallerTranscript
+
     if (-not (Test-IsAdministrator)) {
         throw 'Run this installer from an elevated PowerShell session (Run as Administrator).'
     }
@@ -578,22 +681,11 @@ try {
     }
     Enable-PHPExtensions -PhpIniPath $phpIniPath -Extensions @('pdo_mysql', 'openssl', 'mbstring', 'curl', 'fileinfo', 'gmp')
 
-    Write-Step 'Creating a safe default config.php'
-    $dbSettings = @{
-        Host = Read-ValueWithDefault -Prompt 'Database host' -Default '127.0.0.1'
-        Port = Read-ValueWithDefault -Prompt 'Database port' -Default '3306'
-        User = Read-ValueWithDefault -Prompt 'Database user' -Default 'root'
-        Password = Read-ValueWithDefault -Prompt 'Database password' -Default 'ascent' -Secret
-        AuthDatabase = Read-ValueWithDefault -Prompt 'Auth database name' -Default 'auth'
-        CharactersDatabase = Read-ValueWithDefault -Prompt 'Characters database name' -Default 'characters'
-    }
-
     $templatePath = Join-Path $InstallRoot 'config.sample.php'
     $configPath = Join-Path $InstallRoot 'config.php'
     if (-not (Test-Path -LiteralPath $templatePath)) {
         throw 'config.sample.php was not found in the deployed package.'
     }
-    New-InstallerConfig -TemplatePath $templatePath -ConfigPath $configPath -DbSettings $dbSettings -BaseUrl 'http://localhost'
 
     Write-Step 'Testing database connectivity'
     Write-Box -Title 'Database Check' -Lines @(
@@ -605,50 +697,111 @@ try {
     $sqlPath = Join-Path $InstallRoot 'sql\setup.sql'
     New-DatabaseHelperFile -Path $helperPath
 
+    $dbSettings = $null
+    $dbCheck = $null
+    while ($true) {
+        $hostDefault = if ($dbSettings) { $dbSettings.Host } else { '127.0.0.1' }
+        $portDefault = if ($dbSettings) { $dbSettings.Port } else { '3306' }
+        $userDefault = if ($dbSettings) { $dbSettings.User } else { 'root' }
+        $passwordDefault = if ($dbSettings) { $dbSettings.Password } else { 'ascent' }
+        $authDatabaseDefault = if ($dbSettings) { $dbSettings.AuthDatabase } else { 'auth' }
+        $charactersDatabaseDefault = if ($dbSettings) { $dbSettings.CharactersDatabase } else { 'characters' }
+
+        $dbSettings = @{
+            Host = Read-ValueWithDefault -Prompt 'Database host' -Default $hostDefault
+            Port = Read-ValueWithDefault -Prompt 'Database port' -Default $portDefault
+            User = Read-ValueWithDefault -Prompt 'Database user' -Default $userDefault
+            Password = Read-ValueWithDefault -Prompt 'Database password' -Default $passwordDefault -Secret
+            AuthDatabase = Read-ValueWithDefault -Prompt 'Auth database name (for example: auth or mop_auth)' -Default $authDatabaseDefault
+            CharactersDatabase = Read-ValueWithDefault -Prompt 'Characters database name (for example: characters or mop_characters)' -Default $charactersDatabaseDefault
+        }
+
+        $helperSettings = @{
+            auth = @{
+                host = $dbSettings.Host
+                port = $dbSettings.Port
+                user = $dbSettings.User
+                password = $dbSettings.Password
+                name = $dbSettings.AuthDatabase
+            }
+            chars = @{
+                host = $dbSettings.Host
+                port = $dbSettings.Port
+                user = $dbSettings.User
+                password = $dbSettings.Password
+                name = $dbSettings.CharactersDatabase
+            }
+            import = $false
+            sqlFile = $sqlPath
+        }
+
+        $helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
+        $dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+
+        foreach ($line in $dbCheck.PreludeLines) {
+            Write-WarnMessage $line
+        }
+
+        if (-not $dbCheck.Result.server.ok) {
+            Write-WarnMessage ("Could not connect to the MySQL server: {0}" -f $dbCheck.Result.server.message)
+            Write-WarnMessage 'Check the database host, port, username, and password, then re-enter the values.'
+            continue
+        }
+
+        Write-Info 'MySQL server connection succeeded.'
+
+        if ($dbCheck.Result.auth.ok) {
+            Write-Info 'Auth database connection succeeded.'
+        } else {
+            Write-WarnMessage ("Auth database connection failed: {0}" -f $dbCheck.Result.auth.message)
+        }
+
+        if ($dbCheck.Result.chars.ok) {
+            Write-Info 'Characters database connection succeeded.'
+        } else {
+            Write-WarnMessage ("Characters database connection failed: {0}" -f $dbCheck.Result.chars.message)
+        }
+
+        if (-not $dbCheck.Result.auth.ok -or -not $dbCheck.Result.chars.ok) {
+            if ($dbCheck.Result.server.databases.Count -gt 0) {
+                Write-Box -Title 'Available Databases On This Server' -Lines @($dbCheck.Result.server.databases) -BorderColor Yellow -TextColor White
+            }
+            Write-WarnMessage 'Re-enter the database names and try again. The installer will not continue until both databases are valid.'
+            continue
+        }
+
+        break
+    }
+
+    Write-Step 'Creating a safe default config.php'
+    New-InstallerConfig -TemplatePath $templatePath -ConfigPath $configPath -DbSettings $dbSettings -BaseUrl 'http://localhost'
+
     $shouldImport = $false
     if (Read-YesNo 'If the database connection works, import the support tables now?' $true) {
         $shouldImport = $true
     }
 
-    $helperSettings = @{
-        auth = @{
-            host = $dbSettings.Host
-            port = $dbSettings.Port
-            user = $dbSettings.User
-            password = $dbSettings.Password
-            name = $dbSettings.AuthDatabase
+    if ($shouldImport) {
+        $helperSettings.import = $true
+        $helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
+        $dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+
+        foreach ($line in $dbCheck.PreludeLines) {
+            Write-WarnMessage $line
         }
-        chars = @{
-            host = $dbSettings.Host
-            port = $dbSettings.Port
-            user = $dbSettings.User
-            password = $dbSettings.Password
-            name = $dbSettings.CharactersDatabase
+
+        if (-not $dbCheck.Result.server.ok) {
+            throw ("Lost connection to the MySQL server before importing support tables: {0}" -f $dbCheck.Result.server.message)
         }
-        import = $shouldImport
-        sqlFile = $sqlPath
-    }
 
-    $helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
-    $dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+        if (-not $dbCheck.Result.auth.ok) {
+            throw ("Auth database validation failed before importing support tables: {0}" -f $dbCheck.Result.auth.message)
+        }
 
-    foreach ($line in $dbCheck.PreludeLines) {
-        Write-WarnMessage $line
-    }
+        if (-not $dbCheck.Result.import.attempted) {
+            throw 'Support table import did not run as expected.'
+        }
 
-    if ($dbCheck.Result.auth.ok) {
-        Write-Info 'Auth database connection succeeded.'
-    } else {
-        Write-WarnMessage ("Auth database connection failed: {0}" -f $dbCheck.Result.auth.message)
-    }
-
-    if ($dbCheck.Result.chars.ok) {
-        Write-Info 'Characters database connection succeeded.'
-    } else {
-        Write-WarnMessage ("Characters database connection failed: {0}" -f $dbCheck.Result.chars.message)
-    }
-
-    if ($dbCheck.Result.import.attempted) {
         if ($dbCheck.Result.import.ok) {
             Write-Info 'Support tables were imported into the auth database.'
         } else {
@@ -677,14 +830,21 @@ try {
         'URL: http://localhost/',
         'Disabled by default: reCAPTCHA, password recovery, tickets',
         "Config file: $configPath",
-        'To enable advanced features later, edit config.php and add the required keys/services.'
+        "Log file: $script:InstallerLogPath",
+        'Next step: open config.php and review the site settings.',
+        'Add your reCAPTCHA keys and SMTP settings before enabling those features.',
+        'You can also update social links, client download link, and other optional settings there.'
     ) -BorderColor Green -TextColor White
 } catch {
     Write-Host ''
     Write-Box -Title 'Installer Error' -Lines @(
         'The installer hit an error and stopped.',
         $_.Exception.Message,
+        "Log file: $script:InstallerLogPath",
         'Fix the issue above and run the installer again.'
     ) -BorderColor Red -TextColor White
+    Pause-BeforeExit -Prompt 'Press Enter to close after reviewing the error'
     exit 1
+} finally {
+    Stop-InstallerTranscript
 }

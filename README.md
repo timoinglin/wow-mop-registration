@@ -14,6 +14,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
   - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
 - [Quick Start](#quick-start)
+- [One-Click Installer](#one-click-installer)
+- [Release Packaging For The Installer](#release-packaging-for-the-installer)
 - [Requirements](#requirements)
   - [Recommended: XAMPP](#recommended-xampp)
   - [PHP Extensions](#php-extensions)
@@ -95,6 +97,59 @@ composer install
 
 ---
 
+## One-Click Installer
+
+Windows users can bootstrap a guided installer with PowerShell:
+
+Open PowerShell **as Administrator**, then run:
+
+```powershell
+irm "https://raw.githubusercontent.com/timoinglin/wow-mop-registration/main/install.ps1" | iex
+```
+<img src="assets/img/screenshots/oneclick_installer.png" width="780" alt="One-Click Installer Screenshot">
+
+Before running it, make sure your WoW repack is already installed and its database server is already running. The installer sets up the website and local web server; it does not install or start the repack itself.
+
+If you do not already have a repack, you can get one from [EmuCoach](https://www.emucoach.com/).
+
+What the installer does:
+
+1. Checks that it is running as Administrator.
+2. Shows the prerequisites and asks whether to continue before making any changes.
+3. Checks whether XAMPP already exists and lets you choose whether to reuse it or stop.
+4. Installs XAMPP 8.2 with `winget` when needed.
+5. Downloads the latest prepared release ZIP and deploys it into `C:\xampp\htdocs\`.
+6. Enables the required PHP extensions in XAMPP's `php.ini`.
+7. Creates `config.php` from `config.sample.php` with safe defaults.
+8. Prompts for database credentials, validates the MySQL server connection, verifies that the entered auth/characters database names exist, and offers to import `sql/setup.sql`.
+9. Starts Apache and opens `http://localhost/`.
+
+The installer intentionally disables advanced features in the generated `config.php` so the site can come up cleanly on first run:
+
+- `recaptcha`
+- `recover_password`
+- `tickets`
+
+It also sets `site.base_url` to `http://localhost` and leaves social/client links empty.
+
+After the installer finishes, open `config.php` and add your reCAPTCHA keys and SMTP settings before enabling those features.
+
+> [!IMPORTANT]
+> The installer expects a prepared GitHub Release asset named `wow-legends-release.zip`. That release ZIP should contain the application files exactly as they should land in `htdocs`, including `vendor/`.
+
+> [!WARNING]
+> The installer is designed for a fresh local XAMPP setup. If `C:\xampp\htdocs\` already contains files, it offers to back them up and then replaces the web root contents so the app can run at `http://localhost/`.
+
+### Release Packaging For The Installer
+
+For the one-click installer to work reliably, publish a release ZIP that contains:
+
+- the app files at the archive root
+- `vendor/` with Composer dependencies already installed
+- `.htaccess`, `assets/`, `includes/`, `lang/`, `pages/`, `sql/`, `templates/`, and `uploads/`
+
+---
+
 ## Requirements
 
 ### Recommended: XAMPP
@@ -160,7 +215,7 @@ Open `config.php` and set:
 | **Vote Sites** | Array of vote site links shown on the user dashboard |
 
 > [!TIP]
-> **Default DB credentials** for most repacks: `host=127.0.0.1`, `user=root`, `password=ascent`, `name_auth=auth`, `name_chars=characters` — these are already pre-filled in `config.sample.php`.
+> Common local DB credentials are often `host=127.0.0.1`, `user=root`, `password=ascent`, but database names vary by repack. Some installs use `auth` / `characters`, while others use `mop_auth` / `mop_characters`.
 
 > [!IMPORTANT]
 > Set `site.base_url` to the exact URL where the app is reachable. Password recovery emails build reset links from this value.
