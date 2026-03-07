@@ -15,9 +15,78 @@ $ErrorActionPreference = 'Stop'
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+function Write-Rule {
+    param(
+        [int]$Width = 78,
+        [string]$Character = '=',
+        [ConsoleColor]$Color = 'DarkCyan'
+    )
+
+    Write-Host ($Character * $Width) -ForegroundColor $Color
+}
+
+function Write-Box {
+    param(
+        [string]$Title,
+        [string[]]$Lines = @(),
+        [ConsoleColor]$BorderColor = 'DarkCyan',
+        [ConsoleColor]$TextColor = 'Gray'
+    )
+
+    $allLines = @($Title) + $Lines
+    $innerWidth = (($allLines | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum)
+    if (-not $innerWidth) {
+        $innerWidth = 20
+    }
+
+    $border = '+' + ('-' * ($innerWidth + 2)) + '+'
+    Write-Host $border -ForegroundColor $BorderColor
+    Write-Host ('| ' + $Title.PadRight($innerWidth) + ' |') -ForegroundColor $BorderColor
+
+    if ($Lines.Count -gt 0) {
+        Write-Host ('| ' + ('-' * $innerWidth) + ' |') -ForegroundColor $BorderColor
+        foreach ($line in $Lines) {
+            Write-Host ('| ' + $line.PadRight($innerWidth) + ' |') -ForegroundColor $TextColor
+        }
+    }
+
+    Write-Host $border -ForegroundColor $BorderColor
+}
+
+function Show-Banner {
+    Clear-Host
+    Write-Rule
+    Write-Host ' WoW Legends One-Click Installer' -ForegroundColor Cyan
+    Write-Host ' Fresh local website setup for TrinityCore-based repacks' -ForegroundColor Gray
+    Write-Rule
+}
+
+function Show-IntroPanel {
+    Write-Box -Title 'Before You Continue' -Lines @(
+        'This installer sets up XAMPP and the website only.',
+        'It does not install or configure the WoW repack itself.',
+        'Your WoW repack should already be installed.',
+        'Its MySQL server should already be running.',
+        'If you still need a repack, get one from https://www.emucoach.com/'
+    ) -BorderColor Yellow -TextColor White
+
+    Write-Box -Title 'What This Installer Will Do' -Lines @(
+        '1. Install XAMPP 8.2 if it is not already present.',
+        '2. Download the latest prepared release ZIP.',
+        '3. Deploy the app into C:\xampp\htdocs\.',
+        '4. Enable required PHP extensions in php.ini.',
+        '5. Generate config.php with safe default feature flags.',
+        '6. Test DB access and optionally import sql/setup.sql.',
+        '7. Start Apache and open http://localhost/.'
+    ) -BorderColor Cyan -TextColor Gray
+}
+
 function Write-Step {
     param([string]$Message)
-    Write-Host "`n==> $Message" -ForegroundColor Cyan
+    Write-Host ''
+    Write-Rule -Width 78 -Character '-' -Color 'DarkCyan'
+    Write-Host ('=> ' + $Message) -ForegroundColor Cyan
+    Write-Rule -Width 78 -Character '-' -Color 'DarkCyan'
 }
 
 function Write-Info {
@@ -383,16 +452,23 @@ if (-not (Test-IsAdministrator)) {
     throw 'Run this installer from an elevated PowerShell session (Run as Administrator).'
 }
 
+Show-Banner
 Write-Step 'Checking prerequisites'
 Assert-CommandExists -CommandName 'winget'
-Write-WarnMessage 'This installer assumes your WoW repack is already installed and its MySQL server is already running.'
-Write-Info 'The website installer sets up XAMPP and this web app. It does not install or configure the game server repack for you.'
-Write-Info 'If you still need a WoW repack, you can get one from https://www.emucoach.com/'
+Show-IntroPanel
+
+if (-not (Read-YesNo 'Proceed with the installer?' $false)) {
+    Write-WarnMessage 'Installation cancelled before any changes were made.'
+    exit 0
+}
 
 $xamppPhp = Join-Path $XamppRoot 'php\php.exe'
 if ((Test-Path -LiteralPath $xamppPhp) -and -not $AllowExistingXampp) {
-    Write-WarnMessage "XAMPP already appears to be installed at '$XamppRoot'."
-    Write-Host 'This installer is intended for fresh setups. Use -AllowExistingXampp if you want to reuse the existing installation.' -ForegroundColor Yellow
+    Write-Box -Title 'Existing XAMPP Detected' -Lines @(
+        "XAMPP already appears to be installed at '$XamppRoot'.",
+        'This installer targets fresh setups by default.',
+        'Re-run with -AllowExistingXampp if you want to reuse it.'
+    ) -BorderColor Yellow -TextColor White
     exit 0
 }
 
@@ -450,8 +526,10 @@ if (-not (Test-Path -LiteralPath $templatePath)) {
 New-InstallerConfig -TemplatePath $templatePath -ConfigPath $configPath -DbSettings $dbSettings -BaseUrl 'http://localhost'
 
 Write-Step 'Testing database connectivity'
-$null = Write-Host 'Make sure your repack database server is running before continuing with the connection test.' -ForegroundColor Yellow
-$null = Write-Host 'If you do not have a repack installed yet, get one first from https://www.emucoach.com/' -ForegroundColor Yellow
+Write-Box -Title 'Database Check' -Lines @(
+    'Make sure your repack database server is running before continuing.',
+    'If you do not have a repack installed yet, get one first from https://www.emucoach.com/'
+) -BorderColor Yellow -TextColor White
 $helperPath = Join-Path $tempRoot 'db-helper.php'
 $settingsPath = Join-Path $tempRoot 'db-settings.json'
 $sqlPath = Join-Path $InstallRoot 'sql\setup.sql'
@@ -519,17 +597,11 @@ if (-not $SkipBrowser) {
 }
 
 Write-Host ''
-Write-Host '=============================================' -ForegroundColor Green
-Write-Host 'WoW Legends installer completed successfully.' -ForegroundColor Green
-Write-Host '=============================================' -ForegroundColor Green
-Write-Host ''
-Write-Host 'Location:' -ForegroundColor Cyan
-Write-Host "  $InstallRoot"
-Write-Host 'URL:' -ForegroundColor Cyan
-Write-Host '  http://localhost/'
-Write-Host 'Features disabled by default:' -ForegroundColor Cyan
-Write-Host '  reCAPTCHA, password recovery, and tickets'
-Write-Host 'Config file:' -ForegroundColor Cyan
-Write-Host "  $configPath"
-Write-Host ''
-Write-Host 'To enable advanced features later, edit config.php and add the required keys/services.' -ForegroundColor Yellow
+Write-Box -Title 'Installation Complete' -Lines @(
+    'WoW Legends was installed successfully.',
+    "Location: $InstallRoot",
+    'URL: http://localhost/',
+    'Disabled by default: reCAPTCHA, password recovery, tickets',
+    "Config file: $configPath",
+    'To enable advanced features later, edit config.php and add the required keys/services.'
+) -BorderColor Green -TextColor White
