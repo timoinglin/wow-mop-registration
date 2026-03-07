@@ -256,22 +256,35 @@ function Enable-PHPExtensions {
         [string[]]$Extensions
     )
 
-    $content = Get-Content -LiteralPath $PhpIniPath -Raw
+    $lines = Get-Content -LiteralPath $PhpIniPath
 
     foreach ($extension in $Extensions) {
-        $pattern = "(?im)^\s*;\s*extension\s*=\s*{0}\s*$" -f [Regex]::Escape($extension)
-        if ([Regex]::IsMatch($content, $pattern)) {
-            $content = [Regex]::Replace($content, $pattern, "extension=$extension")
+        $pattern = "(?i)^\s*;?\s*extension\s*=\s*(?:php_)?{0}(?:\.dll)?\s*$" -f [Regex]::Escape($extension)
+        $matchIndexes = for ($index = 0; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -match $pattern) {
+                $index
+            }
+        }
+
+        if ($matchIndexes.Count -eq 0) {
+            $lines += "extension=$extension"
             continue
         }
 
-        $existingPattern = "(?im)^\s*extension\s*=\s*{0}\s*$" -f [Regex]::Escape($extension)
-        if (-not [Regex]::IsMatch($content, $existingPattern)) {
-            $content += "`r`nextension=$extension"
+        $firstMatchIndex = $matchIndexes[0]
+        $lines[$firstMatchIndex] = "extension=$extension"
+
+        if ($matchIndexes.Count -gt 1) {
+            $duplicateIndexes = @($matchIndexes | Select-Object -Skip 1)
+            $lines = for ($index = 0; $index -lt $lines.Count; $index++) {
+                if ($duplicateIndexes -notcontains $index) {
+                    $lines[$index]
+                }
+            }
         }
     }
 
-    Set-Content -LiteralPath $PhpIniPath -Value $content -Encoding ASCII
+    Set-Content -LiteralPath $PhpIniPath -Value $lines -Encoding ASCII
 }
 
 function New-InstallerConfig {
@@ -419,15 +432,33 @@ function Invoke-DatabaseHelper {
         [string]$SettingsPath
     )
 
-    $output = & $PhpExePath $HelperPath $SettingsPath
+    $outputLines = & $PhpExePath $HelperPath $SettingsPath 2>&1 | ForEach-Object { $_.ToString() }
     $exitCode = $LASTEXITCODE
 
-    if ([string]::IsNullOrWhiteSpace($output)) {
+    if (-not $outputLines -or ($outputLines -join '').Trim().Length -eq 0) {
         throw 'Database helper did not return any output.'
     }
 
-    $parsed = $output | ConvertFrom-Json
-    return @{ Result = $parsed; ExitCode = $exitCode }
+    $jsonStartIndex = -1
+    for ($index = 0; $index -lt $outputLines.Count; $index++) {
+        if ($outputLines[$index].TrimStart().StartsWith('{')) {
+            $jsonStartIndex = $index
+            break
+        }
+    }
+
+    if ($jsonStartIndex -lt 0) {
+        throw ("Database helper did not return valid JSON. Output:`n{0}" -f ($outputLines -join [Environment]::NewLine))
+    }
+
+    $preludeLines = @()
+    if ($jsonStartIndex -gt 0) {
+        $preludeLines = @($outputLines[0..($jsonStartIndex - 1)] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    }
+
+    $jsonText = ($outputLines[$jsonStartIndex..($outputLines.Count - 1)] -join [Environment]::NewLine)
+    $parsed = $jsonText | ConvertFrom-Json
+    return @{ Result = $parsed; ExitCode = $exitCode; PreludeLines = $preludeLines }
 }
 
 function Start-XamppApache {
@@ -561,6 +592,10 @@ $helperSettings = @{
 
 $helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
 $dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+
+foreach ($line in $dbCheck.PreludeLines) {
+    Write-WarnMessage $line
+}
 
 if ($dbCheck.Result.auth.ok) {
     Write-Info 'Auth database connection succeeded.'
