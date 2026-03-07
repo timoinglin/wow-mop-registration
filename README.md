@@ -1,4 +1,4 @@
-# WoW MoP Registration Page
+# WoW Mists of Pandaria Registration Portal
 
 A complete, secure, and modern registration portal for **World of Warcraft: Mists of Pandaria (5.4.8)** private servers. Built for TrinityCore-based cores (including repacks).
 
@@ -43,7 +43,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 📊 **Live Stats** — Real-time server status, player counts, and animated counters
 - 🌍 **Multilingual** — English and Spanish included; easy to add more
 - 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design
-- ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, email verification, and maintenance mode from config
+- ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, and maintenance mode from config
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
 - 🎫 **Ticket System** — Database-stored support tickets with admin replies, status tracking, and user history
 - 📰 **News & FAQ** — Configurable news section and FAQ accordion on the home page
@@ -75,19 +75,22 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ```bash
 # 1. Install XAMPP — https://www.apachefriends.org/
-# 2. Clone or extract into htdocs
-git clone https://github.com/timoinglin/wow-mop-registration.git C:\xampp\htdocs\wow-mop-registration
+# 2. Serve this project from your Apache web root or a dedicated VirtualHost/Alias
+#    Do not run it from a subfolder such as /wow-legends without remapping DocumentRoot
 
 # 3. Copy the sample config
 copy config.sample.php config.php
 
-# 4. Edit config.php with your DB credentials, realm info, reCAPTCHA keys, etc.
+# 4. Edit config.php with your DB credentials, realm info, site base URL, reCAPTCHA keys, etc.
 
-# 5. Run the SQL setup (see Database Setup section below)
+# 5. Install PHP dependencies
+composer install
 
-# 6. Start Apache from the XAMPP Control Panel (your repack already runs its own MySQL)
+# 6. Run the SQL setup (see Database Setup section below)
 
-# 7. Visit http://localhost/wow-legends
+# 7. Start Apache from the XAMPP Control Panel (your repack already runs its own MySQL)
+
+# 8. Visit the URL configured in config.php, for example http://localhost/
 ```
 
 ---
@@ -102,6 +105,7 @@ The easiest way to run this project is with [**XAMPP**](https://www.apachefriend
 |---|---|---|
 | **PHP** | 7.4 | 8.0+ |
 | **Apache** | with `mod_rewrite` enabled | Included in XAMPP |
+| **Composer** | 2.x | Latest stable |
 
 ### PHP Extensions
 
@@ -113,6 +117,7 @@ The following extensions must be enabled in `php.ini`. In XAMPP, open `C:\xampp\
 | `openssl` | SMTP TLS/SSL for emails |
 | `mbstring` | String handling |
 | `hash` | SHA-1 password hashing *(enabled by default in PHP 8)* |
+| `curl` | Recommended for reCAPTCHA and outbound HTTP requests |
 | `gmp` | Big number math *(optional, for SRP6)* |
 | `fileinfo` | MIME type checking for ticket attachments |
 
@@ -122,14 +127,14 @@ The following extensions must be enabled in `php.ini`. In XAMPP, open `C:\xampp\
 
 ### 1. Download
 
-Clone the repo or download the ZIP and place it in your XAMPP `htdocs` directory:
+Clone the repo or download the ZIP, then serve it from your Apache site root:
 
 ```
-C:\xampp\htdocs\wow-mop-registration\
+C:\xampp\htdocs\
 ```
 
-> [!TIP]
-> `wow-mop-registration` is just the default repo name — you can rename the folder to anything you like (e.g. `my-server`, `wow-mop`, etc.). The site will be accessible at `http://localhost/<your-folder-name>`.
+> [!IMPORTANT]
+> This project currently uses root-relative URLs such as `/login`, `/register`, `/assets/...` and `.htaccess` rules that assume the app is mounted at the web root. If you keep the repo in a subfolder like `C:\xampp\htdocs\wow-legends`, configure an Apache `VirtualHost` or `Alias` so that folder is served as its own site root.
 
 ### 2. Configure
 
@@ -156,6 +161,9 @@ Open `config.php` and set:
 
 > [!TIP]
 > **Default DB credentials** for most repacks: `host=127.0.0.1`, `user=root`, `password=ascent`, `name_auth=auth`, `name_chars=characters` — these are already pre-filled in `config.sample.php`.
+
+> [!IMPORTANT]
+> Set `site.base_url` to the exact URL where the app is reachable. Password recovery emails build reset links from this value.
 
 ### 3. Database Setup
 
@@ -242,11 +250,13 @@ News entries and FAQ items are also configured in `config.php`:
 
 ### 6. Dependencies
 
-PHPMailer is bundled in the `vendor/` folder. If it is missing, install it with:
+Run Composer after a normal clone:
 
 ```bash
 composer install
 ```
+
+`vendor/` is ignored by Git in this repo, so a fresh clone will not contain PHPMailer until Composer installs it. If you received a packaged copy that already includes `vendor/`, you can skip this step.
 
 ### 7. Enable mod_rewrite
 
@@ -261,7 +271,7 @@ Pretty URLs (`/login`, `/register`) require Apache's `mod_rewrite`:
 
 ## Admin Dashboard
 
-Accessible at `/admin-dashboard` for accounts with GM level ≥ 9.
+Accessible at `/admin_dashboard` for accounts with GM level ≥ 9.
 
 | Tab | Features |
 |---|---|
@@ -315,36 +325,48 @@ All images are stored in `assets/img/`:
 ## Project Structure
 
 ```
-wow-mop-registration/
-├── pages/                ← All page files
-│   ├── admin_api.php     ← AJAX API for admin actions
-│   ├── admin_dashboard.php
-│   ├── dashboard.php
-│   ├── tickets.php
-│   ├── login.php
-│   └── register.php
+wow-legends/
+├── .htaccess             ← URL rewriting and basic hardening
+├── .gitignore
+├── assets/
+│   ├── css/              ← style.css
+│   └── img/              ← logos, backgrounds, race/class icons, screenshots
+├── cache/
+│   ├── login_history/    ← Per-user login history JSON files
+│   └── rate_limit/       ← File-based login throttling data
 ├── includes/
 │   ├── audit.php         ← Admin audit log helper
 │   ├── auth.php          ← Password hashing, IP detection
 │   ├── csrf.php          ← CSRF token generation/validation
-│   ├── email.php         ← PHPMailer send functions
-│   ├── helpers.php       ← WoW helpers (format playtime, gold, race/class names)
 │   ├── db.php            ← Database connections
+│   ├── email.php         ← PHPMailer send functions
 │   ├── functions.php     ← Backward-compat loader
+│   ├── helpers.php       ← WoW helpers (format playtime, gold, race/class names)
 │   ├── lang.php          ← Language loader
+│   ├── login_history.php ← File-based login history helper
+│   ├── rate_limiter.php  ← File-based brute-force protection
 │   └── recaptcha.php     ← reCAPTCHA verification (respects feature flag)
+├── lang/                 ← Language files (en.php, es.php)
+├── pages/
+│   ├── admin_api.php     ← AJAX API for admin actions
+│   ├── admin_dashboard.php
+│   ├── change_password.php
+│   ├── dashboard.php
+│   ├── login.php
+│   ├── logout.php
+│   ├── recover.php
+│   ├── register.php
+│   ├── reset_password.php
+│   └── tickets.php
 ├── sql/
 │   └── setup.sql         ← Required tables (tickets, audit log, password resets)
 ├── templates/            ← header.php and footer.php
-├── assets/
-│   ├── css/              ← style.css
-│   └── img/              ← logos, backgrounds, race/class icons
-├── lang/                 ← Language files (en.php, es.php)
-├── uploads/              ← Ticket attachments (PHP execution blocked)
-├── cache/                ← Rate-limit data (auto-generated)
+├── uploads/
+│   ├── .htaccess         ← Blocks PHP execution in uploads
+│   └── tickets/          ← Ticket attachments
 ├── config.php            ← Your config (gitignored)
 ├── config.sample.php     ← Safe template to commit
-├── .htaccess             ← URL rewriting & security rules
+├── favicon.ico
 └── index.php             ← Homepage / router
 ```
 
@@ -366,13 +388,15 @@ wow-mop-registration/
 
 | Problem | Solution |
 |---|---|
+| **Links go to `/login` or `/assets/...` at the wrong location** | The app is being served from a subfolder. Serve it from the web root or map the repo folder to its own Apache VirtualHost/Alias. |
 | **404 on `/login`, `/register`** | Enable `mod_rewrite` — see step 7 above |
 | **"Database error" on tickets or password recovery** | Run `sql/setup.sql` on your `auth` database — see step 3 |
 | **"Invalid default value" when running SQL** | Your MySQL is very old. Use the latest `setup.sql` which is compatible with MySQL 5.5.9+ |
 | **reCAPTCHA not showing** | Check your site key/secret in `config.php`, or set `recaptcha => false` |
+| **`composer install` fails or `PHPMailer` class is missing** | Install Composer dependencies in the project root. A fresh clone does not include `vendor/`. |
 | **Emails not sending** | Verify SMTP credentials; for Gmail use an [App Password](https://support.google.com/accounts/answer/185833) |
 | **Blank page / 500 error** | Check `C:\xampp\php\logs\php_error_log` for details |
-| **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table |
+| **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table, and the route is `/admin_dashboard` |
 
 ---
 
