@@ -436,7 +436,17 @@ function Invoke-DatabaseHelper {
     $exitCode = $LASTEXITCODE
 
     if (-not $outputLines -or ($outputLines -join '').Trim().Length -eq 0) {
-        throw 'Database helper did not return any output.'
+        return @{
+            Result = [pscustomobject]@{
+                ok = $false
+                auth = [pscustomobject]@{ ok = $false; message = 'Database helper did not return any output.' }
+                chars = [pscustomobject]@{ ok = $false; message = 'Database helper did not run.' }
+                import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
+            }
+            ExitCode = $exitCode
+            PreludeLines = @()
+            RawOutput = @()
+        }
     }
 
     $jsonStartIndex = -1
@@ -448,7 +458,17 @@ function Invoke-DatabaseHelper {
     }
 
     if ($jsonStartIndex -lt 0) {
-        throw ("Database helper did not return valid JSON. Output:`n{0}" -f ($outputLines -join [Environment]::NewLine))
+        return @{
+            Result = [pscustomobject]@{
+                ok = $false
+                auth = [pscustomobject]@{ ok = $false; message = 'Database helper returned invalid output.' }
+                chars = [pscustomobject]@{ ok = $false; message = 'Database helper returned invalid output.' }
+                import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
+            }
+            ExitCode = $exitCode
+            PreludeLines = @($outputLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            RawOutput = $outputLines
+        }
     }
 
     $preludeLines = @()
@@ -457,8 +477,22 @@ function Invoke-DatabaseHelper {
     }
 
     $jsonText = ($outputLines[$jsonStartIndex..($outputLines.Count - 1)] -join [Environment]::NewLine)
-    $parsed = $jsonText | ConvertFrom-Json
-    return @{ Result = $parsed; ExitCode = $exitCode; PreludeLines = $preludeLines }
+    try {
+        $parsed = $jsonText | ConvertFrom-Json
+        return @{ Result = $parsed; ExitCode = $exitCode; PreludeLines = $preludeLines; RawOutput = $outputLines }
+    } catch {
+        return @{
+            Result = [pscustomobject]@{
+                ok = $false
+                auth = [pscustomobject]@{ ok = $false; message = 'Database helper JSON could not be parsed.' }
+                chars = [pscustomobject]@{ ok = $false; message = 'Database helper JSON could not be parsed.' }
+                import = [pscustomobject]@{ attempted = $false; ok = $false; message = 'Skipped' }
+            }
+            ExitCode = $exitCode
+            PreludeLines = $preludeLines
+            RawOutput = $outputLines
+        }
+    }
 }
 
 function Start-XamppApache {
@@ -479,168 +513,178 @@ function Start-XamppApache {
     return $null
 }
 
-if (-not (Test-IsAdministrator)) {
-    throw 'Run this installer from an elevated PowerShell session (Run as Administrator).'
-}
+try {
+    if (-not (Test-IsAdministrator)) {
+        throw 'Run this installer from an elevated PowerShell session (Run as Administrator).'
+    }
 
-Show-Banner
-Write-Step 'Checking prerequisites'
-Assert-CommandExists -CommandName 'winget'
-Show-IntroPanel
+    Show-Banner
+    Write-Step 'Checking prerequisites'
+    Assert-CommandExists -CommandName 'winget'
+    Show-IntroPanel
 
-if (-not (Read-YesNo 'Proceed with the installer?' $false)) {
-    Write-WarnMessage 'Installation cancelled before any changes were made.'
-    exit 0
-}
-
-$xamppPhp = Join-Path $XamppRoot 'php\php.exe'
-if ((Test-Path -LiteralPath $xamppPhp) -and -not $AllowExistingXampp) {
-    Write-Box -Title 'Existing XAMPP Detected' -Lines @(
-        "XAMPP already appears to be installed at '$XamppRoot'.",
-        'You can stop now, or continue and reuse the existing XAMPP installation.',
-        'If you continue, the installer will still deploy the website and update php.ini.'
-    ) -BorderColor Yellow -TextColor White
-
-    if (-not (Read-YesNo 'Reuse the existing XAMPP installation and continue?' $false)) {
-        Write-WarnMessage 'Installation cancelled. No further changes were made.'
+    if (-not (Read-YesNo 'Proceed with the installer?' $false)) {
+        Write-WarnMessage 'Installation cancelled before any changes were made.'
         exit 0
     }
-}
 
-if (-not (Test-Path -LiteralPath $xamppPhp)) {
-    Write-Step 'Installing XAMPP with winget'
-    & winget install --id ApacheFriends.Xampp.8.2 --accept-package-agreements --accept-source-agreements --disable-interactivity
-    if ($LASTEXITCODE -ne 0) {
-        throw 'winget failed to install XAMPP.'
+    $xamppPhp = Join-Path $XamppRoot 'php\php.exe'
+    if ((Test-Path -LiteralPath $xamppPhp) -and -not $AllowExistingXampp) {
+        Write-Box -Title 'Existing XAMPP Detected' -Lines @(
+            "XAMPP already appears to be installed at '$XamppRoot'.",
+            'You can stop now, or continue and reuse the existing XAMPP installation.',
+            'If you continue, the installer will still deploy the website and update php.ini.'
+        ) -BorderColor Yellow -TextColor White
+
+        if (-not (Read-YesNo 'Reuse the existing XAMPP installation and continue?' $false)) {
+            Write-WarnMessage 'Installation cancelled. No further changes were made.'
+            exit 0
+        }
     }
-}
 
-if (-not (Test-Path -LiteralPath $xamppPhp)) {
-    throw "XAMPP was not found at '$XamppRoot' after installation."
-}
-
-Write-Step 'Downloading the prepared release package'
-$tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("wow-legends-installer-{0}" -f [Guid]::NewGuid().ToString('N'))
-$null = New-Item -ItemType Directory -Path $tempRoot
-$zipPath = Join-Path $tempRoot 'package.zip'
-$extractPath = Join-Path $tempRoot 'package'
-$packageSource = Get-ReleasePackageUrl -RepositoryOwner $Owner -RepositoryName $Repo -AssetName $ReleaseAssetName -ExplicitUrl $PackageUrl
-Download-File -Url $packageSource -DestinationPath $zipPath
-Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
-$contentRoot = Get-ExpandedContentRoot -ExtractPath $extractPath
-
-Write-Step 'Deploying application files into XAMPP htdocs'
-$backupPath = Backup-InstallRootIfNeeded -Path $InstallRoot
-if ($backupPath) {
-    Write-Info "Existing htdocs content was backed up to '$backupPath'."
-}
-Copy-DirectoryContents -Source $contentRoot -Destination $InstallRoot
-
-Write-Step 'Enabling required PHP extensions'
-$phpIniPath = Join-Path $XamppRoot 'php\php.ini'
-if (-not (Test-Path -LiteralPath $phpIniPath)) {
-    throw "php.ini was not found at '$phpIniPath'."
-}
-Enable-PHPExtensions -PhpIniPath $phpIniPath -Extensions @('pdo_mysql', 'openssl', 'mbstring', 'curl', 'fileinfo', 'gmp')
-
-Write-Step 'Creating a safe default config.php'
-$dbSettings = @{
-    Host = Read-ValueWithDefault -Prompt 'Database host' -Default '127.0.0.1'
-    Port = Read-ValueWithDefault -Prompt 'Database port' -Default '3306'
-    User = Read-ValueWithDefault -Prompt 'Database user' -Default 'root'
-    Password = Read-ValueWithDefault -Prompt 'Database password' -Default 'ascent' -Secret
-    AuthDatabase = Read-ValueWithDefault -Prompt 'Auth database name' -Default 'auth'
-    CharactersDatabase = Read-ValueWithDefault -Prompt 'Characters database name' -Default 'characters'
-}
-
-$templatePath = Join-Path $InstallRoot 'config.sample.php'
-$configPath = Join-Path $InstallRoot 'config.php'
-if (-not (Test-Path -LiteralPath $templatePath)) {
-    throw 'config.sample.php was not found in the deployed package.'
-}
-New-InstallerConfig -TemplatePath $templatePath -ConfigPath $configPath -DbSettings $dbSettings -BaseUrl 'http://localhost'
-
-Write-Step 'Testing database connectivity'
-Write-Box -Title 'Database Check' -Lines @(
-    'Make sure your repack database server is running before continuing.',
-    'If you do not have a repack installed yet, get one first from https://www.emucoach.com/'
-) -BorderColor Yellow -TextColor White
-$helperPath = Join-Path $tempRoot 'db-helper.php'
-$settingsPath = Join-Path $tempRoot 'db-settings.json'
-$sqlPath = Join-Path $InstallRoot 'sql\setup.sql'
-New-DatabaseHelperFile -Path $helperPath
-
-$shouldImport = $false
-if (Read-YesNo 'If the database connection works, import the support tables now?' $true) {
-    $shouldImport = $true
-}
-
-$helperSettings = @{
-    auth = @{
-        host = $dbSettings.Host
-        port = $dbSettings.Port
-        user = $dbSettings.User
-        password = $dbSettings.Password
-        name = $dbSettings.AuthDatabase
+    if (-not (Test-Path -LiteralPath $xamppPhp)) {
+        Write-Step 'Installing XAMPP with winget'
+        & winget install --id ApacheFriends.Xampp.8.2 --accept-package-agreements --accept-source-agreements --disable-interactivity
+        if ($LASTEXITCODE -ne 0) {
+            throw 'winget failed to install XAMPP.'
+        }
     }
-    chars = @{
-        host = $dbSettings.Host
-        port = $dbSettings.Port
-        user = $dbSettings.User
-        password = $dbSettings.Password
-        name = $dbSettings.CharactersDatabase
+
+    if (-not (Test-Path -LiteralPath $xamppPhp)) {
+        throw "XAMPP was not found at '$XamppRoot' after installation."
     }
-    import = $shouldImport
-    sqlFile = $sqlPath
-}
 
-$helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
-$dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+    Write-Step 'Downloading the prepared release package'
+    $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("wow-legends-installer-{0}" -f [Guid]::NewGuid().ToString('N'))
+    $null = New-Item -ItemType Directory -Path $tempRoot
+    $zipPath = Join-Path $tempRoot 'package.zip'
+    $extractPath = Join-Path $tempRoot 'package'
+    $packageSource = Get-ReleasePackageUrl -RepositoryOwner $Owner -RepositoryName $Repo -AssetName $ReleaseAssetName -ExplicitUrl $PackageUrl
+    Download-File -Url $packageSource -DestinationPath $zipPath
+    Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+    $contentRoot = Get-ExpandedContentRoot -ExtractPath $extractPath
 
-foreach ($line in $dbCheck.PreludeLines) {
-    Write-WarnMessage $line
-}
+    Write-Step 'Deploying application files into XAMPP htdocs'
+    $backupPath = Backup-InstallRootIfNeeded -Path $InstallRoot
+    if ($backupPath) {
+        Write-Info "Existing htdocs content was backed up to '$backupPath'."
+    }
+    Copy-DirectoryContents -Source $contentRoot -Destination $InstallRoot
 
-if ($dbCheck.Result.auth.ok) {
-    Write-Info 'Auth database connection succeeded.'
-} else {
-    Write-WarnMessage ("Auth database connection failed: {0}" -f $dbCheck.Result.auth.message)
-}
+    Write-Step 'Enabling required PHP extensions'
+    $phpIniPath = Join-Path $XamppRoot 'php\php.ini'
+    if (-not (Test-Path -LiteralPath $phpIniPath)) {
+        throw "php.ini was not found at '$phpIniPath'."
+    }
+    Enable-PHPExtensions -PhpIniPath $phpIniPath -Extensions @('pdo_mysql', 'openssl', 'mbstring', 'curl', 'fileinfo', 'gmp')
 
-if ($dbCheck.Result.chars.ok) {
-    Write-Info 'Characters database connection succeeded.'
-} else {
-    Write-WarnMessage ("Characters database connection failed: {0}" -f $dbCheck.Result.chars.message)
-}
+    Write-Step 'Creating a safe default config.php'
+    $dbSettings = @{
+        Host = Read-ValueWithDefault -Prompt 'Database host' -Default '127.0.0.1'
+        Port = Read-ValueWithDefault -Prompt 'Database port' -Default '3306'
+        User = Read-ValueWithDefault -Prompt 'Database user' -Default 'root'
+        Password = Read-ValueWithDefault -Prompt 'Database password' -Default 'ascent' -Secret
+        AuthDatabase = Read-ValueWithDefault -Prompt 'Auth database name' -Default 'auth'
+        CharactersDatabase = Read-ValueWithDefault -Prompt 'Characters database name' -Default 'characters'
+    }
 
-if ($dbCheck.Result.import.attempted) {
-    if ($dbCheck.Result.import.ok) {
-        Write-Info 'Support tables were imported into the auth database.'
+    $templatePath = Join-Path $InstallRoot 'config.sample.php'
+    $configPath = Join-Path $InstallRoot 'config.php'
+    if (-not (Test-Path -LiteralPath $templatePath)) {
+        throw 'config.sample.php was not found in the deployed package.'
+    }
+    New-InstallerConfig -TemplatePath $templatePath -ConfigPath $configPath -DbSettings $dbSettings -BaseUrl 'http://localhost'
+
+    Write-Step 'Testing database connectivity'
+    Write-Box -Title 'Database Check' -Lines @(
+        'Make sure your repack database server is running before continuing.',
+        'If you do not have a repack installed yet, get one first from https://www.emucoach.com/'
+    ) -BorderColor Yellow -TextColor White
+    $helperPath = Join-Path $tempRoot 'db-helper.php'
+    $settingsPath = Join-Path $tempRoot 'db-settings.json'
+    $sqlPath = Join-Path $InstallRoot 'sql\setup.sql'
+    New-DatabaseHelperFile -Path $helperPath
+
+    $shouldImport = $false
+    if (Read-YesNo 'If the database connection works, import the support tables now?' $true) {
+        $shouldImport = $true
+    }
+
+    $helperSettings = @{
+        auth = @{
+            host = $dbSettings.Host
+            port = $dbSettings.Port
+            user = $dbSettings.User
+            password = $dbSettings.Password
+            name = $dbSettings.AuthDatabase
+        }
+        chars = @{
+            host = $dbSettings.Host
+            port = $dbSettings.Port
+            user = $dbSettings.User
+            password = $dbSettings.Password
+            name = $dbSettings.CharactersDatabase
+        }
+        import = $shouldImport
+        sqlFile = $sqlPath
+    }
+
+    $helperSettings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $settingsPath -Encoding ASCII
+    $dbCheck = Invoke-DatabaseHelper -PhpExePath $xamppPhp -HelperPath $helperPath -SettingsPath $settingsPath
+
+    foreach ($line in $dbCheck.PreludeLines) {
+        Write-WarnMessage $line
+    }
+
+    if ($dbCheck.Result.auth.ok) {
+        Write-Info 'Auth database connection succeeded.'
     } else {
-        Write-WarnMessage ("Support table import failed: {0}" -f $dbCheck.Result.import.message)
+        Write-WarnMessage ("Auth database connection failed: {0}" -f $dbCheck.Result.auth.message)
     }
-} else {
-    Write-Info 'Support table import was skipped.'
-}
 
-Write-Step 'Starting Apache'
-$apacheStartMethod = Start-XamppApache -Root $XamppRoot
-if ($null -eq $apacheStartMethod) {
-    Write-WarnMessage 'Could not find an Apache start script. Open the XAMPP Control Panel and start Apache manually.'
-} else {
-    Write-Info "Apache start was triggered using $apacheStartMethod."
-}
+    if ($dbCheck.Result.chars.ok) {
+        Write-Info 'Characters database connection succeeded.'
+    } else {
+        Write-WarnMessage ("Characters database connection failed: {0}" -f $dbCheck.Result.chars.message)
+    }
 
-if (-not $SkipBrowser) {
-    Start-Process 'http://localhost/' | Out-Null
-}
+    if ($dbCheck.Result.import.attempted) {
+        if ($dbCheck.Result.import.ok) {
+            Write-Info 'Support tables were imported into the auth database.'
+        } else {
+            Write-WarnMessage ("Support table import failed: {0}" -f $dbCheck.Result.import.message)
+        }
+    } else {
+        Write-Info 'Support table import was skipped.'
+    }
 
-Write-Host ''
-Write-Box -Title 'Installation Complete' -Lines @(
-    'WoW Legends was installed successfully.',
-    "Location: $InstallRoot",
-    'URL: http://localhost/',
-    'Disabled by default: reCAPTCHA, password recovery, tickets',
-    "Config file: $configPath",
-    'To enable advanced features later, edit config.php and add the required keys/services.'
-) -BorderColor Green -TextColor White
+    Write-Step 'Starting Apache'
+    $apacheStartMethod = Start-XamppApache -Root $XamppRoot
+    if ($null -eq $apacheStartMethod) {
+        Write-WarnMessage 'Could not find an Apache start script. Open the XAMPP Control Panel and start Apache manually.'
+    } else {
+        Write-Info "Apache start was triggered using $apacheStartMethod."
+    }
+
+    if (-not $SkipBrowser) {
+        Start-Process 'http://localhost/' | Out-Null
+    }
+
+    Write-Host ''
+    Write-Box -Title 'Installation Complete' -Lines @(
+        'WoW Legends was installed successfully.',
+        "Location: $InstallRoot",
+        'URL: http://localhost/',
+        'Disabled by default: reCAPTCHA, password recovery, tickets',
+        "Config file: $configPath",
+        'To enable advanced features later, edit config.php and add the required keys/services.'
+    ) -BorderColor Green -TextColor White
+} catch {
+    Write-Host ''
+    Write-Box -Title 'Installer Error' -Lines @(
+        'The installer hit an error and stopped.',
+        $_.Exception.Message,
+        'Fix the issue above and run the installer again.'
+    ) -BorderColor Red -TextColor White
+    exit 1
+}
