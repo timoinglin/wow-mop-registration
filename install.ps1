@@ -497,10 +497,14 @@ $xamppPhp = Join-Path $XamppRoot 'php\php.exe'
 if ((Test-Path -LiteralPath $xamppPhp) -and -not $AllowExistingXampp) {
     Write-Box -Title 'Existing XAMPP Detected' -Lines @(
         "XAMPP already appears to be installed at '$XamppRoot'.",
-        'This installer targets fresh setups by default.',
-        'Re-run with -AllowExistingXampp if you want to reuse it.'
+        'You can stop now, or continue and reuse the existing XAMPP installation.',
+        'If you continue, the installer will still deploy the website and update php.ini.'
     ) -BorderColor Yellow -TextColor White
-    exit 0
+
+    if (-not (Read-YesNo 'Reuse the existing XAMPP installation and continue?' $false)) {
+        Write-WarnMessage 'Installation cancelled. No further changes were made.'
+        exit 0
+    }
 }
 
 if (-not (Test-Path -LiteralPath $xamppPhp)) {
