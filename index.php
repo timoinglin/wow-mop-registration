@@ -336,6 +336,11 @@ $faq_items = $config['faq'] ?? [];
 </main>
 
 <style>
+/* Smooth fade transition from video to the dark page content */
+.video-container::after {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.6) 60%, var(--bg-dark) 100%) !important;
+}
+
 /* Discord button */
 .btn-discord {
     background: #5865F2;

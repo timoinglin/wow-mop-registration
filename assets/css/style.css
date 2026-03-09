@@ -30,6 +30,45 @@ body {
     padding-top: 80px;
     font-family: 'Outfit', sans-serif;
     -webkit-font-smoothing: antialiased;
+    position: relative;
+    z-index: 0;
+}
+
+/* Premium CSS-only background (Animated Glowing Orbs) */
+body::before, body::after {
+    content: '';
+    position: fixed;
+    width: 60vw;
+    height: 60vw;
+    max-width: 800px;
+    max-height: 800px;
+    border-radius: 50%;
+    z-index: -1;
+    filter: blur(140px);
+    opacity: 0.12;
+    animation: floatBg 25s infinite alternate ease-in-out;
+    pointer-events: none;
+}
+
+body::before {
+    top: -10%;
+    left: -10%;
+    background: var(--accent);
+}
+
+body::after {
+    bottom: -10%;
+    right: -10%;
+    background: #8b4513; /* Deep thematic orange-brown */
+    animation-delay: -12.5s;
+    animation-duration: 28s;
+}
+
+@keyframes floatBg {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(5vw, 5vh) scale(1.1); }
+    66% { transform: translate(-5vw, 10vh) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
 }
 
 main {
