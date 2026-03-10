@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oops! Nothing to see here...</title>
+  <style>
+    body {
+      background-color: #f0f0f0;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      color: #ff6347;
+      font-size: 4em;
+      margin: 0;
+    }
+    p {
+      font-size: 1.5em;
+      color: #2e8b57;
+      margin: 10px 0;
+    }
+    img {
+      width: 300px;
+      height: auto;
+      margin-top: 20px;
+    }
+    .container {
+      text-align: center;
+      animation: wiggle 2s infinite;
+    }
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-2deg); }
+      50% { transform: rotate(2deg); }
+    }
+    .button {
+      background-color: #ff6347;
+      color: white;
+      padding: 15px 25px;
+      text-align: center;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #ff4500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Oops!</h1>
+    <p>Nothing to see here...</p>
+    <p>Are you lost?</p>
+    <a href="javascript:history.back()" class="button">Go Back</a>
+    <img src="https://media.giphy.com/media/l41lHFP5cKcp75Kw0/giphy.gif" alt="Confused Cat GIF">
+  </div>
+</body>
+</html>

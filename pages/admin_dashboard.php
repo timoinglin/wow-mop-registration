@@ -50,7 +50,7 @@ try {
 
     // Accounts table (real players only for main list, bots separately)
     $all_accounts = $pdo_auth->query(
-        "SELECT a.id, a.username, a.email, a.joindate, a.last_ip, a.online,
+        "SELECT a.id, a.username, a.email, a.joindate, a.last_ip, a.online, a.dp,
                 (SELECT 1 FROM account_banned ab WHERE ab.id=a.id AND ab.active=1 LIMIT 1) as is_banned,
                 (SELECT MAX(gmlevel) FROM account_access aa WHERE aa.id=a.id) as gmlevel
          FROM account a ORDER BY a.joindate DESC LIMIT 500"
@@ -530,11 +530,12 @@ $s_world    = check_port_status($db_host, $world_port);
             <thead>
                 <tr>
                     <th style="width:5%">#</th>
-                    <th style="width:18%">Username</th>
-                    <th style="width:22%">Email</th>
+                    <th style="width:17%">Username</th>
+                    <th style="width:20%">Email</th>
+                    <th style="width:10%">Battle Pay</th>
                     <th style="width:8%">Status</th>
                     <th style="width:12%">Joined</th>
-                    <th style="width:13%">Last IP</th>
+                    <th style="width:12%">Last IP</th>
                     <th style="width:16%">Actions</th>
                 </tr>
             </thead>
@@ -552,6 +553,7 @@ $s_world    = check_port_status($db_host, $world_port);
                 $row_cls = $is_bot ? 'row-bot' : ($is_ban ? 'row-banned' : ($is_gm ? 'row-gm' : 'row-player'));
             ?>
             <tr class="<?= $row_cls ?>"
+                data-account-id="<?= (int)$acc['id'] ?>"
                 data-q="<?= strtolower(htmlspecialchars($acc['username'].' '.$acc['email'])) ?>"
                 data-online="<?= (int)$acc['online'] ?>"
                 data-banned="<?= (int)$is_ban ?>"
@@ -564,6 +566,7 @@ $s_world    = check_port_status($db_host, $world_port);
                     <?php if ($is_gm):  ?><span class="badge-gm">GM <?= $gmlv ?></span><?php endif; ?>
                 </td>
                 <td style="font-size:.78rem;color:<?= $is_bot ? '#4a5568' : '#8899aa' ?>"><?= $is_bot ? '—' : htmlspecialchars($acc['email']) ?></td>
+                <td class="acct-dp" style="font-weight:700;color:#c8a96e"><?= number_format((int)($acc['dp'] ?? 0)) ?></td>
                 <td>
                     <span class="online-pill">
                         <span class="dot <?= $acc['online'] ? 'dot-on' : 'dot-off' ?>"></span>
@@ -938,12 +941,16 @@ async function viewAccount(id) {
     const r = await adminApi('get_account', { id }, 'GET');
     if (!r.success) { document.getElementById('accountModalBody').innerHTML = '<p style="color:#f87e8a">Error loading account</p>'; return; }
     const a = r.account;
+    const username = escJsString(a.username || '');
+    const email = escJsString(a.email || '');
+    const battlePay = Number(a.dp || 0);
     const banned = a.is_banned ? '<span class="badge-ban">BANNED</span>' : '<span style="color:#5dd87c">Active</span>';
     const gmBadge = a.gmlevel ? '<span class="badge-gm">GM ' + a.gmlevel + '</span>' : 'Player';
     let html = `
         <div class="modal-row"><span class="mk">ID</span><span class="mv">${a.id}</span></div>
         <div class="modal-row"><span class="mk">Username</span><span class="mv" style="color:#c8a96e;font-weight:700">${a.username}</span></div>
         <div class="modal-row"><span class="mk">Email</span><span class="mv">${a.email || '—'}</span></div>
+        <div class="modal-row"><span class="mk">Battle Pay Balance</span><span class="mv" style="color:#c8a96e;font-weight:700">${formatNumber(battlePay)}</span></div>
         <div class="modal-row"><span class="mk">Status</span><span class="mv">${banned}</span></div>
         <div class="modal-row"><span class="mk">Role</span><span class="mv">${gmBadge}</span></div>
         <div class="modal-row"><span class="mk">Joined</span><span class="mv">${a.joindate || '—'}</span></div>
@@ -964,9 +971,10 @@ async function viewAccount(id) {
         <div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(139,69,19,.25)">
             <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">Quick Actions</div>
             <div class="d-flex gap-2 flex-wrap">
-                <button class="tool-btn tool-btn-primary" onclick="promptResetPassword(${a.id},'${a.username}')"><i class="bi bi-key me-1"></i>Reset Password</button>
-                <button class="tool-btn tool-btn-primary" onclick="promptEditEmail(${a.id},'${a.email || ''}')"><i class="bi bi-envelope me-1"></i>Edit Email</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptResetPassword(${a.id},'${username}')"><i class="bi bi-key me-1"></i>Reset Password</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptEditEmail(${a.id},'${email}')"><i class="bi bi-envelope me-1"></i>Edit Email</button>
                 <button class="tool-btn tool-btn-primary" onclick="promptEditGM(${a.id},${a.gmlevel||0})"><i class="bi bi-shield me-1"></i>Set GM Level</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptEditBattlePay(${a.id},${battlePay})"><i class="bi bi-coin me-1"></i>Set Battle Pay</button>
             </div>
         </div>
     `;
@@ -992,6 +1000,26 @@ async function promptEditGM(id, current) {
     if (gm === null) return;
     const r = await adminApi('update_account', { account_id: id, gmlevel: gm });
     if (r.success) { showToast(r.message); setTimeout(() => location.reload(), 1200); } else showToast(r.error, 'error');
+}
+
+async function promptEditBattlePay(id, current) {
+    const dp = prompt('Enter new Battle Pay balance (current: ' + current + '):', String(current));
+    if (dp === null) return;
+
+    const value = String(dp).trim();
+    if (!/^\d+$/.test(value)) {
+        showToast('Battle Pay balance must be a non-negative whole number.', 'error');
+        return;
+    }
+
+    const r = await adminApi('update_account', { account_id: id, dp: value });
+    if (r.success) {
+        showToast(r.message);
+        updateAccountBalanceDisplay(id, value);
+        await viewAccount(id);
+    } else {
+        showToast(r.error, 'error');
+    }
 }
 
 // ── TICKETS ──────────────────────────────────────────────────────────────────
@@ -1031,6 +1059,16 @@ async function loadTickets() {
 
 function escHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
 function escAttr(s) { return escHtml(s).replace(/'/g,"\\'"); }
+function escJsString(s) { return s ? String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ') : ''; }
+function formatNumber(n) {
+    const value = Number(n);
+    return Number.isFinite(value) ? value.toLocaleString() : '0';
+}
+
+function updateAccountBalanceDisplay(id, balance) {
+    const rowBalance = document.querySelector('#acctTable tbody tr[data-account-id="' + id + '"] .acct-dp');
+    if (rowBalance) rowBalance.textContent = formatNumber(balance);
+}
 
 function openTicketReply(id, subject, username, message) {
     document.getElementById('replyTicketId').textContent = id;

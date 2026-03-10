@@ -177,6 +177,7 @@ try {
             $target_id = (int)($_POST['account_id'] ?? 0);
             $new_email = trim($_POST['email'] ?? '');
             $new_gm    = $_POST['gmlevel'] ?? null;
+            $new_dp    = $_POST['dp'] ?? null;
 
             if (!$target_id) { echo json_encode(['error' => 'Missing account_id']); exit; }
 
@@ -202,6 +203,18 @@ try {
                     $stmt->execute(['id' => $target_id, 'gm' => $gm_int]);
                 }
                 $changes[] = "GM Level → $gm_int";
+            }
+
+            if ($new_dp !== null && $new_dp !== '') {
+                if (!preg_match('/^\d+$/', (string)$new_dp)) {
+                    echo json_encode(['error' => 'Battle Pay balance must be a non-negative whole number']);
+                    exit;
+                }
+
+                $dp_int = (int)$new_dp;
+                $stmt = $pdo_auth->prepare("UPDATE account SET dp = :dp WHERE id = :id");
+                $stmt->execute(['dp' => $dp_int, 'id' => $target_id]);
+                $changes[] = "Battle Pay → $dp_int";
             }
 
             if (!empty($changes)) {
@@ -373,7 +386,7 @@ try {
             if (!$target_id) { echo json_encode(['error' => 'Missing id']); exit; }
 
             $stmt = $pdo_auth->prepare(
-                "SELECT a.id, a.username, a.email, a.joindate, a.last_ip, a.online, a.last_login,
+                "SELECT a.id, a.username, a.email, a.joindate, a.last_ip, a.online, a.last_login, a.dp,
                         (SELECT 1 FROM account_banned ab WHERE ab.id=a.id AND ab.active=1 LIMIT 1) as is_banned,
                         (SELECT MAX(gmlevel) FROM account_access aa WHERE aa.id=a.id) as gmlevel
                  FROM account a WHERE a.id = :id"

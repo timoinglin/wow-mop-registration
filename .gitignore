@@ -1,9 +1,6 @@
 # Local server config
 /config.php
 
-# Composer dependencies
-/vendor/
-
 # Runtime cache data
 /cache/login_history/*.json
 /cache/rate_limit/*.json
