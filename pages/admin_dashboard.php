@@ -317,56 +317,56 @@ $s_world    = check_port_status($db_host, $world_port);
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">👥</div>
             <div class="val"><?= number_format($admin_data['total_accounts']) ?></div>
-            <div class="lbl">Total Accounts</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_total_accounts'] ?? 'Total Accounts') ?></div>
         </div>
     </div>
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">🟢</div>
             <div class="val" style="color:#5dd87c"><?= $admin_data['online_accounts'] ?></div>
-            <div class="lbl">Online Now</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_online_now'] ?? 'Online Now') ?></div>
         </div>
     </div>
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">⚔️</div>
             <div class="val"><?= number_format($admin_data['total_characters']) ?></div>
-            <div class="lbl">Characters</div>
-            <div class="sub"><?= $admin_data['online_characters'] ?> in-game</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_characters_label'] ?? 'Characters') ?></div>
+            <div class="sub"><?= $admin_data['online_characters'] ?> <?= htmlspecialchars($TEXT['admin_in_game'] ?? 'in-game') ?></div>
         </div>
     </div>
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">📈</div>
             <div class="val"><?= $admin_data['new_24h'] ?></div>
-            <div class="lbl">New Today</div>
-            <div class="sub"><?= $admin_data['new_7d'] ?> this week</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_new_today'] ?? 'New Today') ?></div>
+            <div class="sub"><?= $admin_data['new_7d'] ?> <?= htmlspecialchars($TEXT['admin_this_week'] ?? 'this week') ?></div>
         </div>
     </div>
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">🤖</div>
             <div class="val" style="color:#fbbf24"><?= number_format($bot_count) ?></div>
-            <div class="lbl">PlayerBots</div>
-            <div class="sub"><?= count($real_accounts) ?> real players</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_player_bots'] ?? 'PlayerBots') ?></div>
+            <div class="sub"><?= count($real_accounts) ?> <?= htmlspecialchars($TEXT['admin_real_players'] ?? 'real players') ?></div>
         </div>
     </div>
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">🔨</div>
             <div class="val" style="color:#f87e8a"><?= $admin_data['banned_accounts'] ?></div>
-            <div class="lbl">Active Bans</div>
+            <div class="lbl"><?= htmlspecialchars($TEXT['admin_active_bans'] ?? 'Active Bans') ?></div>
         </div>
     </div>
 </div>
 
 <!-- TAB NAV -->
 <div class="adm-tabs">
-    <button class="adm-tab active" onclick="switchTab('overview',this)"><i class="bi bi-grid me-1"></i>Overview</button>
-    <button class="adm-tab" onclick="switchTab('accounts',this)"><i class="bi bi-people me-1"></i>Accounts</button>
-    <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i>Tickets</button>
-    <button class="adm-tab" onclick="switchTab('audit',this)"><i class="bi bi-journal-text me-1"></i>Audit Log</button>
-    <button class="adm-tab" onclick="switchTab('tools',this)"><i class="bi bi-tools me-1"></i>Tools</button>
+    <button class="adm-tab active" onclick="switchTab('overview',this)"><i class="bi bi-grid me-1"></i><?= htmlspecialchars($TEXT['admin_tab_overview'] ?? 'Overview') ?></button>
+    <button class="adm-tab" onclick="switchTab('accounts',this)"><i class="bi bi-people me-1"></i><?= htmlspecialchars($TEXT['admin_tab_accounts'] ?? 'Accounts') ?></button>
+    <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tickets'] ?? 'Tickets') ?></button>
+    <button class="adm-tab" onclick="switchTab('audit',this)"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_audit'] ?? 'Audit Log') ?></button>
+    <button class="adm-tab" onclick="switchTab('tools',this)"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tools'] ?? 'Tools') ?></button>
 
 </div>
 
@@ -376,23 +376,23 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Server Status -->
         <div class="col-lg-3">
             <div class="admin-panel">
-                <div class="panel-title"><i class="bi bi-hdd-network me-2"></i>Server Status</div>
+                <div class="panel-title"><i class="bi bi-hdd-network me-2"></i><?= htmlspecialchars($TEXT['admin_server_status'] ?? 'Server Status') ?></div>
                 <div class="srv-badge">
                     <div class="srv-dot <?= $s_auth ? 'on-dot' : 'off-dot' ?>"></div>
                     <span class="srv-name">Auth</span>
                     <span class="srv-port">:<?= $auth_port ?></span>
-                    <span class="srv-st <?= $s_auth ? 'on' : 'off' ?>"><?= $s_auth ? 'Online' : 'Offline' ?></span>
+                    <span class="srv-st <?= $s_auth ? 'on' : 'off' ?>"><?= $s_auth ? htmlspecialchars($TEXT['status_online'] ?? 'Online') : htmlspecialchars($TEXT['status_offline'] ?? 'Offline') ?></span>
                 </div>
                 <div class="srv-badge">
                     <div class="srv-dot <?= $s_world ? 'on-dot' : 'off-dot' ?>"></div>
                     <span class="srv-name">World</span>
                     <span class="srv-port">:<?= $world_port ?></span>
-                    <span class="srv-st <?= $s_world ? 'on' : 'off' ?>"><?= $s_world ? 'Online' : 'Offline' ?></span>
+                    <span class="srv-st <?= $s_world ? 'on' : 'off' ?>"><?= $s_world ? htmlspecialchars($TEXT['status_online'] ?? 'Online') : htmlspecialchars($TEXT['status_offline'] ?? 'Offline') ?></span>
                 </div>
 
                 <!-- Class distribution -->
                 <?php if (!empty($admin_data['class_dist'])): ?>
-                <div class="panel-title mt-3"><i class="bi bi-bar-chart me-2"></i>Class Distribution</div>
+                <div class="panel-title mt-3"><i class="bi bi-bar-chart me-2"></i><?= htmlspecialchars($TEXT['admin_class_distribution'] ?? 'Class Distribution') ?></div>
                 <?php $total_c = max(1, $admin_data['total_characters']);
                 foreach ($admin_data['class_dist'] as $cd):
                     $cls = (int)$cd['class']; $pct = round($cd['cnt'] / $total_c * 100); $clr = $class_colors[$cls] ?? '#8899aa';
@@ -414,7 +414,7 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Reg chart -->
         <div class="col-lg-5">
             <div class="admin-panel">
-                <div class="panel-title"><i class="bi bi-graph-up me-2"></i>Registrations — Last 14 Days</div>
+                <div class="panel-title"><i class="bi bi-graph-up me-2"></i><?= htmlspecialchars($TEXT['admin_registrations_14d'] ?? 'Registrations — Last 14 Days') ?></div>
                 <canvas id="regChart" height="190"></canvas>
             </div>
         </div>
@@ -422,7 +422,7 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Recent Bans -->
         <div class="col-lg-4">
             <div class="admin-panel">
-                <div class="panel-title"><i class="bi bi-slash-circle me-2"></i>Recent Active Bans</div>
+                <div class="panel-title"><i class="bi bi-slash-circle me-2"></i><?= htmlspecialchars($TEXT['admin_recent_bans'] ?? 'Recent Active Bans') ?></div>
                 <?php if (!empty($admin_data['recent_bans'])): ?>
                     <?php foreach ($admin_data['recent_bans'] as $ban): ?>
                     <div class="ban-row">
@@ -430,11 +430,11 @@ $s_world    = check_port_status($db_host, $world_port);
                             <span style="color:#f87e8a;font-weight:700;font-size:.88rem"><?= htmlspecialchars($ban['username']) ?></span>
                             <span style="color:#4a5568;font-size:.7rem"><?= date('M d', strtotime($ban['bandate'])) ?></span>
                         </div>
-                        <div style="font-size:.75rem;color:#8899aa"><?= htmlspecialchars($ban['banreason'] ?: '—') ?> <span style="color:#4a5568">by <?= htmlspecialchars($ban['bannedby']) ?></span></div>
+                        <div style="font-size:.75rem;color:#8899aa"><?= htmlspecialchars($ban['banreason'] ?: '—') ?> <span style="color:#4a5568"><?= htmlspecialchars($TEXT['admin_js_by'] ?? 'by') ?> <?= htmlspecialchars($ban['bannedby']) ?></span></div>
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="text-center py-3" style="color:#4a5568"><i class="bi bi-check-circle" style="font-size:1.5rem"></i><p class="mt-1 mb-0" style="font-size:.85rem">No active bans</p></div>
+                    <div class="text-center py-3" style="color:#4a5568"><i class="bi bi-check-circle" style="font-size:1.5rem"></i><p class="mt-1 mb-0" style="font-size:.85rem"><?= htmlspecialchars($TEXT['admin_no_active_bans'] ?? 'No active bans') ?></p></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -444,7 +444,7 @@ $s_world    = check_port_status($db_host, $world_port);
     <div class="row g-3">
         <div class="col-lg-6">
             <div class="admin-panel">
-                <div class="panel-title"><i class="bi bi-trophy me-2"></i>Top Characters by Level</div>
+                <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['admin_top_chars'] ?? 'Top Characters by Level') ?></div>
                 <?php foreach ($admin_data['top_characters'] as $c):
                     $cls = (int)$c['class']; $clr = $class_colors[$cls] ?? '#c8a96e';
                 ?>
@@ -460,11 +460,19 @@ $s_world    = check_port_status($db_host, $world_port);
         </div>
         <div class="col-lg-6">
             <div class="admin-panel">
-                <div class="panel-title"><i class="bi bi-clock-history me-2"></i>Recently Active Characters</div>
+                <div class="panel-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['admin_recent_active_chars'] ?? 'Recently Active Characters') ?></div>
                 <?php foreach ($admin_data['recent_characters'] as $c):
                     $cls = (int)$c['class']; $clr = $class_colors[$cls] ?? '#c8a96e';
                     $ago = $c['logout_time'] ? (time()-(int)$c['logout_time']) : null;
-                    $ago_str = $ago === null ? 'Never' : ($ago<60?'just now':($ago<3600?floor($ago/60).'m ago':($ago<86400?floor($ago/3600).'h ago':date('M d',(int)$c['logout_time']))));
+                    $ago_str = $ago === null
+                        ? ($TEXT['common_never'] ?? 'Never')
+                        : ($ago < 60
+                            ? ($TEXT['common_just_now'] ?? 'just now')
+                            : ($ago < 3600
+                                ? floor($ago/60)   . ' ' . ($TEXT['common_min_ago']   ?? 'm ago')
+                                : ($ago < 86400
+                                    ? floor($ago/3600) . ' ' . ($TEXT['common_hours_ago'] ?? 'h ago')
+                                    : date('M d', (int)$c['logout_time']))));
                 ?>
                 <div class="char-row">
                     <img src="<?= get_race_icon_path((int)$c['race'], (int)($c['gender']??0)) ?>">
@@ -483,11 +491,11 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="adm-tab-content" id="tab-accounts">
     <div class="admin-panel" style="height:auto">
         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <div class="panel-title mb-0"><i class="bi bi-people me-2"></i>Account List</div>
+            <div class="panel-title mb-0"><i class="bi bi-people me-2"></i><?= htmlspecialchars($TEXT['admin_account_list'] ?? 'Account List') ?></div>
             <div class="d-flex align-items-center gap-2">
                 <span style="font-size:.78rem;color:#6b7280" id="acctCountLabel"></span>
                 <button class="toggle-bot-btn" id="botToggle" onclick="toggleBots()">
-                    🤖 Hide Bots (<?= $bot_count ?>)
+                    🤖 <?= htmlspecialchars($TEXT['admin_hide_bots'] ?? 'Hide Bots') ?> (<?= $bot_count ?>)
                 </button>
             </div>
         </div>
@@ -495,32 +503,32 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Filters -->
         <div class="acc-filters">
             <div>
-                <label>Search username / email</label>
-                <input type="text" id="acctSearch" class="acc-filter-input" placeholder="Type to search…" oninput="filterAccts()">
+                <label><?= htmlspecialchars($TEXT['admin_search_user_email'] ?? 'Search username / email') ?></label>
+                <input type="text" id="acctSearch" class="acc-filter-input" placeholder="<?= htmlspecialchars($TEXT['admin_type_to_search'] ?? 'Type to search…') ?>" oninput="filterAccts()">
             </div>
             <div>
-                <label>Status</label>
+                <label><?= htmlspecialchars($TEXT['admin_status'] ?? 'Status') ?></label>
                 <select id="acctOnline" class="acc-filter-input" onchange="filterAccts()">
-                    <option value="">All</option>
-                    <option value="1">Online</option>
-                    <option value="0">Offline</option>
+                    <option value=""><?= htmlspecialchars($TEXT['common_all'] ?? 'All') ?></option>
+                    <option value="1"><?= htmlspecialchars($TEXT['status_online'] ?? 'Online') ?></option>
+                    <option value="0"><?= htmlspecialchars($TEXT['status_offline'] ?? 'Offline') ?></option>
                 </select>
             </div>
             <div>
-                <label>Banned</label>
+                <label><?= htmlspecialchars($TEXT['admin_banned_filter'] ?? 'Banned') ?></label>
                 <select id="acctBanned" class="acc-filter-input" onchange="filterAccts()">
-                    <option value="">All</option>
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
+                    <option value=""><?= htmlspecialchars($TEXT['common_all'] ?? 'All') ?></option>
+                    <option value="1"><?= htmlspecialchars($TEXT['common_yes'] ?? 'Yes') ?></option>
+                    <option value="0"><?= htmlspecialchars($TEXT['common_no'] ?? 'No') ?></option>
                 </select>
             </div>
             <div>
-                <label>Type</label>
+                <label><?= htmlspecialchars($TEXT['admin_type_filter'] ?? 'Type') ?></label>
                 <select id="acctType" class="acc-filter-input" onchange="filterAccts()">
-                    <option value="">All</option>
-                    <option value="player">Players</option>
-                    <option value="bot">Bots</option>
-                    <option value="gm">GMs</option>
+                    <option value=""><?= htmlspecialchars($TEXT['common_all'] ?? 'All') ?></option>
+                    <option value="player"><?= htmlspecialchars($TEXT['admin_filter_players'] ?? 'Players') ?></option>
+                    <option value="bot"><?= htmlspecialchars($TEXT['admin_filter_bots'] ?? 'Bots') ?></option>
+                    <option value="gm"><?= htmlspecialchars($TEXT['admin_filter_gms'] ?? 'GMs') ?></option>
                 </select>
             </div>
         </div>
@@ -530,13 +538,13 @@ $s_world    = check_port_status($db_host, $world_port);
             <thead>
                 <tr>
                     <th style="width:5%">#</th>
-                    <th style="width:17%">Username</th>
-                    <th style="width:20%">Email</th>
-                    <th style="width:10%">Battle Pay</th>
-                    <th style="width:8%">Status</th>
-                    <th style="width:12%">Joined</th>
-                    <th style="width:12%">Last IP</th>
-                    <th style="width:16%">Actions</th>
+                    <th style="width:17%"><?= htmlspecialchars($TEXT['admin_col_username'] ?? 'Username') ?></th>
+                    <th style="width:20%"><?= htmlspecialchars($TEXT['admin_col_email'] ?? 'Email') ?></th>
+                    <th style="width:10%"><?= htmlspecialchars($TEXT['admin_col_battle_pay'] ?? 'Battle Pay') ?></th>
+                    <th style="width:8%"><?= htmlspecialchars($TEXT['admin_status'] ?? 'Status') ?></th>
+                    <th style="width:12%"><?= htmlspecialchars($TEXT['admin_col_joined'] ?? 'Joined') ?></th>
+                    <th style="width:12%"><?= htmlspecialchars($TEXT['admin_col_last_ip'] ?? 'Last IP') ?></th>
+                    <th style="width:16%"><?= htmlspecialchars($TEXT['admin_col_actions'] ?? 'Actions') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -570,7 +578,7 @@ $s_world    = check_port_status($db_host, $world_port);
                 <td>
                     <span class="online-pill">
                         <span class="dot <?= $acc['online'] ? 'dot-on' : 'dot-off' ?>"></span>
-                        <span style="color:<?= $acc['online'] ? '#5dd87c' : '#6b7280' ?>;font-size:.78rem"><?= $acc['online'] ? 'Online' : 'Offline' ?></span>
+                        <span style="color:<?= $acc['online'] ? '#5dd87c' : '#6b7280' ?>;font-size:.78rem"><?= $acc['online'] ? htmlspecialchars($TEXT['status_online'] ?? 'Online') : htmlspecialchars($TEXT['status_offline'] ?? 'Offline') ?></span>
                     </span>
                 </td>
                 <td style="font-size:.78rem;color:#6b7280"><?= date('M d, Y', strtotime($acc['joindate'])) ?></td>
@@ -579,9 +587,9 @@ $s_world    = check_port_status($db_host, $world_port);
                     <div class="d-flex gap-1 flex-wrap">
                         <button class="acc-action-btn view" onclick="event.stopPropagation();viewAccount(<?= $acc['id'] ?>)"><i class="bi bi-eye"></i></button>
                         <?php if (!$is_ban): ?>
-                            <button class="acc-action-btn ban" onclick="event.stopPropagation();showBanModal(<?= $acc['id'] ?>,'<?= htmlspecialchars($acc['username'], ENT_QUOTES) ?>')"><i class="bi bi-slash-circle"></i> Ban</button>
+                            <button class="acc-action-btn ban" onclick="event.stopPropagation();showBanModal(<?= $acc['id'] ?>,'<?= htmlspecialchars($acc['username'], ENT_QUOTES) ?>')"><i class="bi bi-slash-circle"></i> <?= htmlspecialchars($TEXT['admin_btn_ban'] ?? 'Ban') ?></button>
                         <?php else: ?>
-                            <button class="acc-action-btn unban" onclick="event.stopPropagation();doUnban(<?= $acc['id'] ?>)"><i class="bi bi-check-circle"></i> Unban</button>
+                            <button class="acc-action-btn unban" onclick="event.stopPropagation();doUnban(<?= $acc['id'] ?>)"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($TEXT['admin_btn_unban'] ?? 'Unban') ?></button>
                         <?php endif; ?>
                     </div>
                 </td>
@@ -598,25 +606,25 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="adm-tab-content" id="tab-tickets">
     <div class="admin-panel" style="height:auto">
         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <div class="panel-title mb-0"><i class="bi bi-ticket-perforated me-2"></i>Support Tickets</div>
+            <div class="panel-title mb-0"><i class="bi bi-ticket-perforated me-2"></i><?= htmlspecialchars($TEXT['admin_support_tickets'] ?? 'Support Tickets') ?></div>
             <div class="d-flex gap-2">
                 <select id="ticketFilter" class="acc-filter-input" style="width:auto" onchange="loadTickets()">
-                    <option value="">All</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="closed">Closed</option>
+                    <option value=""><?= htmlspecialchars($TEXT['common_all'] ?? 'All') ?></option>
+                    <option value="open"><?= htmlspecialchars($TEXT['tickets_status_open'] ?? 'Open') ?></option>
+                    <option value="in_progress"><?= htmlspecialchars($TEXT['tickets_status_in_progress'] ?? 'In Progress') ?></option>
+                    <option value="closed"><?= htmlspecialchars($TEXT['tickets_status_closed'] ?? 'Closed') ?></option>
                 </select>
             </div>
         </div>
-        <div id="ticketList"><div class="text-center py-4" style="color:#4a5568">Loading tickets...</div></div>
+        <div id="ticketList"><div class="text-center py-4" style="color:#4a5568"><?= htmlspecialchars($TEXT['admin_loading_tickets'] ?? 'Loading tickets…') ?></div></div>
     </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ TAB: AUDIT LOG -->
 <div class="adm-tab-content" id="tab-audit">
     <div class="admin-panel" style="height:auto">
-        <div class="panel-title"><i class="bi bi-journal-text me-2"></i>Admin Audit Log</div>
-        <div id="auditList"><div class="text-center py-4" style="color:#4a5568">Loading audit log...</div></div>
+        <div class="panel-title"><i class="bi bi-journal-text me-2"></i><?= htmlspecialchars($TEXT['admin_audit_title'] ?? 'Admin Audit Log') ?></div>
+        <div id="auditList"><div class="text-center py-4" style="color:#4a5568"><?= htmlspecialchars($TEXT['admin_loading_audit'] ?? 'Loading audit log…') ?></div></div>
         <div class="tbl-pg" id="auditPager"></div>
     </div>
 </div>
@@ -627,9 +635,9 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Character Lookup -->
         <div class="col-lg-6">
             <div class="tool-card">
-                <div class="panel-title"><i class="bi bi-search me-2"></i>Character Lookup</div>
+                <div class="panel-title"><i class="bi bi-search me-2"></i><?= htmlspecialchars($TEXT['admin_char_lookup'] ?? 'Character Lookup') ?></div>
                 <div class="d-flex gap-2 mb-3">
-                    <input type="text" id="charSearchInput" class="tool-input" placeholder="Search character name...">
+                    <input type="text" id="charSearchInput" class="tool-input" placeholder="<?= htmlspecialchars($TEXT['admin_search_char_placeholder'] ?? 'Search character name…') ?>">
                     <button class="tool-btn tool-btn-primary" onclick="searchCharacter()"><i class="bi bi-search"></i></button>
                 </div>
                 <div id="charResults"></div>
@@ -639,11 +647,11 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- IP Ban Management -->
         <div class="col-lg-6">
             <div class="tool-card">
-                <div class="panel-title"><i class="bi bi-shield-x me-2"></i>IP Ban Management</div>
+                <div class="panel-title"><i class="bi bi-shield-x me-2"></i><?= htmlspecialchars($TEXT['admin_ip_ban_mgmt'] ?? 'IP Ban Management') ?></div>
                 <div class="d-flex gap-2 mb-3">
-                    <input type="text" id="ipBanInput" class="tool-input" placeholder="IP address (e.g. 192.168.1.1)" style="flex:1">
-                    <input type="text" id="ipBanReason" class="tool-input" placeholder="Reason" style="flex:1">
-                    <button class="tool-btn tool-btn-danger" onclick="doIpBan()"><i class="bi bi-slash-circle"></i> Ban</button>
+                    <input type="text" id="ipBanInput" class="tool-input" placeholder="<?= htmlspecialchars($TEXT['admin_ip_addr_placeholder'] ?? 'IP address (e.g. 192.168.1.1)') ?>" style="flex:1">
+                    <input type="text" id="ipBanReason" class="tool-input" placeholder="<?= htmlspecialchars($TEXT['admin_reason'] ?? 'Reason') ?>" style="flex:1">
+                    <button class="tool-btn tool-btn-danger" onclick="doIpBan()"><i class="bi bi-slash-circle"></i> <?= htmlspecialchars($TEXT['admin_btn_ban'] ?? 'Ban') ?></button>
                 </div>
                 <div id="ipBanList"></div>
             </div>
@@ -652,25 +660,25 @@ $s_world    = check_port_status($db_host, $world_port);
         <!-- Peak Players -->
         <div class="col-lg-6">
             <div class="tool-card">
-                <div class="panel-title"><i class="bi bi-graph-up-arrow me-2"></i>Server Stats</div>
-                <div id="peakPlayersContent"><div class="text-center py-3" style="color:#4a5568">Loading...</div></div>
+                <div class="panel-title"><i class="bi bi-graph-up-arrow me-2"></i><?= htmlspecialchars($TEXT['admin_server_stats'] ?? 'Server Stats') ?></div>
+                <div id="peakPlayersContent"><div class="text-center py-3" style="color:#4a5568"><?= htmlspecialchars($TEXT['common_loading'] ?? 'Loading…') ?></div></div>
             </div>
         </div>
 
         <!-- Email Broadcast -->
         <div class="col-lg-6">
             <div class="tool-card">
-                <div class="panel-title"><i class="bi bi-envelope-at me-2"></i>Email Broadcast</div>
+                <div class="panel-title"><i class="bi bi-envelope-at me-2"></i><?= htmlspecialchars($TEXT['admin_email_broadcast'] ?? 'Email Broadcast') ?></div>
                 <div class="mb-2">
-                    <input type="text" id="broadcastSubject" class="tool-input" placeholder="Email subject...">
+                    <input type="text" id="broadcastSubject" class="tool-input" placeholder="<?= htmlspecialchars($TEXT['admin_broadcast_subject_ph'] ?? 'Email subject…') ?>">
                 </div>
                 <div class="mb-2">
-                    <textarea id="broadcastBody" class="tool-input" rows="4" placeholder="Email body..."></textarea>
+                    <textarea id="broadcastBody" class="tool-input" rows="4" placeholder="<?= htmlspecialchars($TEXT['admin_broadcast_body_ph'] ?? 'Email body…') ?>"></textarea>
                 </div>
                 <button class="tool-btn tool-btn-primary" onclick="sendBroadcast()" id="broadcastBtn">
-                    <i class="bi bi-send me-1"></i> Send to All Users
+                    <i class="bi bi-send me-1"></i> <?= htmlspecialchars($TEXT['admin_send_all_users'] ?? 'Send to All Users') ?>
                 </button>
-                <div style="font-size:.72rem;color:#4a5568;margin-top:.5rem"><i class="bi bi-exclamation-triangle me-1"></i>This will email ALL registered accounts. Use with care.</div>
+                <div style="font-size:.72rem;color:#4a5568;margin-top:.5rem"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($TEXT['admin_broadcast_warning'] ?? 'This will email ALL registered accounts. Use with care.') ?></div>
             </div>
         </div>
     </div>
@@ -682,8 +690,8 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="admin-modal-overlay" id="accountModal">
     <div class="admin-modal" style="position:relative">
         <button class="modal-close" onclick="closeModal('accountModal')">&times;</button>
-        <h3><i class="bi bi-person-badge me-2"></i>Account Details</h3>
-        <div id="accountModalBody"><div class="text-center py-3" style="color:#4a5568">Loading...</div></div>
+        <h3><i class="bi bi-person-badge me-2"></i><?= htmlspecialchars($TEXT['admin_account_details'] ?? 'Account Details') ?></h3>
+        <div id="accountModalBody"><div class="text-center py-3" style="color:#4a5568"><?= htmlspecialchars($TEXT['common_loading'] ?? 'Loading…') ?></div></div>
     </div>
 </div>
 
@@ -691,31 +699,31 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="admin-modal-overlay" id="banModal">
     <div class="admin-modal" style="position:relative;max-width:500px">
         <button class="modal-close" onclick="closeModal('banModal')">&times;</button>
-        <h3><i class="bi bi-slash-circle me-2" style="color:#f87e8a"></i>Ban Account</h3>
+        <h3><i class="bi bi-slash-circle me-2" style="color:#f87e8a"></i><?= htmlspecialchars($TEXT['admin_ban_account'] ?? 'Ban Account') ?></h3>
         <input type="hidden" id="banAccountId">
         <div style="color:#e2e8f0;margin-bottom:1rem" id="banAccountName"></div>
         <div class="mb-3">
-            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem">Reason</label>
-            <input type="text" id="banReason" class="tool-input" placeholder="Ban reason...">
+            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem"><?= htmlspecialchars($TEXT['admin_reason'] ?? 'Reason') ?></label>
+            <input type="text" id="banReason" class="tool-input" placeholder="<?= htmlspecialchars($TEXT['admin_ban_reason_placeholder'] ?? 'Ban reason…') ?>">
         </div>
         <div class="mb-3">
-            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem">Duration</label>
+            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem"><?= htmlspecialchars($TEXT['admin_duration'] ?? 'Duration') ?></label>
             <select id="banDuration" class="tool-input">
-                <option value="300">5 minutes</option>
-                <option value="1800">30 minutes</option>
-                <option value="3600">1 hour</option>
-                <option value="10800">3 hours</option>
-                <option value="21600">6 hours</option>
-                <option value="43200">12 hours</option>
-                <option value="86400">24 hours</option>
-                <option value="259200">3 days</option>
-                <option value="604800">7 days</option>
-                <option value="2592000">30 days</option>
-                <option value="-1">Permanent</option>
+                <option value="300"><?= htmlspecialchars($TEXT['ban_duration_5min']      ?? '5 minutes') ?></option>
+                <option value="1800"><?= htmlspecialchars($TEXT['ban_duration_30min']    ?? '30 minutes') ?></option>
+                <option value="3600"><?= htmlspecialchars($TEXT['ban_duration_1hour']    ?? '1 hour') ?></option>
+                <option value="10800"><?= htmlspecialchars($TEXT['ban_duration_3hours']  ?? '3 hours') ?></option>
+                <option value="21600"><?= htmlspecialchars($TEXT['ban_duration_6hours']  ?? '6 hours') ?></option>
+                <option value="43200"><?= htmlspecialchars($TEXT['ban_duration_12hours'] ?? '12 hours') ?></option>
+                <option value="86400"><?= htmlspecialchars($TEXT['ban_duration_24hours'] ?? '24 hours') ?></option>
+                <option value="259200"><?= htmlspecialchars($TEXT['ban_duration_3days']  ?? '3 days') ?></option>
+                <option value="604800"><?= htmlspecialchars($TEXT['ban_duration_7days']  ?? '7 days') ?></option>
+                <option value="2592000"><?= htmlspecialchars($TEXT['ban_duration_30days']?? '30 days') ?></option>
+                <option value="-1"><?= htmlspecialchars($TEXT['ban_duration_permanent']  ?? 'Permanent') ?></option>
             </select>
         </div>
         <button class="tool-btn tool-btn-danger" style="width:100%" onclick="doBan()">
-            <i class="bi bi-slash-circle me-1"></i> Confirm Ban
+            <i class="bi bi-slash-circle me-1"></i> <?= htmlspecialchars($TEXT['admin_confirm_ban_btn'] ?? 'Confirm Ban') ?>
         </button>
     </div>
 </div>
@@ -724,21 +732,21 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="admin-modal-overlay" id="ticketReplyModal">
     <div class="admin-modal" style="position:relative;max-width:600px">
         <button class="modal-close" onclick="closeModal('ticketReplyModal')">&times;</button>
-        <h3><i class="bi bi-reply me-2"></i>Reply to Ticket #<span id="replyTicketId"></span></h3>
+        <h3><i class="bi bi-reply me-2"></i><?= htmlspecialchars($TEXT['admin_reply_ticket'] ?? 'Reply to Ticket') ?> #<span id="replyTicketId"></span></h3>
         <div id="replyTicketInfo" style="margin-bottom:1rem"></div>
         <div class="mb-3">
-            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem">Your Reply</label>
-            <textarea id="ticketReplyText" class="tool-input" rows="5" placeholder="Type your reply..."></textarea>
+            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem"><?= htmlspecialchars($TEXT['admin_your_reply'] ?? 'Your Reply') ?></label>
+            <textarea id="ticketReplyText" class="tool-input" rows="5" placeholder="<?= htmlspecialchars($TEXT['admin_reply_placeholder'] ?? 'Type your reply…') ?>"></textarea>
         </div>
         <div class="mb-3">
-            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem">Set Status</label>
+            <label style="font-size:.75rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.3rem"><?= htmlspecialchars($TEXT['admin_set_status'] ?? 'Set Status') ?></label>
             <select id="ticketReplyStatus" class="tool-input">
-                <option value="in_progress">In Progress</option>
-                <option value="closed">Closed</option>
+                <option value="in_progress"><?= htmlspecialchars($TEXT['tickets_status_in_progress'] ?? 'In Progress') ?></option>
+                <option value="closed"><?= htmlspecialchars($TEXT['tickets_status_closed'] ?? 'Closed') ?></option>
             </select>
         </div>
         <button class="tool-btn tool-btn-primary" style="width:100%" onclick="submitTicketReply()">
-            <i class="bi bi-send me-1"></i> Send Reply
+            <i class="bi bi-send me-1"></i> <?= htmlspecialchars($TEXT['admin_send_reply'] ?? 'Send Reply') ?>
         </button>
     </div>
 </div>
@@ -748,6 +756,81 @@ $s_world    = check_port_status($db_host, $world_port);
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
 
 <script>
+// ── Translations exposed to the admin JS layer ───────────────────────────────
+window.LANG = <?= json_encode([
+    'loading'                => $TEXT['admin_js_loading']                ?? 'Loading…',
+    'unban_confirm'          => $TEXT['admin_js_unban_confirm']          ?? 'Unban this account?',
+    'banning'                => $TEXT['admin_js_banning']                ?? 'Banning:',
+    'active'                 => $TEXT['admin_js_active']                 ?? 'Active',
+    'role_player'            => $TEXT['admin_js_role_player']            ?? 'Player',
+    'pw_prompt'              => $TEXT['admin_js_pw_prompt']              ?? 'Enter new password for %s:',
+    'email_prompt'           => $TEXT['admin_js_email_prompt']           ?? 'Enter new email (current: %s):',
+    'gm_prompt'              => $TEXT['admin_js_gm_prompt']              ?? 'Enter new GM level (current: %s, 0 = player):',
+    'dp_prompt'              => $TEXT['admin_js_dp_prompt']              ?? 'Enter new Battle Pay balance (current: %s):',
+    'dp_invalid'             => $TEXT['admin_js_dp_invalid']             ?? 'Battle Pay balance must be a non-negative whole number.',
+    'status_open'            => $TEXT['admin_js_status_open']            ?? 'Open',
+    'status_in_progress'     => $TEXT['admin_js_status_in_progress']     ?? 'In Progress',
+    'status_closed'          => $TEXT['admin_js_status_closed']          ?? 'Closed',
+    'reply'                  => $TEXT['admin_js_reply']                  ?? 'Reply',
+    'close_btn'              => $TEXT['admin_js_close_btn']              ?? 'Close',
+    'reopen'                 => $TEXT['admin_js_reopen']                 ?? 'Reopen',
+    'reply_by'               => $TEXT['admin_js_reply_by']               ?? 'REPLY by',
+    'ticket_updated'         => $TEXT['admin_js_ticket_updated']         ?? 'Ticket updated',
+    'remove_ip_confirm'      => $TEXT['admin_js_remove_ip_confirm']      ?? 'Remove IP ban for %s?',
+    'subject_body_required'  => $TEXT['admin_js_subject_body_required']  ?? 'Subject and body required',
+    'broadcast_confirm'      => $TEXT['admin_js_broadcast_confirm']      ?? 'This will send an email to ALL registered accounts. Are you sure?',
+    'sending'                => $TEXT['admin_js_sending']                ?? 'Sending…',
+    'no_reason'              => $TEXT['admin_js_no_reason']              ?? 'No reason',
+    'no_reason_specified'    => $TEXT['admin_js_no_reason_specified']    ?? 'No reason specified',
+    'no_tickets_found'       => $TEXT['admin_js_no_tickets_found']       ?? 'No tickets found',
+    'no_audit_entries'       => $TEXT['admin_js_no_audit_entries']       ?? 'No audit entries yet',
+    'no_chars_found'         => $TEXT['admin_js_no_chars_found']         ?? 'No characters found',
+    'no_ip_bans'             => $TEXT['admin_js_no_ip_bans']             ?? 'No IP bans',
+    'lookup_name'            => $TEXT['admin_js_lookup_name']            ?? 'Name',
+    'lookup_level'           => $TEXT['admin_js_lookup_level']           ?? 'Level',
+    'lookup_race'            => $TEXT['admin_js_lookup_race']            ?? 'Race',
+    'lookup_class'           => $TEXT['admin_js_lookup_class']           ?? 'Class',
+    'lookup_account'         => $TEXT['admin_js_lookup_account']         ?? 'Account',
+    'lookup_zone'            => $TEXT['admin_js_lookup_zone']            ?? 'Zone',
+    'lookup_online'          => $TEXT['admin_js_lookup_online']          ?? 'Online',
+    'lookup_offline'         => $TEXT['admin_js_lookup_offline']         ?? 'Offline',
+    'total_chars'            => $TEXT['admin_js_total_chars']            ?? 'Total Chars',
+    'total_accounts'         => $TEXT['admin_js_total_accounts']         ?? 'Total Accounts',
+    'online_now'             => $TEXT['admin_js_online_now']             ?? 'Online Now',
+    'id'                     => $TEXT['admin_js_id']                     ?? 'ID',
+    'username'               => $TEXT['admin_js_username']               ?? 'Username',
+    'email'                  => $TEXT['admin_js_email']                  ?? 'Email',
+    'battle_pay_balance'     => $TEXT['admin_js_battle_pay_balance']     ?? 'Battle Pay Balance',
+    'status'                 => $TEXT['admin_js_status']                 ?? 'Status',
+    'role'                   => $TEXT['admin_js_role']                   ?? 'Role',
+    'joined'                 => $TEXT['admin_js_joined']                 ?? 'Joined',
+    'last_ip'                => $TEXT['admin_js_last_ip']                ?? 'Last IP',
+    'online'                 => $TEXT['admin_js_online']                 ?? 'Online',
+    'offline'                => $TEXT['admin_js_offline']                ?? 'Offline',
+    'quick_actions'          => $TEXT['admin_js_quick_actions']          ?? 'Quick Actions',
+    'characters_count'       => $TEXT['admin_js_characters_count']       ?? 'Characters',
+    'ip'                     => $TEXT['admin_js_ip']                     ?? 'IP',
+    'reason'                 => $TEXT['admin_js_reason']                 ?? 'Reason',
+    'by'                     => $TEXT['admin_js_by']                     ?? 'By',
+    'actions'                => $TEXT['admin_js_actions']                ?? 'Actions',
+    'reset_password'         => $TEXT['admin_reset_password_btn']        ?? 'Reset Password',
+    'edit_email'             => $TEXT['admin_edit_email_btn']            ?? 'Edit Email',
+    'set_gm_level'           => $TEXT['admin_set_gm_level_btn']          ?? 'Set GM Level',
+    'set_battle_pay'         => $TEXT['admin_set_battle_pay_btn']        ?? 'Set Battle Pay',
+    'hide_bots'              => $TEXT['admin_hide_bots']                 ?? 'Hide Bots',
+    'show_bots'              => $TEXT['admin_show_bots']                 ?? 'Show Bots',
+    'ban'                    => $TEXT['admin_btn_ban']                   ?? 'Ban',
+    'unban'                  => $TEXT['admin_btn_unban']                 ?? 'Unban',
+    'remove'                 => $TEXT['common_remove']                   ?? 'Remove',
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
+// Tiny printf-style formatter for window.LANG strings with %s placeholders
+function tr(key, ...args) {
+    let s = window.LANG[key] || key;
+    args.forEach(a => { s = s.replace('%s', a); });
+    return s;
+}
+
 // ── Live clock ────────────────────────────────────────────────────────────────
 (function tick(){
     const d = new Date();
@@ -811,8 +894,8 @@ function toggleBots() {
     const btn = document.getElementById('botToggle');
     btn.classList.toggle('showing-bots', !showBots);
     btn.textContent = showBots
-        ? '🤖 Hide Bots (<?= $bot_count ?>)'
-        : '🤖 Show Bots (<?= $bot_count ?>)';
+        ? '🤖 ' + LANG.hide_bots + ' (<?= $bot_count ?>)'
+        : '🤖 ' + LANG.show_bots + ' (<?= $bot_count ?>)';
     // Also sync the type filter
     const typeFilter = document.getElementById('acctType');
     if (!showBots) { if (typeFilter.value === '') typeFilter.value = 'player'; }
@@ -848,7 +931,7 @@ function renderAccts() {
     document.querySelectorAll('#acctTable tbody tr').forEach(r => r.style.display = 'none');
     rows.slice(start, end).forEach(r => r.style.display = '');
     // label
-    document.getElementById('acctCountLabel').textContent = total + ' accounts';
+    document.getElementById('acctCountLabel').textContent = total + ' ' + (LANG.total_accounts || 'accounts').toLowerCase();
     // pager
     const pager = document.getElementById('acctPager');
     pager.innerHTML = '';
@@ -912,14 +995,14 @@ async function adminApi(action, data = {}, method = 'POST') {
 // ── BAN / UNBAN ───────────────────────────────────────────────────────────────
 function showBanModal(id, name) {
     document.getElementById('banAccountId').value = id;
-    document.getElementById('banAccountName').textContent = 'Banning: ' + name;
+    document.getElementById('banAccountName').textContent = LANG.banning + ' ' + name;
     document.getElementById('banReason').value = '';
     openModal('banModal');
 }
 
 async function doBan() {
     const id = document.getElementById('banAccountId').value;
-    const reason = document.getElementById('banReason').value || 'No reason specified';
+    const reason = document.getElementById('banReason').value || LANG.no_reason_specified;
     const duration = document.getElementById('banDuration').value;
     const r = await adminApi('ban', { account_id: id, reason, duration });
     closeModal('banModal');
@@ -928,7 +1011,7 @@ async function doBan() {
 }
 
 async function doUnban(id) {
-    if (!confirm('Unban this account?')) return;
+    if (!confirm(LANG.unban_confirm)) return;
     const r = await adminApi('unban', { account_id: id });
     if (r.success) { showToast(r.message); setTimeout(() => location.reload(), 1200); }
     else showToast(r.error, 'error');
@@ -937,44 +1020,44 @@ async function doUnban(id) {
 // ── ACCOUNT DETAILS ──────────────────────────────────────────────────────────
 async function viewAccount(id) {
     openModal('accountModal');
-    document.getElementById('accountModalBody').innerHTML = '<div class="text-center py-3" style="color:#4a5568">Loading...</div>';
+    document.getElementById('accountModalBody').innerHTML = '<div class="text-center py-3" style="color:#4a5568">' + LANG.loading + '</div>';
     const r = await adminApi('get_account', { id }, 'GET');
     if (!r.success) { document.getElementById('accountModalBody').innerHTML = '<p style="color:#f87e8a">Error loading account</p>'; return; }
     const a = r.account;
     const username = escJsString(a.username || '');
     const email = escJsString(a.email || '');
     const battlePay = Number(a.dp || 0);
-    const banned = a.is_banned ? '<span class="badge-ban">BANNED</span>' : '<span style="color:#5dd87c">Active</span>';
-    const gmBadge = a.gmlevel ? '<span class="badge-gm">GM ' + a.gmlevel + '</span>' : 'Player';
+    const banned = a.is_banned ? '<span class="badge-ban">BANNED</span>' : '<span style="color:#5dd87c">' + LANG.active + '</span>';
+    const gmBadge = a.gmlevel ? '<span class="badge-gm">GM ' + a.gmlevel + '</span>' : LANG.role_player;
     let html = `
-        <div class="modal-row"><span class="mk">ID</span><span class="mv">${a.id}</span></div>
-        <div class="modal-row"><span class="mk">Username</span><span class="mv" style="color:#c8a96e;font-weight:700">${a.username}</span></div>
-        <div class="modal-row"><span class="mk">Email</span><span class="mv">${a.email || '—'}</span></div>
-        <div class="modal-row"><span class="mk">Battle Pay Balance</span><span class="mv" style="color:#c8a96e;font-weight:700">${formatNumber(battlePay)}</span></div>
-        <div class="modal-row"><span class="mk">Status</span><span class="mv">${banned}</span></div>
-        <div class="modal-row"><span class="mk">Role</span><span class="mv">${gmBadge}</span></div>
-        <div class="modal-row"><span class="mk">Joined</span><span class="mv">${a.joindate || '—'}</span></div>
-        <div class="modal-row"><span class="mk">Last IP</span><span class="mv" style="font-family:monospace;font-size:.82rem">${a.last_ip || '—'}</span></div>
-        <div class="modal-row"><span class="mk">Online</span><span class="mv">${a.online == 1 ? '<span style="color:#5dd87c">● Online</span>' : 'Offline'}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.id}</span><span class="mv">${a.id}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.username}</span><span class="mv" style="color:#c8a96e;font-weight:700">${a.username}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.email}</span><span class="mv">${a.email || '—'}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.battle_pay_balance}</span><span class="mv" style="color:#c8a96e;font-weight:700">${formatNumber(battlePay)}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.status}</span><span class="mv">${banned}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.role}</span><span class="mv">${gmBadge}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.joined}</span><span class="mv">${a.joindate || '—'}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.last_ip}</span><span class="mv" style="font-family:monospace;font-size:.82rem">${a.last_ip || '—'}</span></div>
+        <div class="modal-row"><span class="mk">${LANG.online}</span><span class="mv">${a.online == 1 ? '<span style="color:#5dd87c">● ' + LANG.online + '</span>' : LANG.offline}</span></div>
     `;
     // Characters
     if (r.characters && r.characters.length > 0) {
-        html += '<div style="margin-top:1rem;font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding-bottom:.4rem;border-bottom:1px solid rgba(139,69,19,.2)">Characters (' + r.characters.length + ')</div>';
+        html += '<div style="margin-top:1rem;font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;font-weight:700;padding-bottom:.4rem;border-bottom:1px solid rgba(139,69,19,.2)">' + LANG.characters_count + ' (' + r.characters.length + ')</div>';
         r.characters.forEach(c => {
             html += '<div style="display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.85rem">';
             html += '<span style="color:#e2e8f0">' + c.name + '</span>';
-            html += '<span style="color:#6b7280">Lv ' + c.level + ' &middot; ' + (c.online==1?'<span style="color:#5dd87c">Online</span>':'Offline') + '</span></div>';
+            html += '<span style="color:#6b7280">Lv ' + c.level + ' &middot; ' + (c.online==1?'<span style="color:#5dd87c">' + LANG.online + '</span>':LANG.offline) + '</span></div>';
         });
     }
     // Edit section
     html += `
         <div style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(139,69,19,.25)">
-            <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">Quick Actions</div>
+            <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">${LANG.quick_actions}</div>
             <div class="d-flex gap-2 flex-wrap">
-                <button class="tool-btn tool-btn-primary" onclick="promptResetPassword(${a.id},'${username}')"><i class="bi bi-key me-1"></i>Reset Password</button>
-                <button class="tool-btn tool-btn-primary" onclick="promptEditEmail(${a.id},'${email}')"><i class="bi bi-envelope me-1"></i>Edit Email</button>
-                <button class="tool-btn tool-btn-primary" onclick="promptEditGM(${a.id},${a.gmlevel||0})"><i class="bi bi-shield me-1"></i>Set GM Level</button>
-                <button class="tool-btn tool-btn-primary" onclick="promptEditBattlePay(${a.id},${battlePay})"><i class="bi bi-coin me-1"></i>Set Battle Pay</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptResetPassword(${a.id},'${username}')"><i class="bi bi-key me-1"></i>${LANG.reset_password}</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptEditEmail(${a.id},'${email}')"><i class="bi bi-envelope me-1"></i>${LANG.edit_email}</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptEditGM(${a.id},${a.gmlevel||0})"><i class="bi bi-shield me-1"></i>${LANG.set_gm_level}</button>
+                <button class="tool-btn tool-btn-primary" onclick="promptEditBattlePay(${a.id},${battlePay})"><i class="bi bi-coin me-1"></i>${LANG.set_battle_pay}</button>
             </div>
         </div>
     `;
@@ -982,33 +1065,33 @@ async function viewAccount(id) {
 }
 
 async function promptResetPassword(id, name) {
-    const pw = prompt('Enter new password for ' + name + ':');
+    const pw = prompt(tr('pw_prompt', name));
     if (!pw) return;
     const r = await adminApi('reset_password', { account_id: id, new_password: pw });
     if (r.success) showToast(r.message); else showToast(r.error, 'error');
 }
 
 async function promptEditEmail(id, current) {
-    const email = prompt('Enter new email (current: ' + current + '):');
+    const email = prompt(tr('email_prompt', current));
     if (!email) return;
     const r = await adminApi('update_account', { account_id: id, email });
     if (r.success) { showToast(r.message); viewAccount(id); } else showToast(r.error, 'error');
 }
 
 async function promptEditGM(id, current) {
-    const gm = prompt('Enter new GM level (current: ' + current + ', 0 = player):');
+    const gm = prompt(tr('gm_prompt', current));
     if (gm === null) return;
     const r = await adminApi('update_account', { account_id: id, gmlevel: gm });
     if (r.success) { showToast(r.message); setTimeout(() => location.reload(), 1200); } else showToast(r.error, 'error');
 }
 
 async function promptEditBattlePay(id, current) {
-    const dp = prompt('Enter new Battle Pay balance (current: ' + current + '):', String(current));
+    const dp = prompt(tr('dp_prompt', current), String(current));
     if (dp === null) return;
 
     const value = String(dp).trim();
     if (!/^\d+$/.test(value)) {
-        showToast('Battle Pay balance must be a non-negative whole number.', 'error');
+        showToast(LANG.dp_invalid, 'error');
         return;
     }
 
@@ -1028,12 +1111,12 @@ async function loadTickets() {
     const r = await adminApi('get_tickets', { status }, 'GET');
     const el = document.getElementById('ticketList');
     if (!r.success || !r.tickets.length) {
-        el.innerHTML = '<div class="text-center py-4" style="color:#4a5568"><i class="bi bi-ticket-perforated" style="font-size:2rem;opacity:.3"></i><p class="mt-2">No tickets found</p></div>';
+        el.innerHTML = '<div class="text-center py-4" style="color:#4a5568"><i class="bi bi-ticket-perforated" style="font-size:2rem;opacity:.3"></i><p class="mt-2">' + LANG.no_tickets_found + '</p></div>';
         return;
     }
     el.innerHTML = r.tickets.map(t => {
         const statusCls = 't-' + t.status;
-        const statusLabel = t.status === 'open' ? '● Open' : t.status === 'in_progress' ? '◐ In Progress' : '○ Closed';
+        const statusLabel = t.status === 'open' ? '● ' + LANG.status_open : t.status === 'in_progress' ? '◐ ' + LANG.status_in_progress : '○ ' + LANG.status_closed;
         return `
         <div class="admin-ticket">
             <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
@@ -1047,11 +1130,11 @@ async function loadTickets() {
             </div>
             <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;margin-bottom:.3rem">${escHtml(t.subject)}</div>
             <div style="color:#8899aa;font-size:.85rem;margin-bottom:.5rem;white-space:pre-line;max-height:100px;overflow:hidden;text-overflow:ellipsis">${escHtml(t.message)}</div>
-            ${t.admin_reply ? '<div style="background:rgba(93,216,124,.06);border-left:3px solid #5dd87c;padding:.6rem .8rem;border-radius:0 6px 6px 0;font-size:.85rem;color:#e2e8f0;margin-bottom:.5rem"><strong style="color:#5dd87c;font-size:.72rem">REPLY by ' + escHtml(t.replied_by||'Admin') + ':</strong><br>' + escHtml(t.admin_reply) + '</div>' : ''}
+            ${t.admin_reply ? '<div style="background:rgba(93,216,124,.06);border-left:3px solid #5dd87c;padding:.6rem .8rem;border-radius:0 6px 6px 0;font-size:.85rem;color:#e2e8f0;margin-bottom:.5rem"><strong style="color:#5dd87c;font-size:.72rem">' + LANG.reply_by + ' ' + escHtml(t.replied_by||'Admin') + ':</strong><br>' + escHtml(t.admin_reply) + '</div>' : ''}
             <div class="d-flex gap-2 mt-2">
-                <button class="acc-action-btn view" onclick="openTicketReply(${t.id},'${escAttr(t.subject)}','${escAttr(t.username)}','${escAttr(t.message)}')"><i class="bi bi-reply me-1"></i>Reply</button>
-                ${t.status !== 'closed' ? '<button class="acc-action-btn ban" onclick="changeTicketStatus(' + t.id + ',\x27closed\x27)"><i class="bi bi-x-circle me-1"></i>Close</button>' : ''}
-                ${t.status === 'closed' ? '<button class="acc-action-btn unban" onclick="changeTicketStatus(' + t.id + ',\x27open\x27)"><i class="bi bi-arrow-counterclockwise me-1"></i>Reopen</button>' : ''}
+                <button class="acc-action-btn view" onclick="openTicketReply(${t.id},'${escAttr(t.subject)}','${escAttr(t.username)}','${escAttr(t.message)}')"><i class="bi bi-reply me-1"></i>${LANG.reply}</button>
+                ${t.status !== 'closed' ? '<button class="acc-action-btn ban" onclick="changeTicketStatus(' + t.id + ',\x27closed\x27)"><i class="bi bi-x-circle me-1"></i>' + LANG.close_btn + '</button>' : ''}
+                ${t.status === 'closed' ? '<button class="acc-action-btn unban" onclick="changeTicketStatus(' + t.id + ',\x27open\x27)"><i class="bi bi-arrow-counterclockwise me-1"></i>' + LANG.reopen + '</button>' : ''}
             </div>
         </div>`;
     }).join('');
@@ -1075,7 +1158,7 @@ function openTicketReply(id, subject, username, message) {
     document.getElementById('replyTicketInfo').innerHTML =
         '<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:.8rem;font-size:.85rem">' +
         '<strong style="color:#c8a96e">' + escHtml(subject) + '</strong><br>' +
-        '<span style="color:#8899aa">From: ' + escHtml(username) + '</span><br>' +
+        '<span style="color:#8899aa">' + LANG.by + ': ' + escHtml(username) + '</span><br>' +
         '<div style="color:#c0c8d8;margin-top:.5rem;max-height:120px;overflow:auto;white-space:pre-line">' + escHtml(message) + '</div></div>';
     document.getElementById('ticketReplyText').value = '';
     openModal('ticketReplyModal');
@@ -1093,7 +1176,7 @@ async function submitTicketReply() {
 
 async function changeTicketStatus(id, status) {
     const r = await adminApi('update_ticket_status', { ticket_id: id, status });
-    if (r.success) { showToast('Ticket updated'); loadTickets(); } else showToast(r.error, 'error');
+    if (r.success) { showToast(LANG.ticket_updated); loadTickets(); } else showToast(r.error, 'error');
 }
 
 // ── AUDIT LOG ────────────────────────────────────────────────────────────────
@@ -1103,7 +1186,7 @@ async function loadAuditLog(page) {
     const r = await adminApi('audit_log', { page: auditPage }, 'GET');
     const el = document.getElementById('auditList');
     if (!r.success || !r.entries.length) {
-        el.innerHTML = '<div class="text-center py-4" style="color:#4a5568"><i class="bi bi-journal-text" style="font-size:2rem;opacity:.3"></i><p class="mt-2">No audit entries yet</p></div>';
+        el.innerHTML = '<div class="text-center py-4" style="color:#4a5568"><i class="bi bi-journal-text" style="font-size:2rem;opacity:.3"></i><p class="mt-2">' + LANG.no_audit_entries + '</p></div>';
         return;
     }
     el.innerHTML = r.entries.map(e => `
@@ -1134,11 +1217,11 @@ async function searchCharacter() {
     const r = await adminApi('search_character', { q }, 'GET');
     const el = document.getElementById('charResults');
     if (!r.success || !r.characters.length) {
-        el.innerHTML = '<div style="color:#4a5568;font-size:.85rem;padding:.5rem">No characters found</div>';
+        el.innerHTML = '<div style="color:#4a5568;font-size:.85rem;padding:.5rem">' + LANG.no_chars_found + '</div>';
         return;
     }
     el.innerHTML = '<div style="overflow-x:auto"><table class="acct-tbl"><thead><tr>' +
-        '<th>Name</th><th>Level</th><th>Race</th><th>Class</th><th>Account</th><th>Zone</th><th>Online</th></tr></thead><tbody>' +
+        '<th>' + LANG.lookup_name + '</th><th>' + LANG.lookup_level + '</th><th>' + LANG.lookup_race + '</th><th>' + LANG.lookup_class + '</th><th>' + LANG.lookup_account + '</th><th>' + LANG.lookup_zone + '</th><th>' + LANG.lookup_online + '</th></tr></thead><tbody>' +
         r.characters.map(c => `<tr>
             <td style="font-weight:700;color:#e2e8f0">${escHtml(c.name)}</td>
             <td><span class="char-lv" style="margin:0">Lv ${c.level}</span></td>
@@ -1146,7 +1229,7 @@ async function searchCharacter() {
             <td style="color:#8899aa">${c.class}</td>
             <td><a href="#" onclick="event.preventDefault();viewAccount(${c.account})" style="color:#60a5fa">${escHtml(c.account_name)}</a></td>
             <td style="color:#6b7280">${c.zone||'—'}</td>
-            <td>${c.online==1?'<span style="color:#5dd87c">● Online</span>':'<span style="color:#6b7280">Offline</span>'}</td>
+            <td>${c.online==1?'<span style="color:#5dd87c">● ' + LANG.lookup_online + '</span>':'<span style="color:#6b7280">' + LANG.lookup_offline + '</span>'}</td>
         </tr>`).join('') + '</tbody></table></div>';
 }
 
@@ -1155,22 +1238,22 @@ async function loadIpBans() {
     const r = await adminApi('get_ip_bans', {}, 'GET');
     const el = document.getElementById('ipBanList');
     if (!r.success || !r.bans.length) {
-        el.innerHTML = '<div style="color:#4a5568;font-size:.85rem;padding:.5rem">No IP bans</div>';
+        el.innerHTML = '<div style="color:#4a5568;font-size:.85rem;padding:.5rem">' + LANG.no_ip_bans + '</div>';
         return;
     }
     el.innerHTML = '<div style="overflow-x:auto;max-height:300px"><table class="acct-tbl"><thead><tr>' +
-        '<th>IP</th><th>Reason</th><th>By</th><th>Actions</th></tr></thead><tbody>' +
+        '<th>' + LANG.ip + '</th><th>' + LANG.reason + '</th><th>' + LANG.by + '</th><th>' + LANG.actions + '</th></tr></thead><tbody>' +
         r.bans.map(b => `<tr>
             <td style="font-family:monospace;color:#e2e8f0">${escHtml(b.ip)}</td>
             <td style="color:#8899aa;font-size:.82rem">${escHtml(b.banreason||'—')}</td>
             <td style="color:#6b7280">${escHtml(b.bannedby)}</td>
-            <td><button class="acc-action-btn unban" onclick="doIpUnban('${escAttr(b.ip)}')"><i class="bi bi-x"></i> Remove</button></td>
+            <td><button class="acc-action-btn unban" onclick="doIpUnban('${escAttr(b.ip)}')"><i class="bi bi-x"></i> ${LANG.remove}</button></td>
         </tr>`).join('') + '</tbody></table></div>';
 }
 
 async function doIpBan() {
     const ip = document.getElementById('ipBanInput').value.trim();
-    const reason = document.getElementById('ipBanReason').value.trim() || 'No reason';
+    const reason = document.getElementById('ipBanReason').value.trim() || LANG.no_reason;
     if (!ip) return;
     const r = await adminApi('ip_ban', { ip, reason });
     if (r.success) { showToast(r.message); document.getElementById('ipBanInput').value=''; document.getElementById('ipBanReason').value=''; loadIpBans(); }
@@ -1178,7 +1261,7 @@ async function doIpBan() {
 }
 
 async function doIpUnban(ip) {
-    if (!confirm('Remove IP ban for ' + ip + '?')) return;
+    if (!confirm(tr('remove_ip_confirm', ip))) return;
     const r = await adminApi('ip_unban', { ip });
     if (r.success) { showToast(r.message); loadIpBans(); } else showToast(r.error, 'error');
 }
@@ -1189,9 +1272,9 @@ async function loadPeakPlayers() {
     if (!r.success) return;
     document.getElementById('peakPlayersContent').innerHTML = `
         <div class="row g-2">
-            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem;color:#5dd87c">${r.current_online}</div><div class="lbl">Online Now</div></div></div>
-            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem">${r.total_characters}</div><div class="lbl">Total Chars</div></div></div>
-            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem">${r.total_accounts}</div><div class="lbl">Total Accounts</div></div></div>
+            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem;color:#5dd87c">${r.current_online}</div><div class="lbl">${LANG.online_now}</div></div></div>
+            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem">${r.total_characters}</div><div class="lbl">${LANG.total_chars}</div></div></div>
+            <div class="col-4"><div class="astat-card" style="padding:1rem"><div class="val" style="font-size:1.5rem">${r.total_accounts}</div><div class="lbl">${LANG.total_accounts}</div></div></div>
         </div>
     `;
 }
@@ -1200,13 +1283,15 @@ async function loadPeakPlayers() {
 async function sendBroadcast() {
     const subject = document.getElementById('broadcastSubject').value.trim();
     const body = document.getElementById('broadcastBody').value.trim();
-    if (!subject || !body) return showToast('Subject and body required', 'error');
-    if (!confirm('This will send an email to ALL registered accounts. Are you sure?')) return;
-    document.getElementById('broadcastBtn').disabled = true;
-    document.getElementById('broadcastBtn').innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Sending...';
+    if (!subject || !body) return showToast(LANG.subject_body_required, 'error');
+    if (!confirm(LANG.broadcast_confirm)) return;
+    const btn = document.getElementById('broadcastBtn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> ' + LANG.sending;
     const r = await adminApi('broadcast_email', { subject, body });
-    document.getElementById('broadcastBtn').disabled = false;
-    document.getElementById('broadcastBtn').innerHTML = '<i class="bi bi-send me-1"></i> Send to All Users';
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
     if (r.success) { showToast(r.message); document.getElementById('broadcastSubject').value=''; document.getElementById('broadcastBody').value=''; }
     else showToast(r.error, 'error');
 }

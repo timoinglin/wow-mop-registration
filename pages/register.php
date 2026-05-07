@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // CSRF verification
     if (!validate_csrf_token($csrf_token)) {
-        $errors[] = "Invalid CSRF token. Please refresh the page and try again.";
+        $errors[] = $TEXT['invalid_csrf'] ?? 'Invalid CSRF token. Please refresh the page and try again.';
     }
 
     // reCAPTCHA verification

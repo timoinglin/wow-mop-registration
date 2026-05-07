@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // --- Validation ---
     if (empty($errors) && !validate_csrf_token($csrf_token)) {
-        $errors[] = "Invalid CSRF token. Please refresh the page and try again.";
+        $errors[] = $TEXT['invalid_csrf'] ?? 'Invalid CSRF token. Please refresh the page and try again.';
     }
     if (empty($errors) && !verifyRecaptcha($recaptcha_response)) {
         $errors[] = $TEXT['recaptcha_error'];
@@ -156,7 +156,7 @@ require_once __DIR__ . '/../templates/header.php';
         <?php endif; ?>
 
         <div class="mt-4 p-3 text-center rounded" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; font-size: 0.9rem; line-height: 1.5;">
-            <strong>Notice:</strong> This is a private fan server.<br>We are not affiliated with Blizzard Entertainment.
+            <strong><?= htmlspecialchars($TEXT['private_server_notice_title'] ?? 'Notice') ?>:</strong> <?= htmlspecialchars($TEXT['private_server_notice_body'] ?? 'This is a private fan server.') ?><br><?= htmlspecialchars($TEXT['not_affiliated_blizzard'] ?? 'We are not affiliated with Blizzard Entertainment.') ?>
         </div>
     </form>
 </div>

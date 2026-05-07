@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf               = $_POST['csrf_token'] ?? null;
 
     if (!validate_csrf_token($csrf)) {
-        $errors[] = 'Invalid request. Please refresh and try again.';
+        $errors[] = $TEXT['invalid_csrf_recover'] ?? 'Invalid request. Please refresh and try again.';
     }
     if (empty($submitted_email) || !filter_var($submitted_email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = $TEXT['invalid_email'];

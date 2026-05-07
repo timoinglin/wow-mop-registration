@@ -359,7 +359,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
     <!-- Quick Actions -->
     <div class="col-lg-4">
         <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</div>
+            <div class="panel-title"><i class="bi bi-lightning-charge me-2"></i><?= htmlspecialchars($TEXT['common_quick_actions'] ?? 'Quick Actions') ?></div>
             <div class="d-flex flex-column gap-2">
                 <a href="/change_password" class="action-btn action-btn-primary">
                     <i class="bi bi-key-fill"></i> <?= $TEXT['change_password'] ?>
@@ -377,7 +377,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
             </div>
             <?php if ($most_played_char): ?>
             <div class="mt-3 p-2 rounded" style="background:rgba(139,69,19,.12);border:1px solid rgba(139,69,19,.3);font-size:.82rem;color:#c8a96e;">
-                <i class="bi bi-star me-1"></i> Most time on
+                <i class="bi bi-star me-1"></i> <?= htmlspecialchars($TEXT['dash_most_time_on'] ?? 'Most time on') ?>
                 <strong style="color:<?= $class_colors[(int)$most_played_char['class']] ?? '#c8a96e' ?>">
                     <?= htmlspecialchars($most_played_char['name']) ?>
                 </strong>
@@ -409,7 +409,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
     <!-- Login History -->
     <div class="col-lg-4">
         <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-clock-history me-2"></i>Login History</div>
+            <div class="panel-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['dash_login_history'] ?? 'Login History') ?></div>
             <?php if (!empty($login_history)): ?>
                 <?php foreach (array_slice($login_history, 0, 5) as $i => $entry): ?>
                 <div class="login-row">
@@ -420,9 +420,9 @@ $tickets_enabled = !empty($config['features']['tickets']);
                     <span class="login-time">
                         <?php
                             $diff = time() - (int)$entry['time'];
-                            if ($diff < 60)       echo 'just now';
-                            elseif ($diff < 3600)  echo floor($diff/60) . 'm ago';
-                            elseif ($diff < 86400) echo floor($diff/3600) . 'h ago';
+                            if ($diff < 60)        echo htmlspecialchars($TEXT['common_just_now']  ?? 'just now');
+                            elseif ($diff < 3600)  echo floor($diff/60)   . ' ' . htmlspecialchars($TEXT['common_min_ago']   ?? 'm ago');
+                            elseif ($diff < 86400) echo floor($diff/3600) . ' ' . htmlspecialchars($TEXT['common_hours_ago'] ?? 'h ago');
                             else                   echo date('M d, Y', (int)$entry['time']);
                         ?>
                     </span>
@@ -430,13 +430,13 @@ $tickets_enabled = !empty($config['features']['tickets']);
                 <?php endforeach; ?>
                 <?php if ($i === 0): ?>
                     <p class="mt-2 mb-0" style="font-size:.78rem;color:#8899aa;">
-                        <i class="bi bi-info-circle me-1"></i> History is recorded from your next login.
+                        <i class="bi bi-info-circle me-1"></i> <?= htmlspecialchars($TEXT['dash_login_history_hint'] ?? 'History is recorded from your next login.') ?>
                     </p>
                 <?php endif; ?>
             <?php else: ?>
                 <div class="text-center py-3" style="color:#8899aa">
                     <i class="bi bi-clock" style="font-size:2rem;opacity:.3"></i>
-                    <p class="mt-2 mb-0" style="font-size:.85rem">No login history yet.<br>It will appear after your next login.</p>
+                    <p class="mt-2 mb-0" style="font-size:.85rem"><?= htmlspecialchars($TEXT['dash_no_login_history'] ?? 'No login history yet.') ?><br><?= htmlspecialchars($TEXT['dash_no_login_history_hint'] ?? 'It will appear after your next login.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -512,30 +512,30 @@ $tickets_enabled = !empty($config['features']['tickets']);
     <div class="col-lg-6">
         <div class="panel-card" style="background:linear-gradient(145deg,#12121f,#1a1a2e);border:1px solid rgba(139,69,19,.25);border-radius:14px;padding:1.4rem 1.6rem;">
             <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(139,69,19,.2)">
-                <i class="bi bi-shield-lock me-2"></i>Account Security
+                <i class="bi bi-shield-lock me-2"></i><?= htmlspecialchars($TEXT['dash_account_security'] ?? 'Account Security') ?>
             </div>
 
             <!-- Account Info -->
             <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa">Account ID</span>
+                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_account_id'] ?? 'Account ID') ?></span>
                 <span style="color:#e2e8f0;font-weight:600"><?= $user_id ?></span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa">Email</span>
+                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['email'] ?? 'Email') ?></span>
                 <span style="color:#e2e8f0"><?= htmlspecialchars($user['email'] ?? '—') ?></span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa">Joined</span>
+                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_joined'] ?? 'Joined') ?></span>
                 <span style="color:#e2e8f0"><?= $user['joindate'] ? date('M d, Y', strtotime($user['joindate'])) : '—' ?></span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa">Current IP</span>
+                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_current_ip'] ?? 'Current IP') ?></span>
                 <span style="color:#5dd87c;font-family:monospace;font-size:.82rem"><?= htmlspecialchars($user['last_ip'] ?? '—') ?></span>
             </div>
 
             <!-- Recent Login History -->
             <div style="font-size:.68rem;color:#8899aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:1rem 0 .5rem;padding-top:.5rem;border-top:1px solid rgba(139,69,19,.15)">
-                <i class="bi bi-clock-history me-1"></i>Recent Login Activity
+                <i class="bi bi-clock-history me-1"></i><?= htmlspecialchars($TEXT['dash_recent_login_activity'] ?? 'Recent Login Activity') ?>
             </div>
             <?php if (!empty($login_history)): ?>
                 <?php foreach (array_slice($login_history, 0, 5) as $idx => $login): ?>
@@ -546,7 +546,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
                 </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div style="color:#4a5568;font-size:.85rem;padding:.5rem 0">No login history available</div>
+                <div style="color:#4a5568;font-size:.85rem;padding:.5rem 0"><?= htmlspecialchars($TEXT['dash_no_login_activity'] ?? 'No login history available') ?></div>
             <?php endif; ?>
         </div>
     </div>
@@ -555,7 +555,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
     <div class="col-lg-6">
         <div class="panel-card" style="background:linear-gradient(145deg,#12121f,#1a1a2e);border:1px solid rgba(139,69,19,.25);border-radius:14px;padding:1.4rem 1.6rem;">
             <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(139,69,19,.2)">
-                <i class="bi bi-trophy me-2"></i>Vote & Support Us
+                <i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?>
             </div>
 
             <?php $vote_sites = $config['vote_sites'] ?? []; ?>
@@ -564,7 +564,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem;margin-bottom:.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;transition:all .2s">
                     <div>
                         <div style="font-weight:600;color:#e2e8f0;font-size:.92rem"><?= htmlspecialchars($site['name'] ?? 'Vote Site') ?></div>
-                        <div style="color:#4a5568;font-size:.72rem">Cooldown: <?= $site['cooldown_hours'] ?? 12 ?>h</div>
+                        <div style="color:#4a5568;font-size:.72rem"><?= htmlspecialchars($TEXT['dash_cooldown_label'] ?? 'Cooldown') ?>: <?= $site['cooldown_hours'] ?? 12 ?>h</div>
                     </div>
                     <a href="<?= htmlspecialchars($site['url'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" style="
                         display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;
@@ -572,29 +572,29 @@ $tickets_enabled = !empty($config['features']['tickets']);
                         background:linear-gradient(135deg,#8B4513,#A0522D);color:#fff;
                         transition:all .2s ease;
                     ">
-                        <i class="bi bi-box-arrow-up-right"></i> Vote
+                        <i class="bi bi-box-arrow-up-right"></i> <?= htmlspecialchars($TEXT['dash_vote_button'] ?? 'Vote') ?>
                     </a>
                 </div>
                 <?php endforeach; ?>
             <?php else: ?>
                 <div style="text-align:center;padding:2rem 1rem">
                     <div style="font-size:2.5rem;opacity:.3;margin-bottom:.5rem">🗳️</div>
-                    <p style="color:#8899aa;font-size:.9rem;margin:0">Vote sites coming soon!</p>
-                    <p style="color:#4a5568;font-size:.78rem;margin:.3rem 0 0">Vote for our server to earn rewards and help us grow.</p>
+                    <p style="color:#8899aa;font-size:.9rem;margin:0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon'] ?? 'Vote sites coming soon!') ?></p>
+                    <p style="color:#4a5568;font-size:.78rem;margin:.3rem 0 0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon_hint'] ?? 'Vote for our server to earn rewards and help us grow.') ?></p>
                 </div>
             <?php endif; ?>
 
             <!-- Quick Links -->
             <div style="margin-top:1rem;padding-top:.8rem;border-top:1px solid rgba(139,69,19,.15)">
-                <div style="font-size:.68rem;color:#8899aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:.5rem">Quick Links</div>
+                <div style="font-size:.68rem;color:#8899aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:.5rem"><?= htmlspecialchars($TEXT['dash_quick_links'] ?? 'Quick Links') ?></div>
                 <div class="d-flex gap-2 flex-wrap">
                     <?php if ($tickets_enabled): ?>
                     <a href="/tickets" class="action-btn action-btn-secondary" style="padding:.5rem 1rem;font-size:.82rem">
-                        <i class="bi bi-ticket-perforated"></i> Support Tickets
+                        <i class="bi bi-ticket-perforated"></i> <?= htmlspecialchars($TEXT['dash_support_tickets'] ?? 'Support Tickets') ?>
                     </a>
                     <?php endif; ?>
                     <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="padding:.5rem 1rem;font-size:.82rem">
-                        <i class="bi bi-clock-history"></i> My Tickets
+                        <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['dash_my_tickets'] ?? 'My Tickets') ?>
                     </a>
                 </div>
             </div>

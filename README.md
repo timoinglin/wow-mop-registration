@@ -2,7 +2,9 @@
 
 A complete, secure, and modern registration portal for **World of Warcraft: Mists of Pandaria (5.4.8)** private servers. Built for TrinityCore-based cores (including repacks).
 
-![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
+![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange)
+
+> ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [How to Update](#how-to-update) section to stay current.
 
 ## Table of Contents
 
@@ -10,6 +12,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - [Preview](#preview)
   - [Home Page](#home-page)
   - [User Dashboard](#user-dashboard)
+  - [Public Armory](#public-armory)
+  - [Leaderboards](#leaderboards)
   - [Admin Dashboard - Overview](#admin-dashboard---overview)
   - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
   - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
@@ -27,6 +31,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [5. Social Links & Content](#5-social-links--content)
   - [6. Dependencies](#6-dependencies)
   - [7. Enable mod_rewrite](#7-enable-mod_rewrite)
+- [How to Update](#how-to-update)
 - [Admin Dashboard](#admin-dashboard)
 - [Customization](#customization)
   - [Changing Text and Labels](#changing-text-and-labels)
@@ -47,6 +52,9 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design
 - ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, and maintenance mode from config
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
+- 🔍 **Public Armory** — Search any character on the realm; profile pages with equipped gear (Wowhead tooltips), stats, achievements, and account-mate links
+- 🏆 **Leaderboards** — Top players by level, playtime, gold, PvP kills, and achievements, plus top guilds — with faction filters and gold/silver/bronze top-3 styling
+- 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Database-stored support tickets with admin replies, status tracking, and user history
 - 📰 **News & FAQ** — Configurable news section and FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
@@ -61,6 +69,12 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ### User Dashboard
 ![User Dashboard](assets/img/screenshots/user.png)
+
+### Public Armory
+![Public Armory](assets/img/screenshots/armory.png)
+
+### Leaderboards
+![Leaderboards](assets/img/screenshots/leaderboards.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
@@ -310,6 +324,60 @@ Pretty URLs (`/login`, `/register`) require Apache's `mod_rewrite`:
 2. Find and uncomment: `LoadModule rewrite_module modules/mod_rewrite.so`
 3. Find your `<Directory>` block and set `AllowOverride All`
 4. Restart Apache
+
+---
+
+## How to Update
+
+Already running and want the latest version? **Keep your existing `config.php`, `uploads/`, and `cache/`** — everything else can be replaced.
+
+> [!IMPORTANT]
+> Before updating, back up `config.php` and the `uploads/` folder. Both are gitignored, so `git pull` won't touch them — but a backup is cheap insurance in case you need to roll back.
+
+### Option A — Git (recommended)
+
+If you cloned with Git originally:
+
+```bash
+# 1. Stop Apache from the XAMPP Control Panel
+
+# 2. Pull the latest files
+git pull origin main
+
+# 3. Refresh PHP dependencies (vendor/ is gitignored)
+composer install --no-dev
+
+# 4. Re-run the SQL setup — it's idempotent (CREATE TABLE IF NOT EXISTS)
+mysql -u root -pascent auth < sql/setup.sql
+
+# 5. Restart Apache and you're done
+```
+
+### Option B — Manual (release ZIP)
+
+If you installed by extracting a release ZIP:
+
+1. **Stop Apache.**
+2. **Back up** `config.php` and the `uploads/` folder.
+3. **Delete** the old project files **except** `config.php`, `uploads/`, and `cache/`.
+4. **Extract** the new release ZIP into the same folder, letting it overwrite everything else.
+5. **Run** `composer install --no-dev` from the project root if `vendor/` isn't included.
+6. **Re-run** `sql/setup.sql` on your `auth` database — safe to run multiple times.
+7. **Restart Apache.**
+
+### What carries over automatically
+
+| File / Folder | Why it's preserved |
+|---|---|
+| `config.php` | DB credentials, realm info, social links, news, FAQ, vote sites, feature flags |
+| `uploads/` | Ticket attachments uploaded by users |
+| `cache/` | Login history and rate-limit data |
+
+### Worth knowing
+
+- New features may add **new keys** to `lang/en.php` and `lang/es.php`. Missing keys fall back to English automatically — updating is non-breaking, but translations may show English until you copy in the new keys (or just update both `lang/` files from the new release).
+- New SQL columns or tables, when introduced, are added to `sql/setup.sql` with `IF NOT EXISTS` patterns, so re-running it is always safe.
+- Check the [release notes](https://github.com/timoinglin/wow-mop-registration/releases) for any version-specific upgrade steps.
 
 ---
 

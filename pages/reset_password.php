@@ -50,7 +50,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf             = $_POST['csrf_token']        ?? null;
 
     if (!validate_csrf_token($csrf)) {
-        $errors[] = 'Invalid request. Please go back and try again.';
+        $errors[] = $TEXT['invalid_csrf_short'] ?? 'Invalid request. Please go back and try again.';
         $showForm  = false;
     }
     if (empty($new_password) || empty($confirm_password)) {
@@ -179,7 +179,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <?php if ($showForm): ?>
-        <div class="auth-sub">Choose a strong password with at least 6 characters.</div>
+        <div class="auth-sub"><?= htmlspecialchars($TEXT['reset_pw_intro'] ?? 'Choose a strong password with at least 6 characters.') ?></div>
 
         <form action="/reset_password?token=<?= urlencode($token) ?>&email=<?= urlencode($email) ?>" method="POST">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
@@ -190,7 +190,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
                        minlength="6" autocomplete="new-password"
                        oninput="checkStrength(this.value)" required>
                 <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
-                <div class="strength-hint" id="strengthHint">Enter a password</div>
+                <div class="strength-hint" id="strengthHint" data-enter="<?= htmlspecialchars($TEXT['pw_strength_enter'] ?? 'Enter a password') ?>"><?= htmlspecialchars($TEXT['pw_strength_enter'] ?? 'Enter a password') ?></div>
             </div>
 
             <div class="mb-3">
@@ -224,16 +224,16 @@ function checkStrength(v) {
     if (/[^A-Za-z0-9]/.test(v)) score++;
 
     const levels = [
-        { w: '20%',  bg: '#f87171', label: 'Very weak' },
-        { w: '40%',  bg: '#fb923c', label: 'Weak' },
-        { w: '60%',  bg: '#facc15', label: 'Fair' },
-        { w: '80%',  bg: '#4ade80', label: 'Good' },
-        { w: '100%', bg: '#5dd87c', label: 'Strong 💪' },
+        { w: '20%',  bg: '#f87171', label: <?= json_encode($TEXT['pw_strength_very_weak'] ?? 'Very weak') ?> },
+        { w: '40%',  bg: '#fb923c', label: <?= json_encode($TEXT['pw_strength_weak']      ?? 'Weak') ?> },
+        { w: '60%',  bg: '#facc15', label: <?= json_encode($TEXT['pw_strength_fair']      ?? 'Fair') ?> },
+        { w: '80%',  bg: '#4ade80', label: <?= json_encode($TEXT['pw_strength_good']      ?? 'Good') ?> },
+        { w: '100%', bg: '#5dd87c', label: <?= json_encode(($TEXT['pw_strength_strong']   ?? 'Strong') . ' 💪') ?> },
     ];
     const lvl = levels[Math.min(score, 4)];
     fill.style.width      = v.length ? lvl.w  : '0';
     fill.style.background = v.length ? lvl.bg : 'transparent';
-    hint.textContent      = v.length ? lvl.label : 'Enter a password';
+    hint.textContent      = v.length ? lvl.label : hint.dataset.enter;
     hint.style.color      = v.length ? lvl.bg  : '#8899aa';
 }
 </script>

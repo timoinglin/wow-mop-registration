@@ -1,5 +1,6 @@
 <?php
 $config = require __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/lang.php';
 // Generate a random number between 1 and 5 for the background image (since we have 5 images)
 $random_bg = rand(1, 5);
 $bg_image = "/assets/img/wow-bg/4-{$random_bg}.webp";
@@ -38,19 +39,19 @@ $social = $config['social'] ?? [];
 
         <!-- Quick Links -->
         <div class="mb-3" style="font-size:.85rem">
-            <a href="/" class="footer-link">Home</a>
+            <a href="/" class="footer-link"><?= htmlspecialchars($TEXT['home'] ?? 'Home') ?></a>
             <span class="footer-sep">·</span>
-            <a href="/register" class="footer-link">Register</a>
+            <a href="/register" class="footer-link"><?= htmlspecialchars($TEXT['register'] ?? 'Register') ?></a>
             <span class="footer-sep">·</span>
-            <a href="/login" class="footer-link">Login</a>
+            <a href="/login" class="footer-link"><?= htmlspecialchars($TEXT['login'] ?? 'Login') ?></a>
             <?php if (!empty($config['features']['tickets'])): ?>
             <span class="footer-sep">·</span>
-            <a href="/tickets" class="footer-link">Support</a>
+            <a href="/tickets" class="footer-link"><?= htmlspecialchars($TEXT['footer_support'] ?? 'Support') ?></a>
             <?php endif; ?>
         </div>
 
         <div class="mb-3" style="font-size:.85rem; color: rgba(255,255,255,.6);">
-            Notice: This is a private fan server. We are not affiliated with Blizzard Entertainment.
+            <?= htmlspecialchars($TEXT['footer_disclaimer'] ?? 'Notice: This is a private fan server. We are not affiliated with Blizzard Entertainment.') ?>
         </div>
 
         <span class="text-light">&copy; <?= date('Y') ?> <?= htmlspecialchars($config['realm']['name']) ?>. All rights reserved.</span>

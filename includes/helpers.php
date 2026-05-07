@@ -91,27 +91,37 @@ function get_class_color_css(int $classId): string
 
 /**
  * Returns the display name for a WoW race ID.
+ * Reads from $TEXT (loaded by lang.php) when available; falls back to English.
  */
 function get_race_name(int $raceId): string
 {
+    $key = 'race_' . $raceId;
+    if (isset($GLOBALS['TEXT'][$key]) && $GLOBALS['TEXT'][$key] !== '') {
+        return $GLOBALS['TEXT'][$key];
+    }
     $races = [
         1 => 'Human',  2 => 'Orc',       3 => 'Dwarf',         4 => 'Night Elf',
         5 => 'Undead', 6 => 'Tauren',    7 => 'Gnome',         8 => 'Troll',
         9 => 'Goblin', 10 => 'Blood Elf', 11 => 'Draenei',     22 => 'Worgen',
         24 => 'Pandaren', 25 => 'Pandaren (A)', 26 => 'Pandaren (H)',
     ];
-    return $races[$raceId] ?? 'Unknown Race';
+    return $races[$raceId] ?? ($GLOBALS['TEXT']['race_unknown'] ?? 'Unknown Race');
 }
 
 /**
  * Returns the display name for a WoW class ID.
+ * Reads from $TEXT (loaded by lang.php) when available; falls back to English.
  */
 function get_class_name(int $classId): string
 {
+    $key = 'class_' . $classId;
+    if (isset($GLOBALS['TEXT'][$key]) && $GLOBALS['TEXT'][$key] !== '') {
+        return $GLOBALS['TEXT'][$key];
+    }
     $classes = [
         1 => 'Warrior', 2 => 'Paladin',     3 => 'Hunter', 4 => 'Rogue',
         5 => 'Priest',  6 => 'Death Knight', 7 => 'Shaman', 8 => 'Mage',
         9 => 'Warlock', 10 => 'Monk',        11 => 'Druid',
     ];
-    return $classes[$classId] ?? 'Unknown Class';
+    return $classes[$classId] ?? ($GLOBALS['TEXT']['class_unknown'] ?? 'Unknown Class');
 }

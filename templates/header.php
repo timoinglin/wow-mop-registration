@@ -23,6 +23,40 @@ if (!empty($config['features']['maintenance'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($config['site']['title']) ?></title>
     <link rel="icon" href="/favicon.ico">
+
+    <?php
+    // ── OpenGraph / Twitter Card meta ──────────────────────────────────────────
+    // Pages can set $og_title, $og_description, $og_image, $og_type, $og_url
+    // before requiring this header to override the defaults.
+    $_og_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $_og_host   = $_SERVER['HTTP_HOST'] ?? parse_url($config['site']['base_url'] ?? '', PHP_URL_HOST) ?? 'localhost';
+    $_og_base   = $_og_scheme . '://' . $_og_host;
+
+    $_og_title       = $og_title       ?? ($page_title ?? ($config['realm']['name'] ?? $config['site']['title']));
+    $_og_description = $og_description ?? ($config['realm']['description'] ?? 'World of Warcraft: Mists of Pandaria private server.');
+    $_og_image       = $og_image       ?? ($_og_base . '/assets/img/logo.webp');
+    $_og_type        = $og_type        ?? 'website';
+    $_og_url         = $og_url         ?? ($_og_base . ($_SERVER['REQUEST_URI'] ?? '/'));
+
+    // Trim/clamp description to a Discord-friendly length
+    if (mb_strlen($_og_description) > 200) {
+        $_og_description = mb_substr($_og_description, 0, 197) . '…';
+    }
+    ?>
+    <meta name="description"        content="<?= htmlspecialchars($_og_description) ?>">
+    <meta property="og:type"        content="<?= htmlspecialchars($_og_type) ?>">
+    <meta property="og:site_name"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:title"       content="<?= htmlspecialchars($_og_title) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($_og_description) ?>">
+    <meta property="og:url"         content="<?= htmlspecialchars($_og_url) ?>">
+    <meta property="og:image"       content="<?= htmlspecialchars($_og_image) ?>">
+    <meta property="og:image:alt"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:locale"      content="<?= $lang === 'es' ? 'es_ES' : 'en_US' ?>">
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="<?= htmlspecialchars($_og_title) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars($_og_description) ?>">
+    <meta name="twitter:image"       content="<?= htmlspecialchars($_og_image) ?>">
+    <meta name="theme-color" content="#c8a96e">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Custom CSS -->
@@ -77,14 +111,31 @@ if (!empty($config['features']['maintenance'])) {
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- Additional Links can go here -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-main">
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page === 'index.php') ? 'active' : '' ?>" href="/">
+                        <i class="bi bi-house-door-fill me-1"></i> <?= $TEXT['home'] ?? 'Home' ?>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
+                        <i class="bi bi-search me-1"></i> <?= $TEXT['armory'] ?? 'Armory' ?>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page === 'leaderboards.php') ? 'active' : '' ?>" href="/leaderboards">
+                        <i class="bi bi-trophy-fill me-1"></i> <?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
+                    </a>
+                </li>
             </ul>
             <div class="navbar-nav ms-auto align-items-center">
                 <!-- User Menu Dropdown -->
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: 500; letter-spacing: 0.5px;">
-                        <i class="bi bi-person-circle fs-5 me-2"></i> <!-- Responsive Icon -->
+                    <a class="nav-link nav-user dropdown-toggle d-flex align-items-center px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle fs-5 <?= isset($_SESSION['user_id']) ? 'me-md-2' : '' ?>"></i>
+                        <?php if (isset($_SESSION['username'])): ?>
+                            <span class="d-none d-md-inline nav-user-name"><?= htmlspecialchars($_SESSION['username']) ?></span>
+                        <?php endif; ?>
                     </a>
                     <ul class="dropdown-menu game-dropdown dropdown-menu-end" aria-labelledby="userDropdown">
                         <?php if (isset($_SESSION['user_id'])): ?>

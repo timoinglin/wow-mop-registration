@@ -26,12 +26,12 @@ $user_email    = $account_row['email']    ?? '';
 $user_username = $account_row['username'] ?? '';
 
 $categories = [
-    'account'    => ['label' => 'Account Issues',    'icon' => 'bi-person-exclamation', 'color' => '#69CCF0'],
-    'bug'        => ['label' => 'Report Bug',         'icon' => 'bi-bug',                'color' => '#ABD473'],
-    'player'     => ['label' => 'Report Player',      'icon' => 'bi-shield-exclamation', 'color' => '#F58CBA'],
-    'payment'    => ['label' => 'Payment Issues',     'icon' => 'bi-credit-card',        'color' => '#FFF569'],
-    'suggestion' => ['label' => 'Suggestion',         'icon' => 'bi-lightbulb',          'color' => '#C79C6E'],
-    'other'      => ['label' => 'Other',              'icon' => 'bi-chat-dots',          'color' => '#9482C9'],
+    'account'    => ['label' => $TEXT['tickets_cat_account']    ?? 'Account Issues', 'icon' => 'bi-person-exclamation', 'color' => '#69CCF0'],
+    'bug'        => ['label' => $TEXT['tickets_cat_bug']        ?? 'Report Bug',     'icon' => 'bi-bug',                'color' => '#ABD473'],
+    'player'     => ['label' => $TEXT['tickets_cat_player']     ?? 'Report Player',  'icon' => 'bi-shield-exclamation', 'color' => '#F58CBA'],
+    'payment'    => ['label' => $TEXT['tickets_cat_payment']    ?? 'Payment Issues', 'icon' => 'bi-credit-card',        'color' => '#FFF569'],
+    'suggestion' => ['label' => $TEXT['tickets_cat_suggestion'] ?? 'Suggestion',     'icon' => 'bi-lightbulb',          'color' => '#C79C6E'],
+    'other'      => ['label' => $TEXT['tickets_cat_other']      ?? 'Other',          'icon' => 'bi-chat-dots',          'color' => '#9482C9'],
 ];
 
 $selected_category = $_POST['category'] ?? '';
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf     = $_POST['csrf_token']    ?? null;
 
     if (!validate_csrf_token($csrf)) {
-        $errors[] = "Invalid CSRF token.";
+        $errors[] = $TEXT['invalid_csrf'] ?? 'Invalid CSRF token.';
     }
     if (empty($subject)) {
         $errors[] = $TEXT['ticket_required_subject'];
@@ -475,7 +475,7 @@ require_once __DIR__ . '/../templates/header.php';
     <!-- Header -->
     <div class="ticket-header">
         <h1><i class="bi bi-ticket-perforated me-2"></i><?= $TEXT['submit_ticket'] ?></h1>
-        <p>Describe your issue — our team will respond to <strong style="color:#c8a96e"><?= htmlspecialchars($user_email) ?></strong></p>
+        <p><?= sprintf($TEXT['tickets_intro_html'] ?? 'Describe your issue — our team will respond to <strong style="color:#c8a96e">%s</strong>', htmlspecialchars($user_email)) ?></p>
     </div>
 
     <?php if (!empty($errors)): ?>
@@ -488,10 +488,10 @@ require_once __DIR__ . '/../templates/header.php';
     <!-- Tab Navigation -->
     <div class="ticket-tabs">
         <button class="ticket-tab-btn <?= $active_tab === 'new' ? 'active' : '' ?>" onclick="switchTicketTab('new')">
-            <i class="bi bi-plus-circle"></i> New Ticket
+            <i class="bi bi-plus-circle"></i> <?= htmlspecialchars($TEXT['tickets_tab_new'] ?? 'New Ticket') ?>
         </button>
         <button class="ticket-tab-btn <?= $active_tab === 'history' ? 'active' : '' ?>" onclick="switchTicketTab('history')">
-            <i class="bi bi-clock-history"></i> My Tickets
+            <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['tickets_tab_my'] ?? 'My Tickets') ?>
             <?php if ($open_count + $progress_count > 0): ?>
                 <span class="tab-badge"><?= $open_count + $progress_count ?></span>
             <?php endif; ?>
@@ -505,7 +505,7 @@ require_once __DIR__ . '/../templates/header.php';
         <!-- SUCCESS STATE -->
         <div class="success-card">
             <div class="success-icon">✓</div>
-            <h2>Ticket Submitted!</h2>
+            <h2><?= htmlspecialchars($TEXT['tickets_submitted_title'] ?? 'Ticket Submitted!') ?></h2>
             <p><?= $TEXT['ticket_success'] ?></p>
             <div class="d-flex gap-2 justify-content-center mt-3">
                 <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="
@@ -514,7 +514,7 @@ require_once __DIR__ . '/../templates/header.php';
                     background:rgba(255,255,255,0.05);color:#c8a96e;border:1px solid rgba(200,169,110,0.3);
                     transition:all .2s ease;
                 ">
-                    <i class="bi bi-clock-history"></i> View My Tickets
+                    <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['tickets_view_my_btn'] ?? 'View My Tickets') ?>
                 </a>
                 <a href="/dashboard" class="action-btn action-btn-primary" style="
                     display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;
@@ -522,7 +522,7 @@ require_once __DIR__ . '/../templates/header.php';
                     background:linear-gradient(135deg,#8B4513,#A0522D);color:#fff;
                     transition:all .2s ease;
                 ">
-                    <i class="bi bi-speedometer2"></i> Dashboard
+                    <i class="bi bi-speedometer2"></i> <?= htmlspecialchars($TEXT['dashboard'] ?? 'Dashboard') ?>
                 </a>
             </div>
         </div>
@@ -552,7 +552,7 @@ require_once __DIR__ . '/../templates/header.php';
             <div class="mb-4">
                 <label class="ticket-label"><i class="bi bi-pencil me-1"></i><?= $TEXT['ticket_subject'] ?></label>
                 <input type="text" class="ticket-input" name="subject" id="subject"
-                       maxlength="120" placeholder="Brief summary of your issue…"
+                       maxlength="120" placeholder="<?= htmlspecialchars($TEXT['tickets_subject_placeholder'] ?? 'Brief summary of your issue…') ?>"
                        value="<?= $subject_val ?>"
                        oninput="updateCount(this,'subjectCount',120)" required>
                 <div class="char-count" id="subjectCount"><?= strlen($_POST['subject'] ?? '') ?>/120</div>
@@ -562,20 +562,20 @@ require_once __DIR__ . '/../templates/header.php';
             <div class="mb-4">
                 <label class="ticket-label"><i class="bi bi-chat-text me-1"></i><?= $TEXT['ticket_message'] ?></label>
                 <textarea class="ticket-input" name="message" id="message" rows="6"
-                          maxlength="2000" placeholder="Describe your issue in detail…"
+                          maxlength="2000" placeholder="<?= htmlspecialchars($TEXT['tickets_message_placeholder'] ?? 'Describe your issue in detail…') ?>"
                           oninput="updateCount(this,'msgCount',2000)" required><?= $message_val ?></textarea>
                 <div class="char-count" id="msgCount"><?= strlen($_POST['message'] ?? '') ?>/2000</div>
             </div>
 
             <!-- File Attachments -->
             <div class="mb-2">
-                <label class="ticket-label"><i class="bi bi-paperclip me-1"></i><?= $TEXT['ticket_attachments'] ?> <span style="color:#4a5568;font-weight:400;text-transform:none">(Optional)</span></label>
+                <label class="ticket-label"><i class="bi bi-paperclip me-1"></i><?= $TEXT['ticket_attachments'] ?> <span style="color:#4a5568;font-weight:400;text-transform:none">(<?= htmlspecialchars($TEXT['common_optional'] ?? 'Optional') ?>)</span></label>
                 <div class="drop-zone" id="dropZone">
                     <input type="file" name="attachments[]" id="attachments"
                            multiple accept=".jpg,.jpeg,.png,.webp"
                            onchange="showFiles(this)">
                     <i class="bi bi-cloud-arrow-up"></i>
-                    <p>Drag &amp; drop files here, or <strong style="color:#c8a96e">browse</strong></p>
+                    <p><?= $TEXT['tickets_drop_zone_text'] ?? 'Drag &amp; drop files here, or <strong style="color:#c8a96e">browse</strong>' ?></p>
                     <small><?= $TEXT['ticket_attachments_info'] ?></small>
                 </div>
                 <div class="file-list" id="fileList"></div>
@@ -591,24 +591,30 @@ require_once __DIR__ . '/../templates/header.php';
 
     <!-- MY TICKETS TAB -->
     <div id="tab-history" class="ticket-panel" style="<?= $active_tab !== 'history' ? 'display:none' : '' ?>">
-        <div class="panel-section-title"><i class="bi bi-clock-history me-2"></i>My Tickets</div>
+        <div class="panel-section-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['tickets_tab_my'] ?? 'My Tickets') ?></div>
 
         <?php if (empty($my_tickets)): ?>
             <div class="no-tickets">
                 <i class="bi bi-ticket-perforated"></i>
-                <p>You haven't submitted any tickets yet.</p>
+                <p><?= htmlspecialchars($TEXT['tickets_no_tickets'] ?? "You haven't submitted any tickets yet.") ?></p>
                 <button class="submit-btn" style="max-width:250px;margin:1rem auto 0" onclick="switchTicketTab('new')">
-                    <i class="bi bi-plus-circle me-2"></i>Create Ticket
+                    <i class="bi bi-plus-circle me-2"></i><?= htmlspecialchars($TEXT['tickets_create_btn'] ?? 'Create Ticket') ?>
                 </button>
             </div>
         <?php else: ?>
-            <?php foreach ($my_tickets as $t): ?>
+            <?php foreach ($my_tickets as $t):
+                $status_label = $t['status'] === 'open'
+                    ? '● ' . ($TEXT['tickets_status_open'] ?? 'Open')
+                    : ($t['status'] === 'in_progress'
+                        ? '◐ ' . ($TEXT['tickets_status_in_progress'] ?? 'In Progress')
+                        : '○ ' . ($TEXT['tickets_status_closed'] ?? 'Closed'));
+            ?>
                 <div class="ticket-history-card" onclick="toggleTicket(this)">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div style="flex:1;min-width:0;">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <span class="ticket-status status-<?= htmlspecialchars($t['status']) ?>">
-                                    <?= $t['status'] === 'open' ? '● Open' : ($t['status'] === 'in_progress' ? '◐ In Progress' : '○ Closed') ?>
+                                    <?= htmlspecialchars($status_label) ?>
                                 </span>
                                 <span style="color:#4a5568;font-size:.78rem;">#<?= $t['id'] ?></span>
                                 <span style="color:#4a5568;font-size:.78rem;">
@@ -620,20 +626,20 @@ require_once __DIR__ . '/../templates/header.php';
                         <div style="text-align:right;flex-shrink:0;">
                             <div style="color:#4a5568;font-size:.78rem;"><?= date('M d, Y', strtotime($t['created_at'])) ?></div>
                             <?php if ($t['admin_reply']): ?>
-                                <span style="color:#5dd87c;font-size:.72rem;"><i class="bi bi-reply"></i> Replied</span>
+                                <span style="color:#5dd87c;font-size:.72rem;"><i class="bi bi-reply"></i> <?= htmlspecialchars($TEXT['tickets_replied'] ?? 'Replied') ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
 
                     <div class="ticket-detail">
-                        <div style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;">Your Message</div>
+                        <div style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;"><?= htmlspecialchars($TEXT['tickets_your_message'] ?? 'Your Message') ?></div>
                         <div style="background:rgba(255,255,255,0.03);border-left:3px solid rgba(200,169,110,0.4);padding:.8rem;border-radius:0 8px 8px 0;white-space:pre-line;color:#c0c8d8;font-size:.9rem;">
                             <?= htmlspecialchars($t['message']) ?>
                         </div>
 
                         <?php if ($t['admin_reply']): ?>
                             <div style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin:1rem 0 .5rem;">
-                                <i class="bi bi-shield-check me-1"></i>Admin Reply
+                                <i class="bi bi-shield-check me-1"></i><?= htmlspecialchars($TEXT['tickets_admin_reply'] ?? 'Admin Reply') ?>
                                 <?php if ($t['replied_by']): ?>
                                     <span style="color:#5dd87c;font-weight:400;text-transform:none;"> — <?= htmlspecialchars($t['replied_by']) ?></span>
                                 <?php endif; ?>
@@ -645,7 +651,7 @@ require_once __DIR__ . '/../templates/header.php';
 
                         <?php if ($t['updated_at']): ?>
                             <div style="color:#4a5568;font-size:.75rem;margin-top:.75rem;">
-                                Last updated: <?= date('M d, Y H:i', strtotime($t['updated_at'])) ?>
+                                <?= htmlspecialchars($TEXT['tickets_last_updated'] ?? 'Last updated') ?>: <?= date('M d, Y H:i', strtotime($t['updated_at'])) ?>
                             </div>
                         <?php endif; ?>
                     </div>
