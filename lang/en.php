@@ -488,6 +488,27 @@ return [
   'ticket_action_forbidden'        => 'You can only act on your own tickets.',
   'ticket_action_closed'           => 'You cannot reply to a closed ticket. Reopen it first.',
 
+  // Ticket detail page (/tickets/{id} and /admin_ticket/{id})
+  'ticket_not_found_title'         => 'Ticket not found',
+  'ticket_not_found_hint'          => 'This ticket does not exist or is not yours.',
+  'tickets_thread_empty'           => 'No messages in this thread yet.',
+  'tickets_opened'                 => 'Opened',
+  'tickets_attach_files'           => 'Attach images',
+  'tickets_awaiting_reply'         => 'Awaiting reply',
+  'admin_ticket_status_updated'    => 'Status updated.',
+
+  // Markdown hint (shown next to reply / new-ticket textareas)
+  'tickets_md_hint'                => 'Markdown supported',
+  'tickets_md_bold'                => 'bold',
+  'tickets_md_italic'              => 'italic',
+  'tickets_md_code'                => 'code',
+  'tickets_md_link'                => 'link',
+  'tickets_md_more'                => 'more…',
+  'tickets_md_list_item'           => 'bulleted list item',
+  'tickets_md_ordered_item'        => 'numbered list item',
+  'tickets_md_quote'               => 'blockquote',
+  'tickets_md_codeblock'           => 'multi-line code',
+
   // ─── Admin Dashboard (PHP) ──────────────────────────────────────────────────
   'admin_total_accounts'           => 'Total Accounts',
   'admin_online_now'               => 'Online Now',

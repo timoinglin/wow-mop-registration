@@ -474,6 +474,27 @@ return [
   'ticket_action_forbidden'        => 'Solo puedes actuar sobre tus propios tickets.',
   'ticket_action_closed'           => 'No puedes responder a un ticket cerrado. Reábrelo primero.',
 
+  // Página de detalle de ticket (/tickets/{id} y /admin_ticket/{id})
+  'ticket_not_found_title'         => 'Ticket no encontrado',
+  'ticket_not_found_hint'          => 'Este ticket no existe o no es tuyo.',
+  'tickets_thread_empty'           => 'Aún no hay mensajes en este hilo.',
+  'tickets_opened'                 => 'Abierto',
+  'tickets_attach_files'           => 'Adjuntar imágenes',
+  'tickets_awaiting_reply'         => 'Esperando respuesta',
+  'admin_ticket_status_updated'    => 'Estado actualizado.',
+
+  // Pista de Markdown (junto al textarea)
+  'tickets_md_hint'                => 'Markdown disponible',
+  'tickets_md_bold'                => 'negrita',
+  'tickets_md_italic'              => 'cursiva',
+  'tickets_md_code'                => 'código',
+  'tickets_md_link'                => 'enlace',
+  'tickets_md_more'                => 'más…',
+  'tickets_md_list_item'           => 'elemento de lista',
+  'tickets_md_ordered_item'        => 'elemento numerado',
+  'tickets_md_quote'               => 'cita',
+  'tickets_md_codeblock'           => 'bloque de código',
+
   // ─── Panel de Administración (PHP) ──────────────────────────────────────────
   'admin_total_accounts'           => 'Cuentas Totales',
   'admin_online_now'               => 'En Línea Ahora',

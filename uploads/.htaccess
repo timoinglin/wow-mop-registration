@@ -1,8 +1,18 @@
-# Deny direct PHP execution in the uploads directory for security
-<FilesMatch "\.php$">
-    Order allow,deny
-    Deny from all
+# Deny ALL direct access to the uploads tree.
+# Files in uploads/tickets/* are user-uploaded ticket attachments and may be
+# private (e.g. personal info in screenshots). They are served exclusively
+# through /ticket_attachment which performs ownership/GM auth before streaming.
+#
+# If you ever need to add a public-by-design subdir under uploads/, override
+# this rule with a more permissive .htaccess inside that specific subdir.
+
+<RequireAll>
+    Require all denied
+</RequireAll>
+
+# Belt-and-suspenders: even if Apache misroutes a request, never execute PHP here.
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh)$">
+    Require all denied
 </FilesMatch>
 
-# Also deny .htaccess overrides in this folder
-Options -Indexes
+Options -Indexes -ExecCGI

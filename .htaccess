@@ -17,6 +17,12 @@ RewriteRule ^ - [L]
 # 2a. Armory profile: /armory/{character-name} → pages/armory.php?char={name}
 RewriteRule ^armory/([^/]+)/?$ pages/armory.php?char=$1 [L,QSA]
 
+# 2b. Ticket detail (user side): /tickets/{id} → pages/ticket_view.php?id={id}
+RewriteRule ^tickets/(\d+)/?$ pages/ticket_view.php?id=$1 [L,QSA]
+
+# 2c. Ticket detail (admin side): /admin_ticket/{id} → pages/admin_ticket.php?id={id}
+RewriteRule ^admin_ticket/(\d+)/?$ pages/admin_ticket.php?id=$1 [L,QSA]
+
 # 2. Route /page → pages/page.php (pages/ directory)
 RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
 RewriteRule ^([^/]+)/?$ pages/$1.php [L,QSA]

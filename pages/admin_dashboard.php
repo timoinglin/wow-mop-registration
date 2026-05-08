@@ -267,6 +267,8 @@ $s_world    = check_port_status($db_host, $world_port);
 /* Ticket card in admin */
 .admin-ticket { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 1.2rem; margin-bottom: .75rem; transition: all .2s; }
 .admin-ticket:hover { border-color: rgba(200,169,110,.3); background: rgba(255,255,255,.05); }
+/* Compact list rows in the Tickets tab — click into /admin_ticket/{id} */
+.admin-ticket-row:hover { background: rgba(200,169,110,.06) !important; border-color: rgba(200,169,110,.35) !important; transform: translateX(3px); color: inherit !important; }
 .t-status { display: inline-block; padding: .12rem .5rem; border-radius: 5px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
 .t-open { background: rgba(59,130,246,.12); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
 .t-in_progress { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.25); }
@@ -1118,50 +1120,34 @@ async function loadTickets() {
         const statusCls = 't-' + t.status;
         const statusLabel = t.status === 'open' ? '● ' + LANG.status_open : t.status === 'in_progress' ? '◐ ' + LANG.status_in_progress : '○ ' + LANG.status_closed;
 
-        // Render the full conversation thread (user + admin messages, chronological).
-        // Falls back to the legacy single-message view if no messages exist (eg. a
-        // brand-new ticket created before the migration ran).
-        const thread = (t.messages && t.messages.length)
-            ? t.messages
-            : [{ sender_type: 'user', sender_username: t.username, message: t.message, created_at: t.created_at }];
-        const msgCount = thread.length;
-
-        const threadHtml = thread.map(m => {
-            const isUser = m.sender_type === 'user';
-            const borderColor = isUser ? 'rgba(200,169,110,0.4)' : '#5dd87c';
-            const bgColor     = isUser ? 'rgba(255,255,255,.02)' : 'rgba(93,216,124,.06)';
-            const metaColor   = isUser ? '#c8a96e' : '#5dd87c';
-            const icon        = isUser ? 'bi-person-circle' : 'bi-shield-check';
-            const senderLabel = isUser ? '' : ' <span style="color:' + metaColor + ';font-size:.7rem">(' + LANG.reply_by.replace(' by','').toLowerCase() + ')</span>';
-            return `
-                <div style="background:${bgColor};border-left:3px solid ${borderColor};padding:.55rem .75rem;border-radius:0 6px 6px 0;margin-bottom:.4rem;font-size:.85rem">
-                    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:${metaColor};margin-bottom:.2rem">
-                        <i class="bi ${icon}"></i> ${escHtml(m.sender_username)}${senderLabel} · ${escHtml(m.created_at)}
-                    </div>
-                    <div style="color:#e2e8f0;white-space:pre-wrap;word-wrap:break-word">${escHtml(m.message)}</div>
-                </div>`;
-        }).join('');
+        // Compact list rows linking to /admin_ticket/{id}. The full thread + reply
+        // form lives there. Click opens a new tab so the admin can keep the list view.
+        const msgCount = (t.messages && t.messages.length) || 1;
+        const lastMsg = (t.messages && t.messages.length) ? t.messages[t.messages.length - 1] : null;
+        const lastSender = lastMsg ? lastMsg.sender_type : 'user';
+        const lastAt    = lastMsg ? lastMsg.created_at : t.created_at;
+        const attachCount = (t.messages || []).filter(m => m.attachments && m.attachments !== '').length;
+        const lastBy = lastSender === 'admin'
+            ? '<span style="color:#5dd87c"><i class="bi bi-shield-check"></i> ' + escHtml(lastMsg ? lastMsg.sender_username : 'Admin') + '</span>'
+            : '<span style="color:#c8a96e"><i class="bi bi-person"></i> ' + escHtml(t.username) + '</span>';
 
         return `
-        <div class="admin-ticket">
-            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-                <div>
+        <a class="admin-ticket-row" href="/admin_ticket/${t.id}" style="display:flex;align-items:center;gap:1rem;padding:.95rem 1.1rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid ${t.status === 'open' ? '#60a5fa' : t.status === 'in_progress' ? '#fbbf24' : '#6b7280'};border-radius:10px;margin-bottom:.5rem;text-decoration:none;color:inherit;transition:all .2s ease">
+            <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.25rem">
                     <span class="t-status ${statusCls}">${statusLabel}</span>
-                    <span style="color:#4a5568;font-size:.75rem;margin-left:.5rem">#${t.id}</span>
-                    <span style="color:#8899aa;font-size:.78rem;margin-left:.5rem"><i class="bi bi-person"></i> ${escHtml(t.username)}</span>
-                    <span style="color:#4a5568;font-size:.75rem;margin-left:.3rem">${escHtml(t.email)}</span>
-                    <span style="color:#8899aa;font-size:.72rem;margin-left:.5rem"><i class="bi bi-chat-left-text"></i> ${msgCount}</span>
+                    <span style="color:#4a5568;font-family:monospace">#${t.id}</span>
+                    <span style="color:#c8a96e">${escHtml(t.username)}</span>
+                    <span style="color:#6c7a8c">${msgCount > 0 ? '<i class="bi bi-chat-left-text"></i> ' + msgCount : ''}</span>
+                    <span style="color:#6c7a8c">${attachCount > 0 ? '<i class="bi bi-paperclip"></i> ' + attachCount : ''}</span>
                 </div>
-                <span style="color:#4a5568;font-size:.75rem;white-space:nowrap">${escHtml(t.created_at)}</span>
+                <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.subject)}</div>
             </div>
-            <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;margin-bottom:.5rem">${escHtml(t.subject)}</div>
-            ${threadHtml}
-            <div class="d-flex gap-2 mt-2">
-                <button class="acc-action-btn view" onclick="openTicketReply(${t.id},'${escAttr(t.subject)}','${escAttr(t.username)}','${escAttr(t.message)}')"><i class="bi bi-reply me-1"></i>${LANG.reply}</button>
-                ${t.status !== 'closed' ? '<button class="acc-action-btn ban" onclick="changeTicketStatus(' + t.id + ',\x27closed\x27)"><i class="bi bi-x-circle me-1"></i>' + LANG.close_btn + '</button>' : ''}
-                ${t.status === 'closed' ? '<button class="acc-action-btn unban" onclick="changeTicketStatus(' + t.id + ',\x27open\x27)"><i class="bi bi-arrow-counterclockwise me-1"></i>' + LANG.reopen + '</button>' : ''}
+            <div style="text-align:right;font-size:.72rem;color:#6c7a8c;white-space:nowrap;flex-shrink:0">
+                <span style="display:block">${lastBy}</span>
+                <span>${escHtml(lastAt)}</span>
             </div>
-        </div>`;
+        </a>`;
     }).join('');
 }
 

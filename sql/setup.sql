@@ -71,16 +71,34 @@ CREATE TABLE IF NOT EXISTS playtime_reward_log (
 -- Replaces the old single-message + single-admin_reply model. The original
 -- ticket subject/category lives on `tickets`; every actual message in the
 -- thread (including the original one) lives here, in chronological order.
+-- `attachments` is a JSON array of filenames stored in /uploads/tickets/.
 CREATE TABLE IF NOT EXISTS ticket_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
   ticket_id INT NOT NULL,
   sender_type ENUM('user', 'admin') NOT NULL,
   sender_username VARCHAR(50) NOT NULL,
   message TEXT NOT NULL,
+  attachments TEXT DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_ticket (ticket_id),
   INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Idempotent column add for installs that have ticket_messages without the
+-- attachments column. Uses prepared statements + INFORMATION_SCHEMA so it
+-- works in phpMyAdmin / mysql CLI alike (no DELIMITER quirks needed).
+SET @col_exists := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'ticket_messages'
+    AND COLUMN_NAME  = 'attachments'
+);
+SET @ddl := IF(@col_exists = 0,
+  'ALTER TABLE ticket_messages ADD COLUMN attachments TEXT DEFAULT NULL AFTER message',
+  'SELECT 1');
+PREPARE add_col FROM @ddl;
+EXECUTE add_col;
+DEALLOCATE PREPARE add_col;
 
 -- Idempotent backfill: any existing ticket whose first user message hasn't
 -- been migrated yet gets one inserted from `tickets.message`. Likewise for
