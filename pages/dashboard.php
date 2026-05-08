@@ -4,10 +4,31 @@ $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/login_history.php';
+require_once __DIR__ . '/../includes/playtime_rewards.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 // --- Auth ---
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
+    exit;
+}
+
+// --- Handle Playtime Reward claim POST (PRG pattern: redirect after) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'claim_playtime') {
+    $claimed_amount = 0;
+    $claim_failed   = false;
+    if (validate_csrf_token($_POST['csrf_token'] ?? null) && !empty($config['playtime_reward']['enabled'])) {
+        try {
+            $claimed_amount = pr_claim((int)$_SESSION['user_id'], $pdo_auth, $pdo_chars, $config);
+        } catch (Exception $e) {
+            error_log('Playtime claim error: ' . $e->getMessage());
+            $claim_failed = true;
+        }
+    }
+    $params = [];
+    if ($claimed_amount > 0) $params['claimed'] = $claimed_amount;
+    if ($claim_failed)        $params['claim_error'] = 1;
+    header('Location: /dashboard' . ($params ? '?' . http_build_query($params) : '') . '#playtime-reward');
     exit;
 }
 
@@ -25,7 +46,7 @@ $errors = [];
 
 // --- Account Info ---
 try {
-    $stmt = $pdo_auth->prepare("SELECT username, email, joindate, last_ip FROM account WHERE id = :id");
+    $stmt = $pdo_auth->prepare("SELECT username, email, joindate, last_ip, dp FROM account WHERE id = :id");
     $stmt->execute(['id' => $user_id]);
     $user = $stmt->fetch();
 
@@ -55,7 +76,7 @@ $error_loading_chars = false;
 if ($pdo_chars) {
     try {
         $sql = "SELECT c.guid, c.name, c.race, c.class, c.level, c.zone,
-                       c.totaltime, c.logout_time, c.money, c.gender,
+                       c.totaltime, c.logout_time, c.money, c.gender, c.online,
                        g.name as guild_name
                 FROM characters c
                 LEFT JOIN guild_member gm ON gm.guid = c.guid
@@ -125,6 +146,17 @@ foreach ($characters as $char) {
 }
 
 $tickets_enabled = !empty($config['features']['tickets']);
+
+// --- Playtime Reward state ---
+$pr_status        = pr_get_status((int)$_SESSION['user_id'], $pdo_auth, $pdo_chars, $config);
+$pr_history       = $pr_status['enabled'] ? pr_get_history((int)$_SESSION['user_id'], $pdo_auth, 10) : [];
+$pr_just_claimed  = isset($_GET['claimed']) ? max(0, (int)$_GET['claimed']) : 0;
+$pr_claim_error   = isset($_GET['claim_error']);
+
+// If the user just claimed, refresh the displayed dp on the stat card without a re-fetch
+if ($pr_just_claimed > 0 && isset($user)) {
+    $user['dp'] = (int)($user['dp'] ?? 0) + $pr_just_claimed;
+}
 ?>
 
 <style>
@@ -180,6 +212,10 @@ $tickets_enabled = !empty($config['features']['tickets']);
 .stat-card .stat-icon  { font-size: 1.8rem; margin-bottom: .5rem; opacity: .9; }
 .stat-card .stat-value { font-size: 1.7rem; font-weight: 700; color: #c8a96e; line-height: 1; }
 .stat-card .stat-label { font-size: .78rem; color: #8899aa; text-transform: uppercase; letter-spacing: .8px; margin-top: .25rem; }
+/* Battle Pay accent — subtle teal glow to differentiate from gold */
+.stat-card-bp { border-color: rgba(105,204,240,.25); }
+.stat-card-bp:hover { border-color: rgba(105,204,240,.6); box-shadow: 0 6px 20px rgba(105,204,240,.12); }
+.stat-card-bp .stat-value { color: #69ccf0; }
 
 .action-btn {
     display: flex;
@@ -230,7 +266,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
     border-bottom: 1px solid rgba(139,69,19,0.3);
 }
 
-/* Character cards */
+/* Character cards (clickable → opens public Armory profile) */
 .char-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
@@ -243,8 +279,19 @@ $tickets_enabled = !empty($config['features']['tickets']);
     position: relative;
     overflow: hidden;
     border-left-width: 3px;
+    text-decoration: none;
+    color: inherit;
 }
-.char-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); transform: translateX(3px); }
+.char-card:hover { background: rgba(200,169,110,0.06); border-color: rgba(200,169,110,0.35); transform: translateX(3px); color: inherit; }
+.char-online-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #5dd87c;
+    box-shadow: 0 0 8px #5dd87c;
+    margin-right: 6px;
+    vertical-align: middle;
+}
 .char-icons { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
 .char-icons img { width: 26px; height: 26px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); }
 .char-info  { flex: 1; min-width: 0; }
@@ -270,6 +317,183 @@ $tickets_enabled = !empty($config['features']['tickets']);
 .login-idx  { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; flex-shrink: 0; }
 .login-idx-0 { background: rgba(93,216,124,.2); color: #5dd87c; border: 1px solid rgba(93,216,124,.3); }
 .login-idx-n { background: rgba(255,255,255,.06); color: #8899aa; }
+
+/* ── Playtime Reward panel ───────────────────────────────────────── */
+.pr-panel {
+    background: linear-gradient(145deg, #12121f, #1a1a2e);
+    border: 1px solid rgba(105,204,240,.25);
+    border-radius: 14px;
+    padding: 1.6rem 1.8rem;
+    position: relative;
+    overflow: hidden;
+}
+.pr-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(105,204,240,.1) 0%, transparent 40%),
+        radial-gradient(ellipse at 0% 100%, rgba(93,216,124,.06) 0%, transparent 40%);
+    pointer-events: none;
+}
+.pr-grid { position: relative; display: flex; flex-direction: column; gap: 1.2rem; }
+
+.pr-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .6rem; }
+.pr-head-title {
+    font-size: .82rem;
+    color: #69ccf0;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    font-weight: 700;
+}
+.pr-head-rate { font-size: .78rem; color: #6c7a8c; }
+
+.pr-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+@media (max-width: 768px) { .pr-stats { grid-template-columns: 1fr; } }
+.pr-stat {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: .8rem 1rem;
+}
+.pr-stat-lbl {
+    font-size: .7rem;
+    color: #8899aa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: .25rem;
+}
+.pr-stat-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    font-variant-numeric: tabular-nums;
+}
+.pr-available { color: #69ccf0; }
+.pr-glow {
+    text-shadow: 0 0 18px rgba(105,204,240,.6);
+    animation: pr-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pr-pulse {
+    0%, 100% { text-shadow: 0 0 18px rgba(105,204,240,.4); }
+    50%      { text-shadow: 0 0 28px rgba(105,204,240,.85); }
+}
+
+.pr-action { display: flex; justify-content: center; }
+.pr-claim-btn {
+    border: none;
+    background: linear-gradient(135deg, #2c5e7a, #1a4d68);
+    border: 1px solid #5b9cb8;
+    color: #cfe9f6;
+    padding: .9rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .25s ease;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 4px 14px rgba(105,204,240,.18);
+}
+.pr-claim-btn:hover {
+    background: linear-gradient(135deg, #5b9cb8, #69ccf0);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(105,204,240,.35);
+}
+.pr-claim-btn:active { transform: translateY(0); }
+.pr-action-msg {
+    color: #8899aa;
+    font-size: .92rem;
+    text-align: center;
+    padding: .75rem 1rem;
+}
+
+/* Daily cap progress */
+.pr-progress-wrap { font-size: .75rem; color: #6c7a8c; }
+.pr-progress-track {
+    height: 6px;
+    background: rgba(255,255,255,.05);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: .35rem;
+}
+.pr-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5b9cb8, #69ccf0, #5dd87c);
+    border-radius: 3px;
+    transition: width .8s ease;
+}
+.pr-progress-lbl { text-align: right; }
+
+/* Toast */
+.pr-toast {
+    border-radius: 10px;
+    padding: .8rem 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    text-align: center;
+    animation: pr-toast-in .35s ease;
+}
+.pr-toast-success {
+    background: rgba(93,216,124,.12);
+    border: 1px solid rgba(93,216,124,.4);
+    color: #5dd87c;
+}
+.pr-toast-error {
+    background: rgba(220,53,69,.12);
+    border: 1px solid rgba(220,53,69,.4);
+    color: #f87e8a;
+}
+@keyframes pr-toast-in {
+    from { transform: translateY(-12px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* History */
+.pr-history { margin-top: .25rem; }
+.pr-history > summary {
+    cursor: pointer;
+    font-size: .82rem;
+    color: #8899aa;
+    padding: .5rem 0;
+    list-style: none;
+    transition: color .2s;
+}
+.pr-history > summary::-webkit-details-marker { display: none; }
+.pr-history > summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: .5rem;
+    transition: transform .2s;
+}
+.pr-history[open] > summary::before { transform: rotate(90deg); }
+.pr-history > summary:hover { color: #c8a96e; }
+.pr-history-empty { color: #4a5568; font-size: .85rem; padding: .75rem 0 .25rem; font-style: italic; }
+.pr-history-tbl { width: 100%; font-size: .85rem; margin-top: .5rem; }
+.pr-history-tbl th {
+    text-align: left;
+    padding: .5rem .75rem;
+    color: #6c7a8c;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    font-weight: 600;
+}
+.pr-history-tbl td {
+    padding: .5rem .75rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    color: #c0c8d8;
+}
+.pr-history-tbl tr:last-child td { border-bottom: none; }
+.pr-history-amt { color: #5dd87c; font-weight: 700; }
 </style>
 
 <div class="container" style="padding-top: 90px; padding-bottom: 3rem;">
@@ -298,28 +522,35 @@ $tickets_enabled = !empty($config['features']['tickets']);
 
 <!-- STAT CARDS -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="stat-card">
             <div class="stat-icon">⏱️</div>
             <div class="stat-value"><?= format_playtime($total_playtime_seconds) ?></div>
             <div class="stat-label"><?= $TEXT['total_playtime'] ?></div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <div class="stat-card">
             <div class="stat-icon">💰</div>
             <div class="stat-value"><?= format_gold($total_gold) ?></div>
             <div class="stat-label"><?= $TEXT['total_gold'] ?></div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
+        <div class="stat-card stat-card-bp">
+            <div class="stat-icon">💎</div>
+            <div class="stat-value"><?= number_format((int)($user['dp'] ?? 0)) ?></div>
+            <div class="stat-label"><?= htmlspecialchars($TEXT['dash_battle_pay'] ?? 'Battle Pay') ?></div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
         <div class="stat-card">
             <div class="stat-icon">⚔️</div>
             <div class="stat-value"><?= count($characters) ?></div>
             <div class="stat-label"><?= $TEXT['your_characters'] ?></div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-12 col-md">
         <div class="stat-card">
             <div class="stat-icon">🏆</div>
             <?php if ($most_played_char): ?>
@@ -334,6 +565,118 @@ $tickets_enabled = !empty($config['features']['tickets']);
     </div>
 </div>
 
+<!-- ═══════════════ PLAYTIME REWARD PANEL ═══════════════ -->
+<?php if ($pr_status['enabled']): ?>
+<section id="playtime-reward" class="pr-panel mb-4">
+    <?php if ($pr_just_claimed > 0): ?>
+        <div class="pr-toast pr-toast-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            +<?= number_format($pr_just_claimed) ?> <?= htmlspecialchars($TEXT['dash_battle_pay'] ?? 'Battle Pay') ?> <?= htmlspecialchars($TEXT['pr_just_claimed_suffix'] ?? 'claimed!') ?>
+        </div>
+    <?php elseif ($pr_claim_error): ?>
+        <div class="pr-toast pr-toast-error">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <?= htmlspecialchars($TEXT['error_db'] ?? 'Something went wrong, please try again.') ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="pr-grid">
+        <div class="pr-head">
+            <div class="pr-head-title">
+                <i class="bi bi-controller me-2"></i><?= htmlspecialchars($TEXT['pr_panel_title'] ?? 'Playtime Reward') ?>
+            </div>
+            <div class="pr-head-rate">
+                <?= sprintf(htmlspecialchars($TEXT['pr_rate_info'] ?? 'Earn %d Battle Pay per hour played · %d daily cap'),
+                            (int)$pr_status['rate_per_hour'], (int)$pr_status['daily_cap_dp']) ?>
+            </div>
+        </div>
+
+        <div class="pr-stats">
+            <div class="pr-stat">
+                <div class="pr-stat-lbl"><i class="bi bi-clock me-1"></i><?= htmlspecialchars($TEXT['pr_total_played'] ?? 'Total Played') ?></div>
+                <div class="pr-stat-val"><?= htmlspecialchars(format_playtime((int)$pr_status['total_played_seconds'])) ?></div>
+            </div>
+            <div class="pr-stat">
+                <div class="pr-stat-lbl"><i class="bi bi-coin me-1"></i><?= htmlspecialchars($TEXT['pr_earned_to_date'] ?? 'Earned to Date') ?></div>
+                <div class="pr-stat-val"><?= number_format((int)$pr_status['total_paid_dp']) ?></div>
+            </div>
+            <div class="pr-stat">
+                <div class="pr-stat-lbl"><i class="bi bi-gem me-1"></i><?= htmlspecialchars($TEXT['pr_available_now'] ?? 'Available Now') ?></div>
+                <div class="pr-stat-val pr-available <?= $pr_status['available_dp'] > 0 ? 'pr-glow' : '' ?>"><?= number_format((int)$pr_status['available_dp']) ?></div>
+            </div>
+        </div>
+
+        <div class="pr-action">
+            <?php if ($pr_status['available_dp'] > 0): ?>
+                <form method="POST" action="/dashboard">
+                    <input type="hidden" name="action" value="claim_playtime">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                    <button type="submit" class="pr-claim-btn">
+                        <i class="bi bi-gift-fill me-2"></i>
+                        <?= sprintf(htmlspecialchars($TEXT['pr_claim_button'] ?? 'Claim %d Battle Pay'), (int)$pr_status['available_dp']) ?>
+                    </button>
+                </form>
+            <?php elseif ($pr_status['cap_reached']): ?>
+                <div class="pr-action-msg">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    <?= sprintf(htmlspecialchars($TEXT['pr_daily_cap_reached'] ?? 'Daily cap reached. Resets in %s.'),
+                                pr_format_duration((int)$pr_status['seconds_to_reset'])) ?>
+                </div>
+            <?php elseif ($pr_status['total_played_seconds'] === 0): ?>
+                <div class="pr-action-msg">
+                    <i class="bi bi-controller me-2"></i>
+                    <?= htmlspecialchars($TEXT['pr_no_playtime'] ?? 'Log into the game to start earning Battle Pay.') ?>
+                </div>
+            <?php else: ?>
+                <div class="pr-action-msg">
+                    <i class="bi bi-stopwatch me-2"></i>
+                    <?= sprintf(htmlspecialchars($TEXT['pr_next_reward'] ?? 'Next reward in %s of play.'),
+                                pr_format_duration((int)$pr_status['seconds_to_next_dp'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Daily cap progress -->
+        <div class="pr-progress-wrap">
+            <div class="pr-progress-track">
+                <div class="pr-progress-fill" style="width: <?= $pr_status['daily_cap_dp'] > 0 ? min(100, round(($pr_status['today_claimed_dp'] / $pr_status['daily_cap_dp']) * 100)) : 0 ?>%"></div>
+            </div>
+            <div class="pr-progress-lbl">
+                <?= sprintf(htmlspecialchars($TEXT['pr_daily_progress'] ?? '%d / %d daily cap'),
+                            (int)$pr_status['today_claimed_dp'], (int)$pr_status['daily_cap_dp']) ?>
+            </div>
+        </div>
+
+        <!-- History (collapsible) -->
+        <details class="pr-history">
+            <summary><i class="bi bi-clock-history me-1"></i><?= htmlspecialchars($TEXT['pr_history_title'] ?? 'Recent claims') ?></summary>
+            <?php if (empty($pr_history)): ?>
+                <div class="pr-history-empty"><?= htmlspecialchars($TEXT['pr_no_history'] ?? 'No claims yet.') ?></div>
+            <?php else: ?>
+                <table class="pr-history-tbl">
+                    <thead>
+                        <tr>
+                            <th><?= htmlspecialchars($TEXT['pr_hist_date'] ?? 'Date') ?></th>
+                            <th><?= htmlspecialchars($TEXT['pr_hist_dp'] ?? 'Earned') ?></th>
+                            <th><?= htmlspecialchars($TEXT['pr_hist_for'] ?? 'For') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($pr_history as $h): ?>
+                        <tr>
+                            <td><?= date('Y-m-d H:i', strtotime($h['created_at'])) ?></td>
+                            <td class="pr-history-amt">+<?= number_format((int)$h['dp_amount']) ?></td>
+                            <td><?= htmlspecialchars(pr_format_duration((int)$h['seconds_claimed'])) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </details>
+    </div>
+</section>
+<?php endif; ?>
+
 <!-- MIDDLE ROW -->
 <div class="row g-3 mb-4">
 
@@ -341,6 +684,10 @@ $tickets_enabled = !empty($config['features']['tickets']);
     <div class="col-lg-4">
         <div class="dash-panel">
             <div class="panel-title"><i class="bi bi-person-badge me-2"></i><?= $TEXT['account_details'] ?></div>
+            <div class="info-row">
+                <span class="info-key"><?= htmlspecialchars($TEXT['dash_account_id'] ?? 'Account ID') ?></span>
+                <span class="info-val"><?= (int)$user_id ?></span>
+            </div>
             <div class="info-row">
                 <span class="info-key"><?= $TEXT['username'] ?></span>
                 <span class="info-val"><?= htmlspecialchars($user['username']) ?></span>
@@ -352,6 +699,10 @@ $tickets_enabled = !empty($config['features']['tickets']);
             <div class="info-row">
                 <span class="info-key"><?= $TEXT['join_date'] ?></span>
                 <span class="info-val"><?= date('Y-m-d', strtotime($user['joindate'])) ?></span>
+            </div>
+            <div class="info-row">
+                <span class="info-key"><?= htmlspecialchars($TEXT['dash_current_ip'] ?? 'Current IP') ?></span>
+                <span class="info-val" style="color:#5dd87c;font-family:monospace;font-size:.82rem"><?= htmlspecialchars($user['last_ip'] ?? '—') ?></span>
             </div>
         </div>
     </div>
@@ -452,12 +803,13 @@ $tickets_enabled = !empty($config['features']['tickets']);
             <?php elseif (!empty($characters)): ?>
                 <div class="d-flex flex-column gap-2">
                 <?php foreach ($characters as $char):
-                    $cls  = (int)$char['class'];
-                    $clr  = $class_colors[$cls] ?? '#c8a96e';
-                    $guid = (int)$char['guid'];
-                    $ach  = $achievement_counts[$guid] ?? null;
+                    $cls    = (int)$char['class'];
+                    $clr    = $class_colors[$cls] ?? '#c8a96e';
+                    $guid   = (int)$char['guid'];
+                    $ach    = $achievement_counts[$guid] ?? null;
+                    $online = (int)$char['online'] === 1;
                 ?>
-                    <div class="char-card" style="border-left-color:<?= $clr ?>">
+                    <a class="char-card" href="/armory/<?= rawurlencode($char['name']) ?>" style="border-left-color:<?= $clr ?>" title="<?= htmlspecialchars($TEXT['armory'] ?? 'Armory') ?>: <?= htmlspecialchars($char['name']) ?>">
                         <div class="char-icons">
                             <img src="<?= get_race_icon_path((int)$char['race'], (int)$char['gender']) ?>"
                                  title="<?= htmlspecialchars(get_race_name((int)$char['race'])) ?>">
@@ -465,7 +817,10 @@ $tickets_enabled = !empty($config['features']['tickets']);
                                  title="<?= htmlspecialchars(get_class_name($cls)) ?>">
                         </div>
                         <div class="char-info">
-                            <div class="char-name" style="color:<?= $clr ?>"><?= htmlspecialchars($char['name']) ?></div>
+                            <div class="char-name" style="color:<?= $clr ?>">
+                                <?php if ($online): ?><span class="char-online-dot" title="<?= htmlspecialchars($TEXT['status_online'] ?? 'Online') ?>"></span><?php endif; ?>
+                                <?= htmlspecialchars($char['name']) ?>
+                            </div>
                             <div class="char-meta">
                                 <?= htmlspecialchars(get_race_name((int)$char['race'])) ?> &middot;
                                 <?= htmlspecialchars(get_class_name($cls)) ?>
@@ -477,7 +832,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
                                 <span>⏱ <?= format_playtime((int)$char['totaltime']) ?></span>
                                 <span>💰 <?= format_gold((int)$char['money']) ?></span>
                                 <?php if ($ach !== null): ?>
-                                    <span class="achiev-badge">🏆 <?= number_format($ach) ?> achievements</span>
+                                    <span class="achiev-badge">🏆 <?= number_format($ach) ?></span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -492,7 +847,7 @@ $tickets_enabled = !empty($config['features']['tickets']);
                             </div>
                             <?php endif; ?>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
                 </div>
             <?php else: ?>
@@ -506,57 +861,12 @@ $tickets_enabled = !empty($config['features']['tickets']);
 
 </div><!-- /row -->
 
-<!-- ═══════════════ ACCOUNT SECURITY & VOTE SECTIONS ═══════════════ -->
+<!-- ═══════════════ VOTE + QUICK LINKS ═══════════════ -->
 <div class="row g-3 mt-1">
-    <!-- Account Security -->
-    <div class="col-lg-6">
-        <div class="panel-card" style="background:linear-gradient(145deg,#12121f,#1a1a2e);border:1px solid rgba(139,69,19,.25);border-radius:14px;padding:1.4rem 1.6rem;">
-            <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(139,69,19,.2)">
-                <i class="bi bi-shield-lock me-2"></i><?= htmlspecialchars($TEXT['dash_account_security'] ?? 'Account Security') ?>
-            </div>
-
-            <!-- Account Info -->
-            <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_account_id'] ?? 'Account ID') ?></span>
-                <span style="color:#e2e8f0;font-weight:600"><?= $user_id ?></span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['email'] ?? 'Email') ?></span>
-                <span style="color:#e2e8f0"><?= htmlspecialchars($user['email'] ?? '—') ?></span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_joined'] ?? 'Joined') ?></span>
-                <span style="color:#e2e8f0"><?= $user['joindate'] ? date('M d, Y', strtotime($user['joindate'])) : '—' ?></span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:.4rem 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.04)">
-                <span style="color:#8899aa"><?= htmlspecialchars($TEXT['dash_current_ip'] ?? 'Current IP') ?></span>
-                <span style="color:#5dd87c;font-family:monospace;font-size:.82rem"><?= htmlspecialchars($user['last_ip'] ?? '—') ?></span>
-            </div>
-
-            <!-- Recent Login History -->
-            <div style="font-size:.68rem;color:#8899aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin:1rem 0 .5rem;padding-top:.5rem;border-top:1px solid rgba(139,69,19,.15)">
-                <i class="bi bi-clock-history me-1"></i><?= htmlspecialchars($TEXT['dash_recent_login_activity'] ?? 'Recent Login Activity') ?>
-            </div>
-            <?php if (!empty($login_history)): ?>
-                <?php foreach (array_slice($login_history, 0, 5) as $idx => $login): ?>
-                <div style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:.82rem">
-                    <span class="login-idx <?= $idx === 0 ? 'login-idx-0' : 'login-idx-n' ?>"><?= $idx + 1 ?></span>
-                    <span class="login-ip"><?= htmlspecialchars($login['ip'] ?? '—') ?></span>
-                    <span class="login-time"><?= isset($login['time']) ? date('M d, H:i', strtotime($login['time'])) : '—' ?></span>
-                </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="color:#4a5568;font-size:.85rem;padding:.5rem 0"><?= htmlspecialchars($TEXT['dash_no_login_activity'] ?? 'No login history available') ?></div>
-            <?php endif; ?>
-        </div>
-    </div>
-
     <!-- Vote & Reward -->
     <div class="col-lg-6">
-        <div class="panel-card" style="background:linear-gradient(145deg,#12121f,#1a1a2e);border:1px solid rgba(139,69,19,.25);border-radius:14px;padding:1.4rem 1.6rem;">
-            <div style="font-size:.72rem;color:#c8a96e;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid rgba(139,69,19,.2)">
-                <i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?>
-            </div>
+        <div class="dash-panel">
+            <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?></div>
 
             <?php $vote_sites = $config['vote_sites'] ?? []; ?>
             <?php if (!empty($vote_sites)): ?>
@@ -583,20 +893,33 @@ $tickets_enabled = !empty($config['features']['tickets']);
                     <p style="color:#4a5568;font-size:.78rem;margin:.3rem 0 0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon_hint'] ?? 'Vote for our server to earn rewards and help us grow.') ?></p>
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
 
-            <!-- Quick Links -->
-            <div style="margin-top:1rem;padding-top:.8rem;border-top:1px solid rgba(139,69,19,.15)">
-                <div style="font-size:.68rem;color:#8899aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:.5rem"><?= htmlspecialchars($TEXT['dash_quick_links'] ?? 'Quick Links') ?></div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <?php if ($tickets_enabled): ?>
-                    <a href="/tickets" class="action-btn action-btn-secondary" style="padding:.5rem 1rem;font-size:.82rem">
-                        <i class="bi bi-ticket-perforated"></i> <?= htmlspecialchars($TEXT['dash_support_tickets'] ?? 'Support Tickets') ?>
-                    </a>
-                    <?php endif; ?>
-                    <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="padding:.5rem 1rem;font-size:.82rem">
-                        <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['dash_my_tickets'] ?? 'My Tickets') ?>
-                    </a>
-                </div>
+    <!-- Quick Links -->
+    <div class="col-lg-6">
+        <div class="dash-panel">
+            <div class="panel-title"><i class="bi bi-link-45deg me-2"></i><?= htmlspecialchars($TEXT['dash_quick_links'] ?? 'Quick Links') ?></div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="/armory" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
+                    <i class="bi bi-search"></i> <?= htmlspecialchars($TEXT['armory'] ?? 'Armory') ?>
+                </a>
+                <a href="/leaderboards" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
+                    <i class="bi bi-trophy-fill"></i> <?= htmlspecialchars($TEXT['leaderboards'] ?? 'Leaderboards') ?>
+                </a>
+                <?php if ($most_played_char): ?>
+                <a href="/armory/<?= rawurlencode($most_played_char['name']) ?>" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem;border-color:<?= ($class_colors[(int)$most_played_char['class']] ?? '#c8a96e') ?>;color:<?= ($class_colors[(int)$most_played_char['class']] ?? '#c8a96e') ?>">
+                    <i class="bi bi-person-fill"></i> <?= htmlspecialchars($TEXT['dash_view_my_armory'] ?? 'My Armory Profile') ?>
+                </a>
+                <?php endif; ?>
+                <?php if ($tickets_enabled): ?>
+                <a href="/tickets" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
+                    <i class="bi bi-ticket-perforated"></i> <?= htmlspecialchars($TEXT['dash_support_tickets'] ?? 'Support Tickets') ?>
+                </a>
+                <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
+                    <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['dash_my_tickets'] ?? 'My Tickets') ?>
+                </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>

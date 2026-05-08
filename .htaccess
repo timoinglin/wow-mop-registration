@@ -4,6 +4,9 @@ RewriteEngine On
 # Disable directory listings and MultiViews globally
 Options -Indexes -MultiViews
 
+# Custom error pages (routed through pages/ via the rewrite rules below)
+ErrorDocument 404 /404
+
 # --- Rules for Pretty URLs ---
 
 # 1. Prevent rewriting for existing files and directories (assets, favicon, etc.)

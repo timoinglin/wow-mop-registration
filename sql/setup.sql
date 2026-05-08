@@ -44,3 +44,25 @@ CREATE TABLE IF NOT EXISTS admin_audit_log (
   INDEX idx_action (action),
   INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 4. Playtime Rewards (per-account rolling state)
+CREATE TABLE IF NOT EXISTS playtime_rewards (
+  account_id INT NOT NULL PRIMARY KEY,
+  last_total_seconds INT NOT NULL DEFAULT 0,
+  today_dp_claimed INT NOT NULL DEFAULT 0,
+  today_date DATE NOT NULL,
+  total_paid_dp INT NOT NULL DEFAULT 0,
+  last_claim_at DATETIME DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 5. Playtime Rewards Log (audit trail of every claim)
+CREATE TABLE IF NOT EXISTS playtime_reward_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  account_id INT NOT NULL,
+  dp_amount INT NOT NULL,
+  seconds_claimed INT NOT NULL,
+  total_seconds_at_claim INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_account (account_id),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

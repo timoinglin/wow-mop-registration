@@ -430,6 +430,8 @@ return [
   'dash_support_tickets'           => 'Tickets de Soporte',
   'dash_my_tickets'                => 'Mis Tickets',
   'dash_most_time_on'              => 'Más tiempo en',
+  'dash_battle_pay'                => 'Battle Pay',
+  'dash_view_my_armory'            => 'Mi Perfil en la Armería',
 
   // ─── Página de tickets ──────────────────────────────────────────────────────
   'tickets_intro_html'             => 'Describe tu problema — nuestro equipo te responderá a <strong style="color:#c8a96e">%s</strong>',
@@ -606,4 +608,31 @@ return [
   'lb_empty_title'         => 'Aún sin datos',
   'lb_empty_hint'          => 'Cuando los jugadores empiecen su viaje, las clasificaciones se llenarán aquí.',
   'lb_top100_note'         => 'Mostrando solo el top 100.',
+
+  // ─── Página 404 ─────────────────────────────────────────────────────────────
+  'err_404_title'          => 'Has muerto.',
+  'err_404_subtitle'       => 'La página que buscabas ha cruzado a las Tierras Sombrías.',
+  'err_404_release_spirit' => 'Liberar Espíritu',
+  'err_404_run_back'       => 'Volver Corriendo al Cadáver',
+  'err_404_rez_sickness'   => 'Mareo de resurrección: 0 minutos. Suerte que has tenido.',
+  'err_404_alt'            => 'Sanador Espiritual',
+  'err_404_murloc'         => '¡Mrglglglglgl!',
+
+  // ─── Recompensa por Tiempo de Juego ─────────────────────────────────────────
+  'pr_panel_title'         => 'Recompensa por Tiempo Jugado',
+  'pr_rate_info'           => 'Gana %d Battle Pay por hora jugada · Límite diario de %d',
+  'pr_total_played'        => 'Tiempo Total Jugado',
+  'pr_earned_to_date'      => 'Total Ganado',
+  'pr_available_now'       => 'Disponible Ahora',
+  'pr_claim_button'        => 'Reclamar %d Battle Pay',
+  'pr_just_claimed_suffix' => 'reclamados!',
+  'pr_no_playtime'         => 'Inicia sesión en el juego para empezar a ganar Battle Pay.',
+  'pr_next_reward'         => 'Próxima recompensa en %s de juego.',
+  'pr_daily_cap_reached'   => 'Límite diario alcanzado. Se restablece en %s.',
+  'pr_daily_progress'      => '%d / %d del límite diario',
+  'pr_history_title'       => 'Reclamaciones recientes',
+  'pr_no_history'          => 'Aún sin reclamaciones.',
+  'pr_hist_date'           => 'Fecha',
+  'pr_hist_dp'             => 'Ganados',
+  'pr_hist_for'            => 'Por',
 ];

@@ -97,4 +97,17 @@ return [
     'vote_sites' => [
         ['name' => 'Top100Arena', 'url' => 'https://top100arena.com/in/your-server', 'cooldown_hours' => 12],
     ],
+
+    // Playtime Reward — automatically grants Battle Pay (DP) for time spent in-game.
+    // Calculated from SUM(characters.totaltime) per account, so AFK still counts but
+    // login/logout farming doesn't help. Players claim from the dashboard.
+    //
+    // Defaults below: a player at the daily cap earns ~1500 DP/month.
+    //   - dp_per_hour:     5 hours/day at 10 DP = 50 DP/day cap
+    //   - daily_cap_dp:    20-hour AFK farmer is bounded at 50 DP/day too
+    'playtime_reward' => [
+        'enabled'      => true,
+        'dp_per_hour'  => 10,   // DP awarded per hour played
+        'daily_cap_dp' => 50,   // max DP earnable per server-day
+    ],
 ];

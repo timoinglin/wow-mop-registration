@@ -444,6 +444,8 @@ return [
   'dash_support_tickets'           => 'Support Tickets',
   'dash_my_tickets'                => 'My Tickets',
   'dash_most_time_on'              => 'Most time on',
+  'dash_battle_pay'                => 'Battle Pay',
+  'dash_view_my_armory'            => 'My Armory Profile',
 
   // ─── Tickets page ───────────────────────────────────────────────────────────
   'tickets_intro_html'             => 'Describe your issue — our team will respond to <strong style="color:#c8a96e">%s</strong>',
@@ -620,4 +622,31 @@ return [
   'lb_empty_title'         => 'No data yet',
   'lb_empty_hint'          => 'Once players start their journey, the leaderboards fill up here.',
   'lb_top100_note'         => 'Showing top 100 only.',
+
+  // ─── 404 page ───────────────────────────────────────────────────────────────
+  'err_404_title'          => 'You died.',
+  'err_404_subtitle'       => 'The page you sought has crossed into the Shadowlands.',
+  'err_404_release_spirit' => 'Release Spirit',
+  'err_404_run_back'       => 'Run Back to Corpse',
+  'err_404_rez_sickness'   => 'Resurrection sickness: 0 minutes. Lucky you.',
+  'err_404_alt'            => 'Spirit Healer',
+  'err_404_murloc'         => 'Mrglglglglgl!',
+
+  // ─── Playtime Reward ────────────────────────────────────────────────────────
+  'pr_panel_title'         => 'Playtime Reward',
+  'pr_rate_info'           => 'Earn %d Battle Pay per hour played · %d daily cap',
+  'pr_total_played'        => 'Total Played',
+  'pr_earned_to_date'      => 'Earned to Date',
+  'pr_available_now'       => 'Available Now',
+  'pr_claim_button'        => 'Claim %d Battle Pay',
+  'pr_just_claimed_suffix' => 'claimed!',
+  'pr_no_playtime'         => 'Log into the game to start earning Battle Pay.',
+  'pr_next_reward'         => 'Next reward in %s of play.',
+  'pr_daily_cap_reached'   => 'Daily cap reached. Resets in %s.',
+  'pr_daily_progress'      => '%d / %d daily cap',
+  'pr_history_title'       => 'Recent claims',
+  'pr_no_history'          => 'No claims yet.',
+  'pr_hist_date'           => 'Date',
+  'pr_hist_dp'             => 'Earned',
+  'pr_hist_for'            => 'For',
 ];

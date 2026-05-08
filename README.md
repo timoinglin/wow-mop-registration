@@ -2,7 +2,7 @@
 
 A complete, secure, and modern registration portal for **World of Warcraft: Mists of Pandaria (5.4.8)** private servers. Built for TrinityCore-based cores (including repacks).
 
-![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange)
+![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange) ![GitHub Release](https://img.shields.io/github/v/release/timoinglin/wow-mop-registration?label=release&color=8B4513)
 
 > ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [How to Update](#how-to-update) section to stay current.
 
@@ -14,6 +14,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [User Dashboard](#user-dashboard)
   - [Public Armory](#public-armory)
   - [Leaderboards](#leaderboards)
+  - [Custom 404 Page](#custom-404-page)
   - [Admin Dashboard - Overview](#admin-dashboard---overview)
   - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
   - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
@@ -54,6 +55,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
 - 🔍 **Public Armory** — Search any character on the realm; profile pages with equipped gear (Wowhead tooltips), stats, achievements, and account-mate links
 - 🏆 **Leaderboards** — Top players by level, playtime, gold, PvP kills, and achievements, plus top guilds — with faction filters and gold/silver/bronze top-3 styling
+- 💎 **Playtime Reward** — Auto-grants Battle Pay (DP) for time spent in-game; configurable hourly rate + daily cap. AFK still counts, login/logout farming doesn't.
+- 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Database-stored support tickets with admin replies, status tracking, and user history
 - 📰 **News & FAQ** — Configurable news section and FAQ accordion on the home page
@@ -75,6 +78,11 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ### Leaderboards
 ![Leaderboards](assets/img/screenshots/leaderboards.png)
+
+### Custom 404 Page
+*"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
+
+![404 Page](assets/img/404-spirit-healer.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
