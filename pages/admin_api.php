@@ -96,16 +96,33 @@ try {
 
             if (!$ticket_id || empty($reply)) { echo json_encode(['error' => 'Missing ticket_id or reply']); exit; }
 
-            $stmt = $pdo_auth->prepare(
-                "UPDATE tickets SET admin_reply = :reply, replied_by = :by, status = :status, updated_at = NOW()
-                 WHERE id = :id"
-            );
-            $stmt->execute([
-                'reply'  => $reply,
-                'by'     => $admin_name,
-                'status' => $new_status,
-                'id'     => $ticket_id,
-            ]);
+            // Keep the legacy `admin_reply` columns up-to-date (so older code paths keep working),
+            // BUT also append this reply to ticket_messages so the user sees it in the thread.
+            $pdo_auth->beginTransaction();
+            try {
+                $stmt = $pdo_auth->prepare(
+                    "UPDATE tickets SET admin_reply = :reply, replied_by = :by, status = :status, updated_at = NOW()
+                     WHERE id = :id"
+                );
+                $stmt->execute([
+                    'reply'  => $reply,
+                    'by'     => $admin_name,
+                    'status' => $new_status,
+                    'id'     => $ticket_id,
+                ]);
+
+                $msg = $pdo_auth->prepare(
+                    "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
+                     VALUES (:tid, 'admin', :name, :reply, NOW())"
+                );
+                $msg->execute(['tid' => $ticket_id, 'name' => $admin_name, 'reply' => $reply]);
+                $pdo_auth->commit();
+            } catch (Exception $e) {
+                if ($pdo_auth->inTransaction()) $pdo_auth->rollBack();
+                error_log('reply_ticket failed: ' . $e->getMessage());
+                echo json_encode(['error' => 'Failed to record reply']);
+                exit;
+            }
 
             // Get ticket info for email notification
             $t = $pdo_auth->prepare("SELECT username, email, subject FROM tickets WHERE id = :id");

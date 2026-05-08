@@ -473,6 +473,21 @@ return [
   'tickets_admin_reply'            => 'Admin Reply',
   'tickets_last_updated'           => 'Last updated',
 
+  // User-side ticket actions (reply / close / reopen)
+  'tickets_add_reply'              => 'Add a reply',
+  'tickets_reply_placeholder'      => 'Write your reply…',
+  'tickets_send_reply'             => 'Send Reply',
+  'tickets_close_ticket'           => 'Close Ticket',
+  'tickets_reopen_ticket'          => 'Reopen Ticket',
+  'tickets_thread_closed'          => 'This ticket is closed. Reopen it to continue the conversation.',
+  'tickets_toast_replied'          => 'Reply sent. Our team will see it.',
+  'tickets_toast_closed'           => 'Ticket closed.',
+  'tickets_toast_reopened'         => 'Ticket reopened.',
+  'tickets_reply_too_long'         => 'Reply is too long (max 2000 characters).',
+  'ticket_action_invalid'          => 'Invalid ticket.',
+  'ticket_action_forbidden'        => 'You can only act on your own tickets.',
+  'ticket_action_closed'           => 'You cannot reply to a closed ticket. Reopen it first.',
+
   // ─── Admin Dashboard (PHP) ──────────────────────────────────────────────────
   'admin_total_accounts'           => 'Total Accounts',
   'admin_online_now'               => 'Online Now',

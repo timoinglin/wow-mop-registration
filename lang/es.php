@@ -459,6 +459,21 @@ return [
   'tickets_admin_reply'            => 'Respuesta del Admin',
   'tickets_last_updated'           => 'Última actualización',
 
+  // Acciones de ticket por el usuario (responder / cerrar / reabrir)
+  'tickets_add_reply'              => 'Añadir una respuesta',
+  'tickets_reply_placeholder'      => 'Escribe tu respuesta…',
+  'tickets_send_reply'             => 'Enviar Respuesta',
+  'tickets_close_ticket'           => 'Cerrar Ticket',
+  'tickets_reopen_ticket'          => 'Reabrir Ticket',
+  'tickets_thread_closed'          => 'Este ticket está cerrado. Reábrelo para continuar la conversación.',
+  'tickets_toast_replied'          => 'Respuesta enviada. Nuestro equipo la verá pronto.',
+  'tickets_toast_closed'           => 'Ticket cerrado.',
+  'tickets_toast_reopened'         => 'Ticket reabierto.',
+  'tickets_reply_too_long'         => 'La respuesta es demasiado larga (máx. 2000 caracteres).',
+  'ticket_action_invalid'          => 'Ticket inválido.',
+  'ticket_action_forbidden'        => 'Solo puedes actuar sobre tus propios tickets.',
+  'ticket_action_closed'           => 'No puedes responder a un ticket cerrado. Reábrelo primero.',
+
   // ─── Panel de Administración (PHP) ──────────────────────────────────────────
   'admin_total_accounts'           => 'Cuentas Totales',
   'admin_online_now'               => 'En Línea Ahora',

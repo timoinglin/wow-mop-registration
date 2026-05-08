@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 // Auth check
 if (!isset($_SESSION['user_id'])) {
@@ -18,6 +19,95 @@ if (empty($config['features']['tickets'])) {
 
 $errors  = [];
 $success = false;
+
+// ─── User-side ticket actions: reply / close / reopen ────────────────────────
+// Each action validates ownership before mutating. PRG redirect afterwards
+// keeps refreshes idempotent.
+$post_action = $_POST['ticket_action'] ?? '';
+if ($post_action !== '' && in_array($post_action, ['reply', 'close', 'reopen'], true)) {
+    $action_csrf  = $_POST['csrf_token'] ?? null;
+    $action_tid   = (int)($_POST['ticket_id'] ?? 0);
+    $action_reply = trim((string)($_POST['reply_text'] ?? ''));
+
+    if (!validate_csrf_token($action_csrf)) {
+        $errors[] = $TEXT['invalid_csrf'] ?? 'Invalid CSRF token.';
+    }
+    if (empty($errors) && $action_tid <= 0) {
+        $errors[] = $TEXT['ticket_action_invalid'] ?? 'Invalid ticket.';
+    }
+
+    if (empty($errors)) {
+        try {
+            // Ownership check — must be the user's own ticket
+            $own = $pdo_auth->prepare("SELECT id, status FROM tickets WHERE id = :id AND user_id = :uid LIMIT 1");
+            $own->execute(['id' => $action_tid, 'uid' => $_SESSION['user_id']]);
+            $ticket_row = $own->fetch();
+
+            if (!$ticket_row) {
+                http_response_code(403);
+                $errors[] = $TEXT['ticket_action_forbidden'] ?? 'You can only act on your own tickets.';
+            } else {
+                $current_status = $ticket_row['status'];
+
+                if ($post_action === 'reply') {
+                    if ($action_reply === '') {
+                        $errors[] = $TEXT['ticket_required_message'] ?? 'Message is required.';
+                    } elseif (mb_strlen($action_reply) > 2000) {
+                        $errors[] = $TEXT['ticket_reply_too_long'] ?? 'Reply is too long (max 2000 characters).';
+                    } elseif ($current_status === 'closed') {
+                        $errors[] = $TEXT['ticket_action_closed'] ?? 'You cannot reply to a closed ticket. Reopen it first.';
+                    } else {
+                        $pdo_auth->beginTransaction();
+                        try {
+                            $msg = $pdo_auth->prepare(
+                                "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
+                                 VALUES (:tid, 'user', :name, :msg, NOW())"
+                            );
+                            $msg->execute([
+                                'tid'  => $action_tid,
+                                'name' => $_SESSION['username'] ?? 'User',
+                                'msg'  => $action_reply,
+                            ]);
+                            // Bump status back to in_progress on a user follow-up so admins see it as live
+                            $newst = ($current_status === 'closed') ? 'in_progress' : 'in_progress';
+                            $upd = $pdo_auth->prepare("UPDATE tickets SET status = :st, updated_at = NOW() WHERE id = :id");
+                            $upd->execute(['st' => $newst, 'id' => $action_tid]);
+                            $pdo_auth->commit();
+                            header('Location: /tickets?tab=history&action=replied&tid=' . $action_tid . '#ticket-' . $action_tid);
+                            exit;
+                        } catch (Exception $e) {
+                            if ($pdo_auth->inTransaction()) $pdo_auth->rollBack();
+                            error_log('User ticket reply failed: ' . $e->getMessage());
+                            $errors[] = $TEXT['error_db'] ?? 'Database error.';
+                        }
+                    }
+                } elseif ($post_action === 'close') {
+                    if ($current_status === 'closed') {
+                        // Idempotent — just redirect
+                        header('Location: /tickets?tab=history#ticket-' . $action_tid);
+                        exit;
+                    }
+                    $upd = $pdo_auth->prepare("UPDATE tickets SET status = 'closed', updated_at = NOW() WHERE id = :id AND user_id = :uid");
+                    $upd->execute(['id' => $action_tid, 'uid' => $_SESSION['user_id']]);
+                    header('Location: /tickets?tab=history&action=closed&tid=' . $action_tid . '#ticket-' . $action_tid);
+                    exit;
+                } elseif ($post_action === 'reopen') {
+                    if ($current_status !== 'closed') {
+                        header('Location: /tickets?tab=history#ticket-' . $action_tid);
+                        exit;
+                    }
+                    $upd = $pdo_auth->prepare("UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE id = :id AND user_id = :uid");
+                    $upd->execute(['id' => $action_tid, 'uid' => $_SESSION['user_id']]);
+                    header('Location: /tickets?tab=history&action=reopened&tid=' . $action_tid . '#ticket-' . $action_tid);
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            error_log('User ticket action failed: ' . $e->getMessage());
+            $errors[] = $TEXT['error_db'] ?? 'Database error.';
+        }
+    }
+}
 
 $stmt = $pdo_auth->prepare("SELECT username, email FROM account WHERE id = :id");
 $stmt->execute(['id' => $_SESSION['user_id']]);
@@ -161,19 +251,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Load user's tickets for the "My Tickets" tab
+// Load user's tickets for the "My Tickets" tab + their conversation threads
 $my_tickets = [];
+$ticket_threads = []; // [ticket_id => [ {sender_type, sender_username, message, created_at}, ... ]]
 try {
     $stmt = $pdo_auth->prepare("SELECT * FROM tickets WHERE user_id = :uid ORDER BY created_at DESC LIMIT 50");
     $stmt->execute(['uid' => $_SESSION['user_id']]);
     $my_tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!empty($my_tickets)) {
+        $ticket_ids = array_column($my_tickets, 'id');
+        $placeholders = implode(',', array_fill(0, count($ticket_ids), '?'));
+        $msg_stmt = $pdo_auth->prepare(
+            "SELECT ticket_id, sender_type, sender_username, message, created_at
+             FROM ticket_messages
+             WHERE ticket_id IN ($placeholders)
+             ORDER BY created_at ASC, id ASC"
+        );
+        $msg_stmt->execute($ticket_ids);
+        foreach ($msg_stmt->fetchAll(PDO::FETCH_ASSOC) as $m) {
+            $ticket_threads[(int)$m['ticket_id']][] = $m;
+        }
+    }
 } catch (PDOException $e) {
-    // Table may not exist yet — silently ignore
     error_log("Ticket history error: " . $e->getMessage());
 }
 
 $open_count = count(array_filter($my_tickets, fn($t) => $t['status'] === 'open'));
 $progress_count = count(array_filter($my_tickets, fn($t) => $t['status'] === 'in_progress'));
+
+// Toast banner from PRG redirect (?action=replied|closed|reopened&tid=N)
+$action_toast = $_GET['action'] ?? '';
+$action_toast_tid = (int)($_GET['tid'] ?? 0);
 
 require_once __DIR__ . '/../templates/header.php';
 ?>
@@ -468,6 +577,109 @@ require_once __DIR__ . '/../templates/header.php';
     color: #8899aa;
 }
 .no-tickets i { font-size: 2.5rem; opacity: .3; display: block; margin-bottom: 1rem; }
+
+/* ── Conversation thread bubbles ─────────────────────────────────────── */
+.thread-bubble {
+    margin-bottom: .8rem;
+    padding: .85rem 1rem;
+    border-radius: 10px;
+    font-size: .9rem;
+    line-height: 1.55;
+}
+.thread-bubble:last-of-type { margin-bottom: 1rem; }
+.thread-bubble .thread-meta {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: .35rem;
+    color: #8899aa;
+}
+.thread-bubble .thread-body { color: #e2e8f0; white-space: pre-wrap; word-wrap: break-word; }
+.thread-bubble.thread-user {
+    background: rgba(255,255,255,0.03);
+    border-left: 3px solid rgba(200,169,110,0.4);
+}
+.thread-bubble.thread-user .thread-meta { color: #c8a96e; }
+.thread-bubble.thread-admin {
+    background: rgba(93,216,124,0.06);
+    border-left: 3px solid #5dd87c;
+}
+.thread-bubble.thread-admin .thread-meta { color: #5dd87c; }
+
+/* ── Reply form (inline inside expanded ticket) ──────────────────────── */
+.thread-reply-form {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(255,255,255,0.08);
+}
+.thread-reply-form .ticket-input { font-size: .9rem; }
+.thread-closed-msg {
+    color: #8899aa;
+    font-size: .85rem;
+    padding: .6rem 0;
+    font-style: italic;
+}
+
+.thread-btn {
+    padding: .55rem 1.1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: .85rem;
+    letter-spacing: .3px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all .2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+.thread-btn-primary {
+    background: linear-gradient(135deg, #8B4513, #A0522D);
+    border-color: #A0522D;
+    color: #fff;
+}
+.thread-btn-primary:hover {
+    background: linear-gradient(135deg, #A0522D, #c8a96e);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(139,69,19,.35);
+}
+.thread-btn-danger {
+    background: rgba(220,53,69,0.08);
+    border-color: rgba(220,53,69,0.4);
+    color: #f87e8a;
+}
+.thread-btn-danger:hover {
+    background: rgba(220,53,69,0.18);
+    border-color: rgba(220,53,69,0.6);
+    color: #fff;
+}
+.thread-btn-secondary {
+    background: rgba(105,204,240,0.08);
+    border-color: rgba(105,204,240,0.4);
+    color: #69ccf0;
+}
+.thread-btn-secondary:hover {
+    background: rgba(105,204,240,0.18);
+    border-color: rgba(105,204,240,0.6);
+    color: #cfe9f6;
+}
+
+/* ── PRG toast banner ────────────────────────────────────────────────── */
+.thread-toast {
+    border-radius: 10px;
+    padding: .75rem 1.1rem;
+    font-size: .9rem;
+    margin-bottom: 1rem;
+    animation: thread-toast-in .35s ease;
+}
+.thread-toast-success {
+    background: rgba(93,216,124,0.12);
+    border: 1px solid rgba(93,216,124,0.4);
+    color: #5dd87c;
+}
+@keyframes thread-toast-in {
+    from { transform: translateY(-10px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
 </style>
 
 <div class="container ticket-wrap px-3">
@@ -593,6 +805,14 @@ require_once __DIR__ . '/../templates/header.php';
     <div id="tab-history" class="ticket-panel" style="<?= $active_tab !== 'history' ? 'display:none' : '' ?>">
         <div class="panel-section-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['tickets_tab_my'] ?? 'My Tickets') ?></div>
 
+        <?php if ($action_toast === 'replied'): ?>
+            <div class="thread-toast thread-toast-success"><i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($TEXT['tickets_toast_replied'] ?? 'Reply sent. Our team will see it.') ?></div>
+        <?php elseif ($action_toast === 'closed'): ?>
+            <div class="thread-toast thread-toast-success"><i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($TEXT['tickets_toast_closed'] ?? 'Ticket closed.') ?></div>
+        <?php elseif ($action_toast === 'reopened'): ?>
+            <div class="thread-toast thread-toast-success"><i class="bi bi-arrow-counterclockwise me-2"></i><?= htmlspecialchars($TEXT['tickets_toast_reopened'] ?? 'Ticket reopened.') ?></div>
+        <?php endif; ?>
+
         <?php if (empty($my_tickets)): ?>
             <div class="no-tickets">
                 <i class="bi bi-ticket-perforated"></i>
@@ -603,23 +823,30 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         <?php else: ?>
             <?php foreach ($my_tickets as $t):
+                $tid = (int)$t['id'];
                 $status_label = $t['status'] === 'open'
                     ? '● ' . ($TEXT['tickets_status_open'] ?? 'Open')
                     : ($t['status'] === 'in_progress'
                         ? '◐ ' . ($TEXT['tickets_status_in_progress'] ?? 'In Progress')
                         : '○ ' . ($TEXT['tickets_status_closed'] ?? 'Closed'));
+                $thread = $ticket_threads[$tid] ?? [];
+                $auto_open = ($action_toast_tid === $tid);
+                $msg_count = count($thread);
             ?>
-                <div class="ticket-history-card" onclick="toggleTicket(this)">
+                <div id="ticket-<?= $tid ?>" class="ticket-history-card <?= $auto_open ? 'expanded' : '' ?>" onclick="toggleTicket(event, this)">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div style="flex:1;min-width:0;">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <span class="ticket-status status-<?= htmlspecialchars($t['status']) ?>">
                                     <?= htmlspecialchars($status_label) ?>
                                 </span>
-                                <span style="color:#4a5568;font-size:.78rem;">#<?= $t['id'] ?></span>
+                                <span style="color:#4a5568;font-size:.78rem;">#<?= $tid ?></span>
                                 <span style="color:#4a5568;font-size:.78rem;">
                                     <i class="bi bi-tag"></i> <?= htmlspecialchars($categories[$t['category']]['label'] ?? $t['category']) ?>
                                 </span>
+                                <?php if ($msg_count > 1): ?>
+                                    <span style="color:#8899aa;font-size:.72rem;"><i class="bi bi-chat-left-text"></i> <?= $msg_count ?></span>
+                                <?php endif; ?>
                             </div>
                             <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;"><?= htmlspecialchars($t['subject']) ?></div>
                         </div>
@@ -631,22 +858,68 @@ require_once __DIR__ . '/../templates/header.php';
                         </div>
                     </div>
 
-                    <div class="ticket-detail">
-                        <div style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;"><?= htmlspecialchars($TEXT['tickets_your_message'] ?? 'Your Message') ?></div>
-                        <div style="background:rgba(255,255,255,0.03);border-left:3px solid rgba(200,169,110,0.4);padding:.8rem;border-radius:0 8px 8px 0;white-space:pre-line;color:#c0c8d8;font-size:.9rem;">
-                            <?= htmlspecialchars($t['message']) ?>
-                        </div>
+                    <div class="ticket-detail <?= $auto_open ? 'show' : '' ?>" onclick="event.stopPropagation()">
+                        <!-- Conversation thread -->
+                        <?php if (empty($thread)): ?>
+                            <!-- Fallback for any ticket missing migrated messages -->
+                            <div class="thread-bubble thread-user">
+                                <div class="thread-meta"><?= htmlspecialchars($TEXT['tickets_your_message'] ?? 'Your Message') ?> · <?= date('M d, Y H:i', strtotime($t['created_at'])) ?></div>
+                                <div class="thread-body"><?= nl2br(htmlspecialchars($t['message'])) ?></div>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($thread as $m):
+                                $is_user = $m['sender_type'] === 'user';
+                            ?>
+                                <div class="thread-bubble <?= $is_user ? 'thread-user' : 'thread-admin' ?>">
+                                    <div class="thread-meta">
+                                        <?php if ($is_user): ?>
+                                            <i class="bi bi-person-circle"></i> <?= htmlspecialchars($m['sender_username']) ?>
+                                        <?php else: ?>
+                                            <i class="bi bi-shield-check"></i> <?= htmlspecialchars($m['sender_username']) ?> <span style="color:#5dd87c;font-size:.7rem">(<?= htmlspecialchars($TEXT['tickets_admin_reply'] ?? 'Admin') ?>)</span>
+                                        <?php endif; ?>
+                                        · <?= date('M d, Y H:i', strtotime($m['created_at'])) ?>
+                                    </div>
+                                    <div class="thread-body"><?= nl2br(htmlspecialchars($m['message'])) ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
 
-                        <?php if ($t['admin_reply']): ?>
-                            <div style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin:1rem 0 .5rem;">
-                                <i class="bi bi-shield-check me-1"></i><?= htmlspecialchars($TEXT['tickets_admin_reply'] ?? 'Admin Reply') ?>
-                                <?php if ($t['replied_by']): ?>
-                                    <span style="color:#5dd87c;font-weight:400;text-transform:none;"> — <?= htmlspecialchars($t['replied_by']) ?></span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="admin-reply-box" style="white-space:pre-line;color:#e2e8f0;font-size:.9rem;">
-                                <?= htmlspecialchars($t['admin_reply']) ?>
-                            </div>
+                        <!-- Action controls -->
+                        <?php if ($t['status'] !== 'closed'): ?>
+                            <!-- Reply form (open / in_progress) -->
+                            <form method="POST" action="/tickets" class="thread-reply-form" onclick="event.stopPropagation()">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                <input type="hidden" name="ticket_action" value="reply">
+                                <input type="hidden" name="ticket_id" value="<?= $tid ?>">
+                                <label class="ticket-label"><i class="bi bi-reply me-1"></i><?= htmlspecialchars($TEXT['tickets_add_reply'] ?? 'Add a reply') ?></label>
+                                <textarea class="ticket-input" name="reply_text" rows="3"
+                                          maxlength="2000"
+                                          placeholder="<?= htmlspecialchars($TEXT['tickets_reply_placeholder'] ?? 'Write your reply…') ?>"
+                                          required></textarea>
+                                <div class="d-flex gap-2 mt-2 flex-wrap">
+                                    <button type="submit" class="thread-btn thread-btn-primary">
+                                        <i class="bi bi-send me-1"></i><?= htmlspecialchars($TEXT['tickets_send_reply'] ?? 'Send Reply') ?>
+                                    </button>
+                                    <button type="submit" formaction="/tickets" class="thread-btn thread-btn-danger"
+                                            formnovalidate
+                                            onclick="this.form.querySelector('[name=ticket_action]').value='close';this.form.querySelector('[name=reply_text]').removeAttribute('required');">
+                                        <i class="bi bi-x-circle me-1"></i><?= htmlspecialchars($TEXT['tickets_close_ticket'] ?? 'Close Ticket') ?>
+                                    </button>
+                                </div>
+                            </form>
+                        <?php else: ?>
+                            <!-- Closed: show reopen button only -->
+                            <form method="POST" action="/tickets" class="thread-reply-form" onclick="event.stopPropagation()">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+                                <input type="hidden" name="ticket_action" value="reopen">
+                                <input type="hidden" name="ticket_id" value="<?= $tid ?>">
+                                <div class="thread-closed-msg">
+                                    <i class="bi bi-lock-fill me-1"></i><?= htmlspecialchars($TEXT['tickets_thread_closed'] ?? 'This ticket is closed.') ?>
+                                </div>
+                                <button type="submit" class="thread-btn thread-btn-secondary mt-2">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i><?= htmlspecialchars($TEXT['tickets_reopen_ticket'] ?? 'Reopen Ticket') ?>
+                                </button>
+                            </form>
                         <?php endif; ?>
 
                         <?php if ($t['updated_at']): ?>
@@ -680,14 +953,18 @@ function switchTicketTab(tab) {
     event.target.closest('.ticket-tab-btn').classList.add('active');
 }
 
-// Toggle ticket detail
-function toggleTicket(card) {
+// Toggle ticket detail. Clicks bubbling up from the inner form/details are
+// pre-stopped via onclick="event.stopPropagation()" on those elements; this
+// handler only fires for clicks on the card *header*.
+function toggleTicket(event, card) {
+    // Defensive: skip if click started on something interactive inside the detail
+    if (event && event.target && event.target.closest('.ticket-detail, button, a, input, textarea, form')) {
+        return;
+    }
     const detail = card.querySelector('.ticket-detail');
     const wasOpen = detail.classList.contains('show');
-    // Close all
     document.querySelectorAll('.ticket-detail').forEach(d => d.classList.remove('show'));
     document.querySelectorAll('.ticket-history-card').forEach(c => c.classList.remove('expanded'));
-    // Open clicked if it wasn't open
     if (!wasOpen) {
         detail.classList.add('show');
         card.classList.add('expanded');

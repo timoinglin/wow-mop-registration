@@ -66,3 +66,39 @@ CREATE TABLE IF NOT EXISTS playtime_reward_log (
   INDEX idx_account (account_id),
   INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 6. Ticket Messages (multi-turn conversation between user and admins).
+-- Replaces the old single-message + single-admin_reply model. The original
+-- ticket subject/category lives on `tickets`; every actual message in the
+-- thread (including the original one) lives here, in chronological order.
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ticket_id INT NOT NULL,
+  sender_type ENUM('user', 'admin') NOT NULL,
+  sender_username VARCHAR(50) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ticket (ticket_id),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Idempotent backfill: any existing ticket whose first user message hasn't
+-- been migrated yet gets one inserted from `tickets.message`. Likewise for
+-- the admin reply if present. Safe to re-run — both INSERTs are guarded
+-- by NOT EXISTS checks.
+INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
+SELECT t.id, 'user', t.username, t.message, t.created_at
+FROM tickets t
+WHERE NOT EXISTS (
+  SELECT 1 FROM ticket_messages tm WHERE tm.ticket_id = t.id
+);
+
+INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
+SELECT t.id, 'admin', COALESCE(NULLIF(t.replied_by, ''), 'Admin'), t.admin_reply, COALESCE(t.updated_at, t.created_at)
+FROM tickets t
+WHERE t.admin_reply IS NOT NULL
+  AND t.admin_reply != ''
+  AND NOT EXISTS (
+    SELECT 1 FROM ticket_messages tm
+    WHERE tm.ticket_id = t.id AND tm.sender_type = 'admin'
+  );
