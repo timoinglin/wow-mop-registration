@@ -140,8 +140,14 @@ if (!empty($config['features']['maintenance'])) {
                     <ul class="dropdown-menu game-dropdown dropdown-menu-end" aria-labelledby="userDropdown">
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <li><a class="dropdown-item py-2 <?= ($current_page === 'dashboard.php') ? 'active' : '' ?>" href="/dashboard"><i class="bi bi-speedometer2 me-3 text-primary"></i><?= $TEXT['dashboard'] ?></a></li>
-                            <?php if (isset($_SESSION['gm_level']) && $_SESSION['gm_level'] >= 9): ?>
-                                <li><a class="dropdown-item py-2 <?= ($current_page === 'admin_dashboard.php') ? 'active' : '' ?>" href="/admin_dashboard"><i class="bi bi-shield-lock me-3 text-danger"></i><?= $TEXT['admin_panel'] ?></a></li>
+                            <?php if (isset($_SESSION['gm_level']) && $_SESSION['gm_level'] >= 1): ?>
+                                <?php if ($_SESSION['gm_level'] >= 9): ?>
+                                    <li><a class="dropdown-item py-2 <?= ($current_page === 'admin_dashboard.php') ? 'active' : '' ?>" href="/admin_dashboard"><i class="bi bi-shield-lock me-3 text-danger"></i><?= $TEXT['admin_panel'] ?></a></li>
+                                <?php else: ?>
+                                    <li><span class="dropdown-item py-2 disabled" style="opacity:.5;cursor:not-allowed" title="<?= sprintf(htmlspecialchars($TEXT['admin_panel_requires'] ?? 'Requires GM rank %d+ (you are %d)'), 9, (int)$_SESSION['gm_level']) ?>">
+                                        <i class="bi bi-shield-lock me-3 text-secondary"></i><?= $TEXT['admin_panel'] ?> <small style="color:#6c7a8c">(GM 9+)</small>
+                                    </span></li>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <?php if (!empty($config['features']['tickets'])): ?>
                             <li><a class="dropdown-item py-2 <?= ($current_page === 'tickets.php') ? 'active' : '' ?>" href="/tickets"><i class="bi bi-ticket-perforated me-3 text-warning"></i><?= $TEXT['submit_ticket'] ?></a></li>

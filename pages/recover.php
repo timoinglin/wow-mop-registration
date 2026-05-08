@@ -1,4 +1,12 @@
 <?php
+require_once __DIR__ . '/../includes/lang.php';
+
+// Auth guard — logged-in users have no business on /recover
+if (isset($_SESSION['user_id'])) {
+    header('Location: /dashboard');
+    exit;
+}
+
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';

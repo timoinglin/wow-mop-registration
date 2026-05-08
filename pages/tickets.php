@@ -667,6 +667,13 @@ require_once __DIR__ . '/../templates/header.php';
 <script>
 // Tab switching
 function switchTicketTab(tab) {
+    // If we're on the success card and the user clicks "New Ticket", do a full nav
+    // back to /tickets so the form re-renders fresh. Otherwise the success card stays
+    // visible because it lives inside #tab-new (handoff issue #5).
+    if (tab === 'new' && document.querySelector('.success-card')) {
+        window.location.href = '/tickets';
+        return;
+    }
     document.querySelectorAll('.ticket-tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-new').style.display = tab === 'new' ? '' : 'none';
     document.getElementById('tab-history').style.display = tab === 'history' ? '' : 'none';

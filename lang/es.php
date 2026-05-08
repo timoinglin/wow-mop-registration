@@ -119,6 +119,7 @@ return [
   'playtime_distribution_title' => 'Distribución de Tiempo de Juego',
   'admin_panel_title' => 'Panel de Administración',
   'admin_panel' => 'Panel de Admin',
+  'admin_panel_requires' => 'Requiere rango GM %d+ (tu rango: %d)',
   'total_accounts' => 'Cuentas Totales',
   'total_characters' => 'Personajes Totales',
   'recent_registrations' => 'Registros Recientes',

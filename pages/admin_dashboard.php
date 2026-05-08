@@ -302,7 +302,7 @@ $s_world    = check_port_status($db_host, $world_port);
 <div class="admin-hero">
     <div>
         <h1><i class="bi bi-shield-lock-fill me-2"></i><?= $TEXT['admin_panel_title'] ?? 'Admin Panel' ?></h1>
-        <div style="color:#8899aa;font-size:.82rem;margin-top:.25rem"><?= htmlspecialchars($realm_name) ?> &nbsp;·&nbsp; PHP <?= phpversion() ?></div>
+        <div style="color:#8899aa;font-size:.82rem;margin-top:.25rem"><?= htmlspecialchars($realm_name) ?></div>
     </div>
     <div class="text-end">
         <div id="liveClock">--:--:--</div>
@@ -1161,6 +1161,9 @@ function openTicketReply(id, subject, username, message) {
         '<span style="color:#8899aa">' + LANG.by + ': ' + escHtml(username) + '</span><br>' +
         '<div style="color:#c0c8d8;margin-top:.5rem;max-height:120px;overflow:auto;white-space:pre-line">' + escHtml(message) + '</div></div>';
     document.getElementById('ticketReplyText').value = '';
+    // Reset status dropdown to default — otherwise it remembers the last selection
+    // (handoff issue #3: easy to accidentally close the wrong ticket)
+    document.getElementById('ticketReplyStatus').value = 'in_progress';
     openModal('ticketReplyModal');
 }
 

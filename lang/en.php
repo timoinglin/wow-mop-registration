@@ -122,6 +122,7 @@ return [
   'playtime_distribution_title' => 'Playtime Distribution',
   'admin_panel_title' => 'Admin Panel',
   'admin_panel' => 'Admin Panel',
+  'admin_panel_requires' => 'Requires GM rank %d+ (you are %d)',
   'total_accounts' => 'Total Accounts',
   'total_characters' => 'Total Characters',
   'recent_registrations' => 'Recent Registrations',

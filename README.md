@@ -391,7 +391,21 @@ If you installed by extracting a release ZIP:
 
 ## Admin Dashboard
 
-Accessible at `/admin_dashboard` for accounts with GM level ≥ 9.
+Accessible at `/admin_dashboard` for accounts with **GM level ≥ 9**.
+
+### GM ranks at a glance
+
+The portal reads `gmlevel` from TrinityCore's `account_access` table. Threshold for the Admin Panel link in the navbar:
+
+| GM level | Behaviour |
+|---|---|
+| **0** (regular player) | No GM badge anywhere; Admin Panel link not shown |
+| **1 – 8** | "GM N" badge on the dashboard hero; Admin Panel item appears in the user dropdown but is **disabled** with a tooltip explaining the threshold |
+| **9 +** | Admin Panel link is active and clickable; full access to `/admin_dashboard` |
+
+To grant or revoke access, edit the `account_access` table directly (or use any GM-rank command your core supports). To change the threshold, search for `>= 9` in `templates/header.php` and `pages/admin_dashboard.php`.
+
+### Admin Dashboard tabs
 
 | Tab | Features |
 |---|---|

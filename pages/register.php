@@ -1,8 +1,17 @@
 <?php
+// Start the session via lang.php BEFORE any HTML output so the auth guard can redirect
+require_once __DIR__ . '/../includes/lang.php';
+
+// Auth guard — logged-in users have no business on /register
+if (isset($_SESSION['user_id'])) {
+    header('Location: /dashboard');
+    exit;
+}
+
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/recaptcha.php';
-require_once __DIR__ . '/../templates/header.php'; // Also includes lang.php
+require_once __DIR__ . '/../templates/header.php';
 $config = require __DIR__ . '/../config.php';
 
 $errors = [];
