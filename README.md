@@ -58,7 +58,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 💎 **Playtime Reward** — Auto-grants Battle Pay (DP) for time spent in-game; configurable hourly rate + daily cap. AFK still counts, login/logout farming doesn't.
 - 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
-- 🎫 **Ticket System** — Database-stored support tickets with admin replies, status tracking, and user history
+- 🎫 **Ticket System** — Multi-turn conversation threads (user ↔ GM), Markdown formatting, image attachments with auth-gated serving, separate detail pages, and audit-logged status changes
 - 📰 **News & FAQ** — Configurable news section and FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
 - 🔗 **Social Links** — Discord, YouTube, X (Twitter), Instagram — each individually toggleable
@@ -107,14 +107,14 @@ copy config.sample.php config.php
 
 # 4. Edit config.php with your DB credentials, realm info, site base URL, reCAPTCHA keys, etc.
 
-# 5. Install PHP dependencies
-composer install
+# 5. Run the SQL setup (see Database Setup section below)
 
-# 6. Run the SQL setup (see Database Setup section below)
+# 6. Start Apache from the XAMPP Control Panel (your repack already runs its own MySQL)
 
-# 7. Start Apache from the XAMPP Control Panel (your repack already runs its own MySQL)
-
-# 8. Visit the URL configured in config.php, for example http://localhost/
+# 7. Visit the URL configured in config.php, for example http://localhost/
+#
+# Note: vendor/ (PHPMailer, Parsedown) is committed to the repo, so no
+# `composer install` step is needed for a normal install.
 ```
 
 ---
@@ -239,13 +239,18 @@ Open `config.php` and set:
 Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, go to the **SQL** tab, and run the contents of `sql/setup.sql`:
 
 ```sql
--- This creates 3 tables:
--- 1. password_resets  — for password recovery
--- 2. tickets          — for the support ticket system
--- 3. admin_audit_log  — for tracking admin actions
+-- This creates 6 tables (and an idempotent column-add migration):
+-- 1. password_resets       — password recovery tokens
+-- 2. tickets               — support ticket headers (subject, category, status…)
+-- 3. admin_audit_log       — chronological log of admin actions
+-- 4. playtime_rewards      — per-account state for the Battle Pay reward feature
+-- 5. playtime_reward_log   — audit trail for every Battle Pay claim
+-- 6. ticket_messages       — per-message thread (user + admin replies, attachments)
 
 -- Compatible with MySQL 5.5.9+
--- See sql/setup.sql for the full script
+-- All CREATEs use IF NOT EXISTS, and the ticket_messages.attachments
+-- ALTER is INFORMATION_SCHEMA-checked, so it's safe to re-run.
+-- See sql/setup.sql for the full script.
 ```
 
 You can also run it from the command line:
@@ -316,13 +321,13 @@ News entries and FAQ items are also configured in `config.php`:
 
 ### 6. Dependencies
 
-Run Composer after a normal clone:
+`vendor/` (PHPMailer + Parsedown) **is committed to the repo** so that fresh clones and the one-click installer work out of the box without requiring Composer locally. You should not need to run `composer install` for a normal install.
+
+If you ever want to refresh dependencies (e.g. after pulling an upstream upgrade) or your `vendor/` is missing for some reason:
 
 ```bash
-composer install
+composer install --no-dev
 ```
-
-`vendor/` is ignored by Git in this repo, so a fresh clone will not contain PHPMailer until Composer installs it. If you received a packaged copy that already includes `vendor/`, you can skip this step.
 
 ### 7. Enable mod_rewrite
 
@@ -349,16 +354,13 @@ If you cloned with Git originally:
 ```bash
 # 1. Stop Apache from the XAMPP Control Panel
 
-# 2. Pull the latest files
+# 2. Pull the latest files (this brings in updated vendor/ too — it's tracked)
 git pull origin main
 
-# 3. Refresh PHP dependencies (vendor/ is gitignored)
-composer install --no-dev
-
-# 4. Re-run the SQL setup — it's idempotent (CREATE TABLE IF NOT EXISTS)
+# 3. Re-run the SQL setup — it's idempotent (CREATE TABLE IF NOT EXISTS)
 mysql -u root -pascent auth < sql/setup.sql
 
-# 5. Restart Apache and you're done
+# 4. Restart Apache and you're done
 ```
 
 ### Option B — Manual (release ZIP)
@@ -368,10 +370,9 @@ If you installed by extracting a release ZIP:
 1. **Stop Apache.**
 2. **Back up** `config.php` and the `uploads/` folder.
 3. **Delete** the old project files **except** `config.php`, `uploads/`, and `cache/`.
-4. **Extract** the new release ZIP into the same folder, letting it overwrite everything else.
-5. **Run** `composer install --no-dev` from the project root if `vendor/` isn't included.
-6. **Re-run** `sql/setup.sql` on your `auth` database — safe to run multiple times.
-7. **Restart Apache.**
+4. **Extract** the new release ZIP into the same folder, letting it overwrite everything else (the ZIP includes `vendor/`).
+5. **Re-run** `sql/setup.sql` on your `auth` database — safe to run multiple times.
+6. **Restart Apache.**
 
 ### What carries over automatically
 
@@ -460,48 +461,62 @@ All images are stored in `assets/img/`:
 
 ```
 wow-legends/
-├── .htaccess             ← URL rewriting and basic hardening
+├── .htaccess               ← URL rewriting + ErrorDocument 404 + asset hardening
 ├── .gitignore
 ├── assets/
-│   ├── css/              ← style.css
-│   └── img/              ← logos, backgrounds, race/class icons, screenshots
-├── cache/
-│   ├── login_history/    ← Per-user login history JSON files
-│   └── rate_limit/       ← File-based login throttling data
+│   ├── css/                ← style.css
+│   ├── img/                ← logos, backgrounds, race/class icons, screenshots, 404 art
+│   └── bg-video-mop.mp4    ← Homepage hero video
+├── cache/                  ← Runtime data (gitignored except the .htaccess deny rules)
+│   ├── login_history/      ← Per-user login history JSON files
+│   └── rate_limit/         ← File-based login throttling data
 ├── includes/
-│   ├── audit.php         ← Admin audit log helper
-│   ├── auth.php          ← Password hashing, IP detection
-│   ├── csrf.php          ← CSRF token generation/validation
-│   ├── db.php            ← Database connections
-│   ├── email.php         ← PHPMailer send functions
-│   ├── functions.php     ← Backward-compat loader
-│   ├── helpers.php       ← WoW helpers (format playtime, gold, race/class names)
-│   ├── lang.php          ← Language loader
-│   ├── login_history.php ← File-based login history helper
-│   ├── rate_limiter.php  ← File-based brute-force protection
-│   └── recaptcha.php     ← reCAPTCHA verification (respects feature flag)
-├── lang/                 ← Language files (en.php, es.php)
+│   ├── audit.php           ← Admin audit log helper
+│   ├── auth.php            ← Password hashing (TrinityCore SHA-1), IP detection
+│   ├── csrf.php            ← CSRF token generation/validation
+│   ├── db.php              ← Database connections (auth + characters)
+│   ├── email.php           ← PHPMailer send functions
+│   ├── functions.php       ← Backward-compat loader
+│   ├── helpers.php         ← WoW helpers (format playtime, gold, race/class names — i18n-aware)
+│   ├── lang.php            ← Language loader (cookie + ?lang= query)
+│   ├── login_history.php   ← File-based login history helper
+│   ├── markdown.php        ← Parsedown wrapper (safe mode + URL auto-link)
+│   ├── Parsedown.php       ← Markdown parser (Erusev, single-file)
+│   ├── playtime_rewards.php← Battle Pay (DP) reward logic + atomic claim
+│   ├── rate_limiter.php    ← File-based brute-force protection
+│   └── recaptcha.php       ← reCAPTCHA verification (respects feature flag)
+├── lang/                   ← Translations (en.php, es.php — ~400+ keys each)
 ├── pages/
-│   ├── admin_api.php     ← AJAX API for admin actions
-│   ├── admin_dashboard.php
+│   ├── 404.php             ← Themed "You died." Spirit Healer + murloc easter egg
+│   ├── admin_api.php       ← AJAX API for admin actions
+│   ├── admin_dashboard.php ← Admin overview + tabs (Accounts, Tickets, Audit, Tools)
+│   ├── admin_ticket.php    ← Per-ticket detail page for GMs (thread, reply, status)
+│   ├── armory.php          ← Public Armory (search + character profiles)
 │   ├── change_password.php
-│   ├── dashboard.php
+│   ├── dashboard.php       ← User dashboard (chars, Battle Pay, playtime reward, vote, links)
+│   ├── leaderboards.php    ← Top players + guilds across multiple categories
 │   ├── login.php
 │   ├── logout.php
 │   ├── recover.php
 │   ├── register.php
 │   ├── reset_password.php
-│   └── tickets.php
+│   ├── ticket_attachment.php ← Auth-gated serve endpoint for ticket attachments
+│   ├── ticket_view.php     ← Per-ticket detail page for users (thread, reply, close, reopen)
+│   └── tickets.php         ← New-ticket form + list of user's tickets
 ├── sql/
-│   └── setup.sql         ← Required tables (tickets, audit log, password resets)
-├── templates/            ← header.php and footer.php
+│   └── setup.sql           ← All required tables + idempotent migrations
+├── templates/              ← header.php (nav, OG meta, lang) + footer.php
 ├── uploads/
-│   ├── .htaccess         ← Blocks PHP execution in uploads
-│   └── tickets/          ← Ticket attachments
-├── config.php            ← Your config (gitignored)
-├── config.sample.php     ← Safe template to commit
+│   ├── .htaccess           ← Denies ALL direct access (files served via /ticket_attachment)
+│   └── tickets/            ← User-uploaded ticket images (auth-gated, gitignored content)
+├── vendor/                 ← Composer deps (PHPMailer, Parsedown) — tracked in repo
+├── composer.json
+├── composer.lock
+├── config.php              ← Your live config (gitignored)
+├── config.sample.php       ← Safe template to commit
 ├── favicon.ico
-└── index.php             ← Homepage / router
+├── index.php               ← Homepage / router
+└── install.ps1             ← Windows one-click installer (PowerShell, downloads release ZIP)
 ```
 
 ---
@@ -509,7 +524,9 @@ wow-legends/
 ## Security Notes
 
 - `config.php` is in `.gitignore` — **never commit it**
-- The `uploads/` folder has a `.htaccess` that blocks PHP execution
+- The `uploads/` folder denies **all** direct HTTP access. Ticket attachments are served only through `/ticket_attachment` after an ownership-or-GM check
+- Attachment endpoint also blocks path traversal (filenames must match `[A-Za-z0-9._-]{1,200}`) and resolves inside `uploads/tickets/` only
+- Markdown in tickets is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs)
 - All forms use CSRF tokens
 - All DB queries use PDO prepared statements
 - Directory listing is disabled via `Options -Indexes`
@@ -527,7 +544,7 @@ wow-legends/
 | **"Database error" on tickets or password recovery** | Run `sql/setup.sql` on your `auth` database — see step 3 |
 | **"Invalid default value" when running SQL** | Your MySQL is very old. Use the latest `setup.sql` which is compatible with MySQL 5.5.9+ |
 | **reCAPTCHA not showing** | Check your site key/secret in `config.php`, or set `recaptcha => false` |
-| **`composer install` fails or `PHPMailer` class is missing** | Install Composer dependencies in the project root. A fresh clone does not include `vendor/`. |
+| **`PHPMailer` class is missing** | `vendor/` is tracked in the repo, so this should not happen. If it does (e.g. an interrupted clone), run `composer install --no-dev` from the project root. |
 | **Emails not sending** | Verify SMTP credentials; for Gmail use an [App Password](https://support.google.com/accounts/answer/185833) |
 | **Blank page / 500 error** | Check `C:\xampp\php\logs\php_error_log` for details |
 | **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table, and the route is `/admin_dashboard` |

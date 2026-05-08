@@ -1,16 +1,43 @@
-# Local server config
+# ── Local server config ──────────────────────────────────────────────────────
 /config.php
 
-# Runtime cache data
+# ── Runtime data ─────────────────────────────────────────────────────────────
+# Cache JSON files (login history, rate-limit counters). The folder .htaccess
+# files are tracked — only the per-user runtime data is ignored.
 /cache/login_history/*.json
 /cache/rate_limit/*.json
 
-# User-generated uploads
+# ── User-generated uploads ───────────────────────────────────────────────────
+# Ticket attachments (kept private to the ticket owner + GMs at runtime,
+# served via /ticket_attachment with auth checks). Folder .htaccess is
+# tracked so the access-deny rule ships with the repo.
 /uploads/tickets/*
 
-# Logs
+# ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 
-# OS files
+# ── Environment files (defensive — none used yet, but standard) ──────────────
+.env
+.env.local
+.env.*.local
+
+# ── IDE / editor settings ────────────────────────────────────────────────────
+/.idea/
+/.vscode/
+
+# ── Editor swap / backup files ───────────────────────────────────────────────
+*.swp
+*.swo
+*~
+*.bak
+
+# ── Node (in case JS tooling is ever added) ──────────────────────────────────
+/node_modules/
+
+# ── Composer local binary ────────────────────────────────────────────────────
+/composer.phar
+
+# ── OS clutter ───────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+desktop.ini
