@@ -360,7 +360,31 @@ try {
             $sql .= " ORDER BY created_at DESC LIMIT 100";
             $stmt = $pdo_auth->prepare($sql);
             $stmt->execute($params);
-            echo json_encode(['success' => true, 'tickets' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            $tickets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Attach the full message thread per ticket so the admin sees the full
+            // back-and-forth (issue: GM was only seeing the latest admin_reply).
+            if (!empty($tickets)) {
+                $ids = array_column($tickets, 'id');
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $msg_stmt = $pdo_auth->prepare(
+                    "SELECT ticket_id, sender_type, sender_username, message, created_at
+                     FROM ticket_messages
+                     WHERE ticket_id IN ($placeholders)
+                     ORDER BY created_at ASC, id ASC"
+                );
+                $msg_stmt->execute($ids);
+                $by_ticket = [];
+                foreach ($msg_stmt->fetchAll(PDO::FETCH_ASSOC) as $m) {
+                    $by_ticket[(int)$m['ticket_id']][] = $m;
+                }
+                foreach ($tickets as &$t) {
+                    $t['messages'] = $by_ticket[(int)$t['id']] ?? [];
+                }
+                unset($t);
+            }
+
+            echo json_encode(['success' => true, 'tickets' => $tickets]);
             break;
 
         // ─── EMAIL BROADCAST ─────────────────────────────────────────────

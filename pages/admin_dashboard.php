@@ -1117,20 +1117,45 @@ async function loadTickets() {
     el.innerHTML = r.tickets.map(t => {
         const statusCls = 't-' + t.status;
         const statusLabel = t.status === 'open' ? '● ' + LANG.status_open : t.status === 'in_progress' ? '◐ ' + LANG.status_in_progress : '○ ' + LANG.status_closed;
+
+        // Render the full conversation thread (user + admin messages, chronological).
+        // Falls back to the legacy single-message view if no messages exist (eg. a
+        // brand-new ticket created before the migration ran).
+        const thread = (t.messages && t.messages.length)
+            ? t.messages
+            : [{ sender_type: 'user', sender_username: t.username, message: t.message, created_at: t.created_at }];
+        const msgCount = thread.length;
+
+        const threadHtml = thread.map(m => {
+            const isUser = m.sender_type === 'user';
+            const borderColor = isUser ? 'rgba(200,169,110,0.4)' : '#5dd87c';
+            const bgColor     = isUser ? 'rgba(255,255,255,.02)' : 'rgba(93,216,124,.06)';
+            const metaColor   = isUser ? '#c8a96e' : '#5dd87c';
+            const icon        = isUser ? 'bi-person-circle' : 'bi-shield-check';
+            const senderLabel = isUser ? '' : ' <span style="color:' + metaColor + ';font-size:.7rem">(' + LANG.reply_by.replace(' by','').toLowerCase() + ')</span>';
+            return `
+                <div style="background:${bgColor};border-left:3px solid ${borderColor};padding:.55rem .75rem;border-radius:0 6px 6px 0;margin-bottom:.4rem;font-size:.85rem">
+                    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:${metaColor};margin-bottom:.2rem">
+                        <i class="bi ${icon}"></i> ${escHtml(m.sender_username)}${senderLabel} · ${escHtml(m.created_at)}
+                    </div>
+                    <div style="color:#e2e8f0;white-space:pre-wrap;word-wrap:break-word">${escHtml(m.message)}</div>
+                </div>`;
+        }).join('');
+
         return `
         <div class="admin-ticket">
             <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
                 <div>
                     <span class="t-status ${statusCls}">${statusLabel}</span>
                     <span style="color:#4a5568;font-size:.75rem;margin-left:.5rem">#${t.id}</span>
-                    <span style="color:#8899aa;font-size:.78rem;margin-left:.5rem"><i class="bi bi-person"></i> ${t.username}</span>
-                    <span style="color:#4a5568;font-size:.75rem;margin-left:.3rem">${t.email}</span>
+                    <span style="color:#8899aa;font-size:.78rem;margin-left:.5rem"><i class="bi bi-person"></i> ${escHtml(t.username)}</span>
+                    <span style="color:#4a5568;font-size:.75rem;margin-left:.3rem">${escHtml(t.email)}</span>
+                    <span style="color:#8899aa;font-size:.72rem;margin-left:.5rem"><i class="bi bi-chat-left-text"></i> ${msgCount}</span>
                 </div>
-                <span style="color:#4a5568;font-size:.75rem;white-space:nowrap">${t.created_at}</span>
+                <span style="color:#4a5568;font-size:.75rem;white-space:nowrap">${escHtml(t.created_at)}</span>
             </div>
-            <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;margin-bottom:.3rem">${escHtml(t.subject)}</div>
-            <div style="color:#8899aa;font-size:.85rem;margin-bottom:.5rem;white-space:pre-line;max-height:100px;overflow:hidden;text-overflow:ellipsis">${escHtml(t.message)}</div>
-            ${t.admin_reply ? '<div style="background:rgba(93,216,124,.06);border-left:3px solid #5dd87c;padding:.6rem .8rem;border-radius:0 6px 6px 0;font-size:.85rem;color:#e2e8f0;margin-bottom:.5rem"><strong style="color:#5dd87c;font-size:.72rem">' + LANG.reply_by + ' ' + escHtml(t.replied_by||'Admin') + ':</strong><br>' + escHtml(t.admin_reply) + '</div>' : ''}
+            <div style="font-weight:600;color:#e2e8f0;font-size:.95rem;margin-bottom:.5rem">${escHtml(t.subject)}</div>
+            ${threadHtml}
             <div class="d-flex gap-2 mt-2">
                 <button class="acc-action-btn view" onclick="openTicketReply(${t.id},'${escAttr(t.subject)}','${escAttr(t.username)}','${escAttr(t.message)}')"><i class="bi bi-reply me-1"></i>${LANG.reply}</button>
                 ${t.status !== 'closed' ? '<button class="acc-action-btn ban" onclick="changeTicketStatus(' + t.id + ',\x27closed\x27)"><i class="bi bi-x-circle me-1"></i>' + LANG.close_btn + '</button>' : ''}
