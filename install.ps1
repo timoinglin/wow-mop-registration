@@ -214,13 +214,25 @@ function Get-ReleasePackageUrl {
 
     $headers = @{ 'User-Agent' = 'WoWLegendsInstaller' }
     $releaseInfo = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/$RepositoryOwner/$RepositoryName/releases/latest"
-    $asset = $releaseInfo.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
 
-    if (-not $asset) {
-        throw "Latest release does not contain '$AssetName'. Publish a prepared release ZIP with dependencies included, or rerun with -PackageUrl."
+    # Prefer a curated asset (legacy releases attached `wow-legends-release.zip`),
+    # but fall back to GitHub's auto-generated source zip if no asset is found.
+    # The source zip wraps everything in a single top-level folder; that case is
+    # already handled by Get-ExpandedContentRoot below, so deployment works either
+    # way. Bonus: the source zip excludes anything in .gitignore, so user-runtime
+    # data (cache JSON, uploaded ticket attachments, etc.) can never leak into a
+    # release.
+    $asset = $releaseInfo.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
+    if ($asset) {
+        return $asset.browser_download_url
     }
 
-    return $asset.browser_download_url
+    if ([string]::IsNullOrWhiteSpace($releaseInfo.zipball_url)) {
+        throw "Latest release does not contain '$AssetName' and no source zip URL was returned by the GitHub API. Rerun with -PackageUrl pointing at a working ZIP."
+    }
+
+    Write-Info "Named asset '$AssetName' not found on the latest release — using auto-generated source zip instead."
+    return $releaseInfo.zipball_url
 }
 
 function Download-File {
