@@ -236,7 +236,9 @@ function Download-File {
 function Get-ExpandedContentRoot {
     param([string]$ExtractPath)
 
-    $items = Get-ChildItem -LiteralPath $ExtractPath -Force
+    # @(...) forces the result into a real array even when Get-ChildItem
+    # returns 0 or 1 items — otherwise StrictMode trips on .Count
+    $items = @(Get-ChildItem -LiteralPath $ExtractPath -Force)
     if ($items.Count -eq 1 -and $items[0].PSIsContainer) {
         return $items[0].FullName
     }
@@ -252,7 +254,9 @@ function Backup-InstallRootIfNeeded {
         return $null
     }
 
-    $existingItems = Get-ChildItem -LiteralPath $Path -Force
+    # @(...) handles all three cases: $null (empty dir), single object, array.
+    # Without it, StrictMode throws "property 'Count' not found" on null/single.
+    $existingItems = @(Get-ChildItem -LiteralPath $Path -Force)
     if ($existingItems.Count -eq 0) {
         return $null
     }
@@ -763,7 +767,8 @@ try {
         }
 
         if (-not $dbCheck.Result.auth.ok -or -not $dbCheck.Result.chars.ok) {
-            if ($dbCheck.Result.server.databases.Count -gt 0) {
+            # @() coerces to array — ConvertFrom-Json returns a single string for 1-element arrays
+            if (@($dbCheck.Result.server.databases).Count -gt 0) {
                 Write-Box -Title 'Available Databases On This Server' -Lines @($dbCheck.Result.server.databases) -BorderColor Yellow -TextColor White
             }
             Write-WarnMessage 'Re-enter the database names and try again. The installer will not continue until both databases are valid.'
