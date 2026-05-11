@@ -37,7 +37,6 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - [Customization](#customization)
   - [Changing Text and Labels](#changing-text-and-labels)
   - [Replacing Images and Logo](#replacing-images-and-logo)
-- [Project Structure](#project-structure)
 - [Security Notes](#security-notes)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
@@ -441,9 +440,44 @@ Edit the key-value pairs to change any text on the site:
 ```
 
 **Adding a new language:**
-1. Copy `lang/en.php` to e.g. `lang/de.php`
-2. Translate all values
-3. Add the new option to the language dropdown in `templates/header.php`
+
+The portal accepts any ISO 639-1 language code (e.g. `de`, `fr`, `ro`, `ru`). To add one, **four** files need a small edit each:
+
+1. **Create the translation file.** Copy `lang/en.php` to `lang/{code}.php` (e.g. `lang/ro.php`) and translate the right-hand values. Keep the keys identical to the English file — any key you don't translate falls back to its English value automatically, so partial translations are fine.
+
+2. **Whitelist the code in `includes/lang.php`.** Find the line near the top:
+
+   ```php
+   $allowed_langs = ['en', 'es'];
+   ```
+
+   …and add your code:
+
+   ```php
+   $allowed_langs = ['en', 'es', 'ro'];
+   ```
+
+   This whitelist is a security guard — without it, the new code is silently rejected and the site falls back to English (a common cause of "I added the file but the dropdown doesn't switch").
+
+3. **Whitelist the code in `templates/header.php` (twice).** The same list appears in two JavaScript blocks in this file — both must include your new code. Search for:
+
+   ```js
+   const allowedLangs = ['en', 'es']; // Keep this in sync with PHP
+   ```
+
+   Update **both** occurrences to:
+
+   ```js
+   const allowedLangs = ['en', 'es', 'ro'];
+   ```
+
+4. **Add the option to the language dropdown** in `templates/header.php`. Find the dropdown block (search for `languageDropdown`) and add a new `<li>` for your code:
+
+   ```html
+   <li><a class="dropdown-item py-2 <?= ($lang === 'ro') ? 'active' : '' ?>" href="?lang=ro">RO <span class="text-white-50 ms-2">(Română)</span></a></li>
+   ```
+
+After those four edits: save, refresh the page, and the new language appears in the dropdown and the language cookie. No restart needed.
 
 ### Replacing Images and Logo
 
@@ -454,70 +488,6 @@ All images are stored in `assets/img/`:
 | `logo.webp` | Large hero logo on the homepage |
 | `top-logo.webp` | Small navbar logo |
 | Background images | `.webp` format recommended |
-
----
-
-## Project Structure
-
-```
-wow-legends/
-├── .htaccess               ← URL rewriting + ErrorDocument 404 + asset hardening
-├── .gitignore
-├── assets/
-│   ├── css/                ← style.css
-│   ├── img/                ← logos, backgrounds, race/class icons, screenshots, 404 art
-│   └── bg-video-mop.mp4    ← Homepage hero video
-├── cache/                  ← Runtime data (gitignored except the .htaccess deny rules)
-│   ├── login_history/      ← Per-user login history JSON files
-│   └── rate_limit/         ← File-based login throttling data
-├── includes/
-│   ├── audit.php           ← Admin audit log helper
-│   ├── auth.php            ← Password hashing (TrinityCore SHA-1), IP detection
-│   ├── csrf.php            ← CSRF token generation/validation
-│   ├── db.php              ← Database connections (auth + characters)
-│   ├── email.php           ← PHPMailer send functions
-│   ├── functions.php       ← Backward-compat loader
-│   ├── helpers.php         ← WoW helpers (format playtime, gold, race/class names — i18n-aware)
-│   ├── lang.php            ← Language loader (cookie + ?lang= query)
-│   ├── login_history.php   ← File-based login history helper
-│   ├── markdown.php        ← Parsedown wrapper (safe mode + URL auto-link)
-│   ├── Parsedown.php       ← Markdown parser (Erusev, single-file)
-│   ├── playtime_rewards.php← Battle Pay (DP) reward logic + atomic claim
-│   ├── rate_limiter.php    ← File-based brute-force protection
-│   └── recaptcha.php       ← reCAPTCHA verification (respects feature flag)
-├── lang/                   ← Translations (en.php, es.php — ~400+ keys each)
-├── pages/
-│   ├── 404.php             ← Themed "You died." Spirit Healer + murloc easter egg
-│   ├── admin_api.php       ← AJAX API for admin actions
-│   ├── admin_dashboard.php ← Admin overview + tabs (Accounts, Tickets, Audit, Tools)
-│   ├── admin_ticket.php    ← Per-ticket detail page for GMs (thread, reply, status)
-│   ├── armory.php          ← Public Armory (search + character profiles)
-│   ├── change_password.php
-│   ├── dashboard.php       ← User dashboard (chars, Battle Pay, playtime reward, vote, links)
-│   ├── leaderboards.php    ← Top players + guilds across multiple categories
-│   ├── login.php
-│   ├── logout.php
-│   ├── recover.php
-│   ├── register.php
-│   ├── reset_password.php
-│   ├── ticket_attachment.php ← Auth-gated serve endpoint for ticket attachments
-│   ├── ticket_view.php     ← Per-ticket detail page for users (thread, reply, close, reopen)
-│   └── tickets.php         ← New-ticket form + list of user's tickets
-├── sql/
-│   └── setup.sql           ← All required tables + idempotent migrations
-├── templates/              ← header.php (nav, OG meta, lang) + footer.php
-├── uploads/
-│   ├── .htaccess           ← Denies ALL direct access (files served via /ticket_attachment)
-│   └── tickets/            ← User-uploaded ticket images (auth-gated, gitignored content)
-├── vendor/                 ← Composer deps (PHPMailer, Parsedown) — tracked in repo
-├── composer.json
-├── composer.lock
-├── config.php              ← Your live config (gitignored)
-├── config.sample.php       ← Safe template to commit
-├── favicon.ico
-├── index.php               ← Homepage / router
-└── install.ps1             ← Windows one-click installer (PowerShell, downloads release ZIP)
-```
 
 ---
 
