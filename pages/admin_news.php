@@ -487,6 +487,25 @@ body:has(.editor-preview-side.fullscreen) #mainNavbar { display: none; }
 /* Fallback for browsers without :has() support (older Firefox before 121,
    etc.) — a JS-applied body class still works. */
 body.easymde-fullscreen #mainNavbar { display: none; }
+
+/* Toolbar overflow in fullscreen / side-by-side.
+   EasyMDE pins the CodeMirror at top: 50px in fullscreen, but the toolbar
+   wraps onto two rows when there are many buttons — so row 2 ends up hidden
+   under the editor. Force the toolbar into a single horizontal-scroll row
+   so all buttons stay reachable and the editor's top offset stays valid. */
+.EasyMDEContainer .editor-toolbar.fullscreen {
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139,69,19,.4) transparent;
+}
+.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar { height: 6px; }
+.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar-track { background: transparent; }
+.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar-thumb {
+    background: rgba(139,69,19,.4);
+    border-radius: 3px;
+}
 </style>
 
 <script>
