@@ -470,6 +470,23 @@ $csrf = generate_csrf_token();
 .EasyMDEContainer .CodeMirror-fullscreen,
 .EasyMDEContainer .editor-preview-side.fullscreen,
 .EasyMDEContainer .editor-toolbar.fullscreen { background: #0a0a0f; }
+
+/* Fullscreen / side-by-side z-index fix.
+   The site navbar is Bootstrap fixed-top (z-index 1030); EasyMDE's defaults
+   are 8–9, so the editor toolbar slid under the navbar. Bump the editor
+   chrome above 1030 AND hide the site navbar while the editor owns the
+   viewport so the user can actually focus on writing. */
+.EasyMDEContainer .editor-toolbar.fullscreen,
+.EasyMDEContainer .CodeMirror-fullscreen,
+.EasyMDEContainer .editor-preview-side.fullscreen,
+.EasyMDEContainer .editor-preview-side { z-index: 1050; }
+
+body:has(.editor-toolbar.fullscreen) #mainNavbar,
+body:has(.editor-preview-side.fullscreen) #mainNavbar { display: none; }
+
+/* Fallback for browsers without :has() support (older Firefox before 121,
+   etc.) — a JS-applied body class still works. */
+body.easymde-fullscreen #mainNavbar { display: none; }
 </style>
 
 <script>
@@ -547,6 +564,25 @@ document.addEventListener('DOMContentLoaded', function () {
             },
         ],
     });
+
+    // Toggle a body class whenever EasyMDE enters/leaves fullscreen or
+    // side-by-side, so the site navbar can be hidden out of the way (CSS
+    // does the actual hiding — this just gives us a reliable hook for
+    // browsers without :has() support).
+    const container = easyMDE.element.parentNode; // .EasyMDEContainer
+    if (container) {
+        const sync = () => {
+            const tb = container.querySelector('.editor-toolbar');
+            const fs = tb && tb.classList.contains('fullscreen');
+            document.body.classList.toggle('easymde-fullscreen', !!fs);
+        };
+        new MutationObserver(sync).observe(container, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+        sync();
+    }
 
     // Auto-slugify from title only while slug is empty/untouched
     const slug  = document.getElementById('slug');
