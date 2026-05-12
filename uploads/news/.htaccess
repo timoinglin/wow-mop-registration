@@ -1,0 +1,15 @@
+# News post images are public by design — they're referenced from /news/{slug}
+# pages and homepage cards, so anonymous visitors must be able to load them.
+# This file overrides the parent uploads/.htaccess (which denies everything)
+# but still strips any executable extension as a belt-and-suspenders guard.
+
+<RequireAll>
+    Require all granted
+</RequireAll>
+
+# Even if Apache misroutes a request, never execute script files from here.
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI

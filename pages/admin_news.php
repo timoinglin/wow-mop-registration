@@ -173,6 +173,15 @@ if ($edit_id > 0) {
 }
 
 $page_title = ($TEXT['news_admin_title'] ?? 'Manage News') . ' — ' . ($config['site']['title'] ?? 'WoW');
+
+// Load EasyMDE only on the edit/create form
+if ($mode === 'edit') {
+    $extra_head = <<<HTML
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js" defer></script>
+HTML;
+}
+
 require_once __DIR__ . '/../templates/header.php';
 $csrf = generate_csrf_token();
 ?>
@@ -355,13 +364,10 @@ $csrf = generate_csrf_token();
             </div>
 
             <div class="news-admin-card">
-                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                    <label class="news-admin-label mb-0" for="body"><?= htmlspecialchars($TEXT['news_admin_field_body'] ?? 'Body * (Markdown)') ?></label>
-                    <button type="button" id="togglePreview" class="news-admin-btn news-admin-btn-ghost" style="padding:.3rem .8rem;font-size:.8rem"><i class="bi bi-eye me-1"></i><?= htmlspecialchars($TEXT['news_admin_preview'] ?? 'Preview') ?></button>
-                </div>
-                <textarea id="body" name="body" class="news-admin-textarea" rows="18" required><?= htmlspecialchars($_POST['body'] ?? $post['body']) ?></textarea>
-                <div id="previewBox" class="preview-pane mt-3" style="display:none">
-                    <em style="color:#4a5568"><?= htmlspecialchars($TEXT['news_admin_preview_empty'] ?? 'Preview appears here.') ?></em>
+                <label class="news-admin-label mb-2" for="body"><?= htmlspecialchars($TEXT['news_admin_field_body'] ?? 'Body * (Markdown)') ?></label>
+                <textarea id="body" name="body" required><?= htmlspecialchars($_POST['body'] ?? $post['body']) ?></textarea>
+                <div class="mt-2" style="color:#4a5568;font-size:.8rem">
+                    <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['news_admin_editor_hint'] ?? 'Drag images into the editor or click the image button to upload (max 5 MB, jpg/png/webp/gif).') ?>
                 </div>
             </div>
 
@@ -376,49 +382,174 @@ $csrf = generate_csrf_token();
 </div>
 
 <?php if ($mode === 'edit'): ?>
+<!-- EasyMDE dark-theme override to match the gaming UI -->
+<style>
+.EasyMDEContainer .editor-toolbar {
+    background: #15151f;
+    border: 1px solid rgba(139,69,19,.3);
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    opacity: 1;
+}
+.EasyMDEContainer .editor-toolbar button {
+    color: #c8a96e !important;
+    border-color: transparent !important;
+}
+.EasyMDEContainer .editor-toolbar button:hover,
+.EasyMDEContainer .editor-toolbar button.active {
+    background: #2a1f10 !important;
+    border-color: rgba(139,69,19,.3) !important;
+    color: #fff !important;
+}
+.EasyMDEContainer .editor-toolbar i.separator {
+    border-left-color: rgba(139,69,19,.2);
+    border-right-color: rgba(139,69,19,.2);
+}
+.EasyMDEContainer .CodeMirror {
+    background: #0a0a0f;
+    color: #dee2e6;
+    border: 1px solid rgba(139,69,19,.3);
+    border-radius: 0 0 4px 4px;
+    font-family: 'SFMono-Regular',Consolas,monospace;
+    font-size: .9rem;
+    line-height: 1.55;
+    min-height: 420px;
+}
+.EasyMDEContainer .CodeMirror-cursor { border-left-color: #c8a96e; }
+.EasyMDEContainer .CodeMirror-selected { background: rgba(200,169,110,.18); }
+.EasyMDEContainer .CodeMirror-gutters { background: #0a0a0f; border-right-color: rgba(139,69,19,.2); }
+.EasyMDEContainer .CodeMirror-linenumber { color: #4a5568; }
+.EasyMDEContainer .editor-preview,
+.EasyMDEContainer .editor-preview-side {
+    background: #0a0a0f;
+    color: rgba(255,255,255,.85);
+    border-color: rgba(139,69,19,.3);
+    line-height: 1.7;
+}
+.EasyMDEContainer .editor-preview h1,
+.EasyMDEContainer .editor-preview h2,
+.EasyMDEContainer .editor-preview h3,
+.EasyMDEContainer .editor-preview h4,
+.EasyMDEContainer .editor-preview-side h1,
+.EasyMDEContainer .editor-preview-side h2,
+.EasyMDEContainer .editor-preview-side h3,
+.EasyMDEContainer .editor-preview-side h4 { color: #c8a96e; }
+.EasyMDEContainer .editor-preview a,
+.EasyMDEContainer .editor-preview-side a { color: #69CCF0; }
+.EasyMDEContainer .editor-preview code,
+.EasyMDEContainer .editor-preview-side code {
+    background: rgba(255,255,255,.06);
+    padding: .1rem .35rem;
+    border-radius: 3px;
+}
+.EasyMDEContainer .editor-preview pre,
+.EasyMDEContainer .editor-preview-side pre {
+    background: rgba(0,0,0,.4);
+    padding: 1rem;
+    border-radius: 6px;
+}
+.EasyMDEContainer .editor-preview img,
+.EasyMDEContainer .editor-preview-side img { max-width: 100%; height: auto; border-radius: 6px; }
+.EasyMDEContainer .editor-preview blockquote,
+.EasyMDEContainer .editor-preview-side blockquote {
+    border-left: 3px solid #c8a96e;
+    padding-left: 1rem;
+    color: #8899aa;
+}
+.EasyMDEContainer .editor-statusbar {
+    color: #4a5568;
+    border: 1px solid rgba(139,69,19,.15);
+    border-top: none;
+    background: #12121f;
+    padding: .35rem .8rem;
+    font-size: .75rem;
+}
+.EasyMDEContainer.sided--no-fullscreen .CodeMirror,
+.EasyMDEContainer.sided--no-fullscreen .editor-preview-active-side { border-radius: 0; }
+.EasyMDEContainer .CodeMirror-fullscreen,
+.EasyMDEContainer .editor-preview-side.fullscreen,
+.EasyMDEContainer .editor-toolbar.fullscreen { background: #0a0a0f; }
+</style>
+
 <script>
-// Live MD preview — toggle visibility, render server-side via fetch.
-(function(){
-    const btn  = document.getElementById('togglePreview');
-    const body = document.getElementById('body');
-    const box  = document.getElementById('previewBox');
-    if (!btn || !body || !box) return;
+document.addEventListener('DOMContentLoaded', function () {
+    const ta = document.getElementById('body');
+    if (!ta || typeof EasyMDE === 'undefined') return;
 
-    let visible = false;
-    let timer   = null;
-    const PREVIEW_URL = '/news_preview';
+    const CSRF = '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>';
 
-    async function refresh() {
-        if (!visible) return;
-        const t = body.value;
-        if (!t.trim()) { box.innerHTML = '<em style="color:#4a5568"><?= htmlspecialchars($TEXT['news_admin_preview_empty'] ?? 'Preview appears here.', ENT_QUOTES) ?></em>'; return; }
-        try {
+    const easyMDE = new EasyMDE({
+        element: ta,
+        autoDownloadFontAwesome: true,
+        spellChecker: false,
+        status: ['lines', 'words'],
+        minHeight: '420px',
+        autosave: { enabled: false },
+        forceSync: true, // mirror CodeMirror -> <textarea> so form submit picks it up
+        placeholder: '<?= htmlspecialchars($TEXT['news_admin_editor_placeholder'] ?? 'Write your post in Markdown… Drag images right into the editor.', ENT_QUOTES) ?>',
+
+        // Render previews server-side through our existing Parsedown safe-mode
+        // endpoint so admins see exactly what readers will see (and HTML stays
+        // sanitized).
+        previewRender: function (plainText, previewEl) {
             const fd = new FormData();
-            fd.append('csrf_token', '<?= htmlspecialchars($csrf, ENT_QUOTES) ?>');
-            fd.append('body', t);
-            const res = await fetch(PREVIEW_URL, { method:'POST', body: fd, credentials:'same-origin' });
-            const json = await res.json();
-            if (json && typeof json.html === 'string') box.innerHTML = json.html;
-        } catch (e) { /* swallow */ }
-    }
+            fd.append('csrf_token', CSRF);
+            fd.append('body', plainText);
+            fetch('/news_preview', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(j => { previewEl.innerHTML = j.html || ''; })
+                .catch(() => { previewEl.innerHTML = '<em style="color:#e74c3c"><?= htmlspecialchars($TEXT['news_admin_preview_error'] ?? 'Preview unavailable.', ENT_QUOTES) ?></em>'; });
+            return previewEl.innerHTML; // initial value while fetch is in flight
+        },
 
-    btn.addEventListener('click', () => {
-        visible = !visible;
-        box.style.display = visible ? 'block' : 'none';
-        btn.innerHTML = visible
-            ? '<i class="bi bi-eye-slash me-1"></i><?= htmlspecialchars($TEXT['news_admin_hide_preview'] ?? 'Hide Preview', ENT_QUOTES) ?>'
-            : '<i class="bi bi-eye me-1"></i><?= htmlspecialchars($TEXT['news_admin_preview'] ?? 'Preview', ENT_QUOTES) ?>';
-        if (visible) refresh();
+        // Image upload — drag-and-drop AND the toolbar image button
+        uploadImage: true,
+        imageMaxSize: 5 * 1024 * 1024, // 5 MB
+        imageAccept: 'image/png, image/jpeg, image/webp, image/gif',
+        imageUploadFunction: function (file, onSuccess, onError) {
+            const fd = new FormData();
+            fd.append('csrf_token', CSRF);
+            fd.append('image', file);
+            fetch('/news_image', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(r => r.json().then(j => ({ ok: r.ok, body: j })))
+                .then(({ ok, body }) => {
+                    if (ok && body.url) onSuccess(body.url);
+                    else onError(body.error || '<?= htmlspecialchars($TEXT['news_admin_upload_failed'] ?? 'Upload failed.', ENT_QUOTES) ?>');
+                })
+                .catch(() => onError('<?= htmlspecialchars($TEXT['news_admin_upload_failed'] ?? 'Upload failed.', ENT_QUOTES) ?>'));
+        },
+        imageTexts: {
+            sbInit: '<?= htmlspecialchars($TEXT['news_admin_img_hint'] ?? 'Drop images here, or click the image button.', ENT_QUOTES) ?>',
+            sbOnDragEnter: '<?= htmlspecialchars($TEXT['news_admin_img_drop'] ?? 'Drop image to upload.', ENT_QUOTES) ?>',
+            sbOnDrop: '<?= htmlspecialchars($TEXT['news_admin_img_uploading'] ?? 'Uploading…', ENT_QUOTES) ?>',
+            sbProgress: '<?= htmlspecialchars($TEXT['news_admin_img_uploading'] ?? 'Uploading…', ENT_QUOTES) ?> #file_name#',
+            sbOnUploaded: '<?= htmlspecialchars($TEXT['news_admin_img_uploaded'] ?? 'Uploaded.', ENT_QUOTES) ?>',
+            sizeUnits: ' B,KB,MB',
+        },
+        errorMessages: {
+            noFileGiven: '<?= htmlspecialchars($TEXT['news_admin_err_nofile'] ?? 'No file selected.', ENT_QUOTES) ?>',
+            typeNotAllowed: '<?= htmlspecialchars($TEXT['news_admin_err_type'] ?? 'Unsupported image type. Use jpg, png, webp, or gif.', ENT_QUOTES) ?>',
+            fileTooLarge: '<?= htmlspecialchars($TEXT['news_admin_err_size'] ?? 'Image too large (max 5 MB).', ENT_QUOTES) ?>',
+        },
+
+        toolbar: [
+            'bold', 'italic', 'strikethrough', '|',
+            'heading-1', 'heading-2', 'heading-3', '|',
+            'quote', 'unordered-list', 'ordered-list', '|',
+            'link', 'image', 'table', 'horizontal-rule', '|',
+            'code', 'preview', 'side-by-side', 'fullscreen', '|',
+            {
+                name: 'guide',
+                action: 'https://www.markdownguide.org/cheat-sheet/',
+                className: 'fa fa-question-circle',
+                title: '<?= htmlspecialchars($TEXT['news_admin_md_help'] ?? 'Markdown cheat sheet', ENT_QUOTES) ?>',
+            },
+        ],
     });
 
-    body.addEventListener('input', () => {
-        if (!visible) return;
-        clearTimeout(timer);
-        timer = setTimeout(refresh, 300);
-    });
-
-    // Auto-slugify from title only when slug is untouched
-    const slug = document.getElementById('slug');
+    // Auto-slugify from title only while slug is empty/untouched
+    const slug  = document.getElementById('slug');
     const title = document.getElementById('title');
     if (slug && title) {
         let touched = slug.value !== '';
@@ -431,7 +562,7 @@ $csrf = generate_csrf_token();
             slug.value = v.slice(0, 160);
         });
     }
-})();
+});
 </script>
 <?php endif; ?>
 

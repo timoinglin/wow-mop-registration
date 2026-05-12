@@ -12,6 +12,10 @@
 # served via /ticket_attachment with auth checks). Folder .htaccess is
 # tracked so the access-deny rule ships with the repo.
 /uploads/tickets/*
+# News post images (admin-uploaded via the news editor). Folder .htaccess is
+# tracked so the override rule ships with the repo.
+/uploads/news/*
+!/uploads/news/.htaccess
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
