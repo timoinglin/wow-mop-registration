@@ -367,6 +367,7 @@ $s_world    = check_port_status($db_host, $world_port);
     <button class="adm-tab active" onclick="switchTab('overview',this)"><i class="bi bi-grid me-1"></i><?= htmlspecialchars($TEXT['admin_tab_overview'] ?? 'Overview') ?></button>
     <button class="adm-tab" onclick="switchTab('accounts',this)"><i class="bi bi-people me-1"></i><?= htmlspecialchars($TEXT['admin_tab_accounts'] ?? 'Accounts') ?></button>
     <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tickets'] ?? 'Tickets') ?></button>
+    <button class="adm-tab" onclick="switchTab('news',this)"><i class="bi bi-newspaper me-1"></i><?= htmlspecialchars($TEXT['admin_tab_news'] ?? 'News') ?></button>
     <button class="adm-tab" onclick="switchTab('audit',this)"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_audit'] ?? 'Audit Log') ?></button>
     <button class="adm-tab" onclick="switchTab('tools',this)"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tools'] ?? 'Tools') ?></button>
 
@@ -619,6 +620,70 @@ $s_world    = check_port_status($db_host, $world_port);
             </div>
         </div>
         <div id="ticketList"><div class="text-center py-4" style="color:#4a5568"><?= htmlspecialchars($TEXT['admin_loading_tickets'] ?? 'Loading tickets…') ?></div></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ TAB: NEWS -->
+<div class="adm-tab-content" id="tab-news">
+    <div class="admin-panel" style="height:auto">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="panel-title mb-0"><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['admin_news_title'] ?? 'News Posts') ?></div>
+            <a href="/admin_news" class="tool-btn tool-btn-primary" style="text-decoration:none">
+                <i class="bi bi-pencil-square me-1"></i><?= htmlspecialchars($TEXT['admin_news_manage'] ?? 'Manage News') ?>
+            </a>
+        </div>
+        <?php
+        try {
+            $news_recent = $pdo_auth->query(
+                "SELECT id, slug, title, status, published_at, updated_at
+                 FROM news_posts
+                 ORDER BY COALESCE(published_at, updated_at) DESC
+                 LIMIT 10"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            $news_recent = [];
+        }
+        ?>
+        <?php if (empty($news_recent)): ?>
+            <p class="text-center py-4" style="color:#4a5568">
+                <?= htmlspecialchars($TEXT['admin_news_none'] ?? 'No posts yet.') ?>
+                <a href="/admin_news?new=1" style="color:#c8a96e"><?= htmlspecialchars($TEXT['admin_news_create_first'] ?? 'Create the first one →') ?></a>
+            </p>
+        <?php else: ?>
+            <div class="acct-tbl" style="overflow-x:auto">
+                <table class="acct-tbl" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th><?= htmlspecialchars($TEXT['news_admin_col_title'] ?? 'Title') ?></th>
+                            <th><?= htmlspecialchars($TEXT['news_admin_col_status'] ?? 'Status') ?></th>
+                            <th><?= htmlspecialchars($TEXT['news_admin_col_published'] ?? 'Published') ?></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($news_recent as $n): ?>
+                        <tr>
+                            <td>
+                                <strong style="color:#c8a96e"><?= htmlspecialchars($n['title']) ?></strong>
+                                <div style="color:#4a5568;font-size:.75rem;font-family:monospace">/news/<?= htmlspecialchars($n['slug']) ?></div>
+                            </td>
+                            <td>
+                                <?php if ($n['status'] === 'published'): ?>
+                                    <span style="color:#5dd87c;font-size:.8rem"><i class="bi bi-eye"></i> <?= htmlspecialchars($TEXT['news_status_published'] ?? 'Published') ?></span>
+                                <?php else: ?>
+                                    <span style="color:#8899aa;font-size:.8rem"><i class="bi bi-pencil"></i> <?= htmlspecialchars($TEXT['news_status_draft'] ?? 'Draft') ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="color:#8899aa;font-size:.85rem"><?= $n['published_at'] ? htmlspecialchars(date('M j, Y H:i', strtotime($n['published_at']))) : '—' ?></td>
+                            <td class="text-end">
+                                <a href="/admin_news?id=<?= (int)$n['id'] ?>" class="tool-btn tool-btn-primary" style="padding:.25rem .55rem;font-size:.78rem;text-decoration:none"><i class="bi bi-pencil"></i> <?= htmlspecialchars($TEXT['news_admin_edit'] ?? 'Edit') ?></a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

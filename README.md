@@ -58,7 +58,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Multi-turn conversation threads (user ↔ GM), Markdown formatting, image attachments with auth-gated serving, separate detail pages, and audit-logged status changes
-- 📰 **News & FAQ** — Configurable news section and FAQ accordion on the home page
+- 📰 **News / Blog** — Admin-managed posts with Markdown body + live preview, draft/published states, public `/news` list and `/news/{slug}` detail pages, automatic homepage section. Legacy `config.news` entries are auto-imported on first run.
+- ❓ **FAQ** — Configurable FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
 - 🔗 **Social Links** — Discord, YouTube, X (Twitter), Instagram — each individually toggleable
 
@@ -220,7 +221,6 @@ Open `config.php` and set:
 | **SMTP** | Email host, port, credentials for password recovery and ticket notifications |
 | **Client** | External download link for the game client (Mega, MediaFire, etc.) |
 | **Social Links** | Discord, YouTube, X (Twitter), Instagram URLs — leave empty to hide |
-| **News** | Array of news entries shown on the home page |
 | **FAQ** | Array of question/answer pairs for the FAQ accordion |
 | **Vote Sites** | Array of vote site links shown on the user dashboard |
 
@@ -238,13 +238,14 @@ Open `config.php` and set:
 Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, go to the **SQL** tab, and run the contents of `sql/setup.sql`:
 
 ```sql
--- This creates 6 tables (and an idempotent column-add migration):
+-- This creates 7 tables (and an idempotent column-add migration):
 -- 1. password_resets       — password recovery tokens
 -- 2. tickets               — support ticket headers (subject, category, status…)
 -- 3. admin_audit_log       — chronological log of admin actions
 -- 4. playtime_rewards      — per-account state for the Battle Pay reward feature
 -- 5. playtime_reward_log   — audit trail for every Battle Pay claim
 -- 6. ticket_messages       — per-message thread (user + admin replies, attachments)
+-- 7. news_posts            — admin-authored blog/news (Markdown body, draft/published)
 
 -- Compatible with MySQL 5.5.9+
 -- All CREATEs use IF NOT EXISTS, and the ticket_messages.attachments
@@ -302,13 +303,9 @@ Social links appear in the hero section and footer. Set to empty string `''` to 
 ],
 ```
 
-News entries and FAQ items are also configured in `config.php`:
+FAQ items and vote sites are configured in `config.php`:
 
 ```php
-'news' => [
-    ['title' => 'Server Launch!', 'date' => '2026-03-02', 'text' => 'We are live!', 'icon' => 'bi-megaphone'],
-],
-
 'faq' => [
     ['q' => 'Is it free to play?', 'a' => 'Yes, 100% free.'],
 ],
@@ -317,6 +314,9 @@ News entries and FAQ items are also configured in `config.php`:
     ['name' => 'TopG', 'url' => 'https://topg.org/...', 'cooldown_hours' => 12],
 ],
 ```
+
+> [!NOTE]
+> News is now stored in the `news_posts` database table and managed from the admin panel (`/admin_news`). The legacy `config.news` array is still read on a fresh install and migrated into the DB automatically the first time the news section is visited — after that, all post management happens in the admin UI. You can leave `config.news` in `config.php` or remove it; it's only consulted when the `news_posts` table is empty.
 
 ### 6. Dependencies
 
@@ -412,6 +412,7 @@ To grant or revoke access, edit the `account_access` table directly (or use any 
 | **Overview** | Server status, registration chart (14 days), class distribution, recent bans, top characters |
 | **Accounts** | Full account list with search/filter, inline Ban/Unban buttons, account detail modal (view chars, reset password, edit email, set GM level) |
 | **Tickets** | View all support tickets, filter by status, reply to tickets, close/reopen |
+| **News** | Quick view of recent posts with deep-link to the full `/admin_news` editor (create/edit/publish/delete + live Markdown preview) |
 | **Audit Log** | Chronological log of all admin actions (bans, unbans, edits, etc.) |
 | **Tools** | Character lookup, IP ban management, server stats, email broadcast to all users |
 

@@ -120,3 +120,24 @@ WHERE t.admin_reply IS NOT NULL
     SELECT 1 FROM ticket_messages tm
     WHERE tm.ticket_id = t.id AND tm.sender_type = 'admin'
   );
+
+-- 7. News Posts (admin-authored blog/news, Markdown body, public /news pages).
+-- Monolingual on purpose — admins write in whatever language fits their audience.
+-- Slug is unique and URL-safe. `icon` is a Bootstrap-Icons class shown on cards.
+CREATE TABLE IF NOT EXISTS news_posts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(160) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  excerpt VARCHAR(500) DEFAULT NULL,
+  body MEDIUMTEXT NOT NULL,
+  icon VARCHAR(60) DEFAULT 'bi-megaphone',
+  author_id INT DEFAULT NULL,
+  author_name VARCHAR(50) DEFAULT NULL,
+  status ENUM('draft','published') NOT NULL DEFAULT 'draft',
+  published_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_slug (slug),
+  INDEX idx_status_published (status, published_at),
+  INDEX idx_published (published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

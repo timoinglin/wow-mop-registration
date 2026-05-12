@@ -123,6 +123,11 @@ if (!empty($config['features']['maintenance'])) {
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link <?= ($current_page === 'news.php') ? 'active' : '' ?>" href="/news">
+                        <i class="bi bi-newspaper me-1"></i> <?= $TEXT['news_nav'] ?? 'News' ?>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
                         <i class="bi bi-search me-1"></i> <?= $TEXT['armory'] ?? 'Armory' ?>
                     </a>

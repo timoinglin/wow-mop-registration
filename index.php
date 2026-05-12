@@ -46,8 +46,28 @@ $youtube_url   = !empty($social['youtube'])    ? $social['youtube']   : '';
 $twitter_url   = !empty($social['twitter'])    ? $social['twitter']   : '';
 $instagram_url = !empty($social['instagram'])  ? $social['instagram'] : '';
 
-// News
-$news_items = $config['news'] ?? [];
+// News — preferred source is the news_posts table (admin-managed).
+// First touch on a fresh install migrates the legacy config.news entries in.
+// If the table is missing entirely (old install before setup.sql was re-run),
+// fall back to the legacy config array so the section keeps rendering.
+require_once __DIR__ . '/includes/news.php';
+$news_items = [];
+try {
+    news_maybe_autoimport($pdo_auth, $config);
+    $latest = news_latest_published($pdo_auth, 3);
+    foreach ($latest as $p) {
+        $news_items[] = [
+            'title' => $p['title'],
+            'text'  => $p['excerpt'] ?: mb_substr(strip_tags($p['body'] ?? ''), 0, 180),
+            'date'  => $p['published_at'] ? date('M j, Y', strtotime($p['published_at'])) : '',
+            'icon'  => $p['icon'] ?: 'bi-megaphone',
+            'slug'  => $p['slug'],
+        ];
+    }
+} catch (PDOException $e) {
+    error_log('Home news fetch failed: ' . $e->getMessage());
+    $news_items = $config['news'] ?? [];
+}
 
 // FAQ
 $faq_items = $config['faq'] ?? [];
@@ -106,8 +126,10 @@ $faq_items = $config['faq'] ?? [];
             </div>
             <div class="row justify-content-center g-4">
                 <?php foreach ($news_items as $news): ?>
+                <?php $news_href = !empty($news['slug']) ? '/news/' . rawurlencode($news['slug']) : ''; ?>
                 <div class="col-lg-4 col-md-6">
-                    <div class="game-card h-100 news-card">
+                    <?php if ($news_href): ?><a href="<?= htmlspecialchars($news_href) ?>" style="text-decoration:none;color:inherit"><?php endif; ?>
+                    <div class="game-card h-100 news-card" <?= $news_href ? 'style="cursor:pointer"' : '' ?>>
                         <div class="card-body p-4">
                             <div class="d-flex align-items-center gap-3 mb-3">
                                 <div class="news-icon-circle">
@@ -121,9 +143,15 @@ $faq_items = $config['faq'] ?? [];
                             <p style="color:rgba(255,255,255,.65);font-size:.92rem;margin:0;line-height:1.6"><?= htmlspecialchars($news['text']) ?></p>
                         </div>
                     </div>
+                    <?php if ($news_href): ?></a><?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
+            <?php if (!empty($news_items)): ?>
+            <div class="text-center mt-4">
+                <a href="/news" class="btn btn-outline-gold"><?= htmlspecialchars($TEXT['home_view_all_news'] ?? 'View All News') ?> <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+            <?php endif; ?>
         </div>
     </section>
     <?php endif; ?>
