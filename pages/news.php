@@ -11,9 +11,6 @@ $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/news.php';
 
-// Auto-import legacy config.news the first time this page is hit
-news_maybe_autoimport($pdo_auth, $config);
-
 // If a slug came in (via /news/{slug} rewrite OR ?slug=… fallback), hand off
 // to the detail renderer.
 $slug = trim((string)($_GET['slug'] ?? ''));

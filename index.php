@@ -46,16 +46,11 @@ $youtube_url   = !empty($social['youtube'])    ? $social['youtube']   : '';
 $twitter_url   = !empty($social['twitter'])    ? $social['twitter']   : '';
 $instagram_url = !empty($social['instagram'])  ? $social['instagram'] : '';
 
-// News — preferred source is the news_posts table (admin-managed).
-// First touch on a fresh install migrates the legacy config.news entries in.
-// If the table is missing entirely (old install before setup.sql was re-run),
-// fall back to the legacy config array so the section keeps rendering.
+// News — latest 3 published posts from the news_posts table (admin-managed).
 require_once __DIR__ . '/includes/news.php';
 $news_items = [];
 try {
-    news_maybe_autoimport($pdo_auth, $config);
-    $latest = news_latest_published($pdo_auth, 3);
-    foreach ($latest as $p) {
+    foreach (news_latest_published($pdo_auth, 3) as $p) {
         $news_items[] = [
             'title' => $p['title'],
             'text'  => $p['excerpt'] ?: mb_substr(strip_tags($p['body'] ?? ''), 0, 180),
@@ -66,7 +61,6 @@ try {
     }
 } catch (PDOException $e) {
     error_log('Home news fetch failed: ' . $e->getMessage());
-    $news_items = $config['news'] ?? [];
 }
 
 // FAQ

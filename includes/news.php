@@ -1,12 +1,9 @@
 <?php
 /**
- * News helper — slug generation, auto-import from legacy config.news, fetchers.
+ * News helper — slug generation + fetchers for the `news_posts` table.
  *
  * Posts are monolingual: admins write in whatever language fits their audience.
- * The legacy `config.news` array shipped with v0.3.x is migrated into the DB the
- * first time this helper is touched on a schema that already has news_posts
- * but no rows yet. The import is idempotent — once any post exists in the
- * table, the importer never runs again.
+ * A starter post is seeded by sql/setup.sql on first install (idempotent).
  */
 
 if (!function_exists('news_slugify')) {
@@ -39,63 +36,6 @@ if (!function_exists('news_unique_slug')) {
             $stmt->execute($params);
             if (!$stmt->fetchColumn()) return $slug;
             $slug = substr($base, 0, 155) . '-' . $i++;
-        }
-    }
-}
-
-if (!function_exists('news_maybe_autoimport')) {
-    /**
-     * Migrate legacy config.news -> news_posts on first touch.
-     * Runs only when news_posts is empty AND config.news has entries.
-     * Safe to call repeatedly — only does work once.
-     */
-    function news_maybe_autoimport(PDO $pdo, array $config): void
-    {
-        try {
-            $count = (int)$pdo->query("SELECT COUNT(*) FROM news_posts")->fetchColumn();
-        } catch (PDOException $e) {
-            return; // table missing — silently skip
-        }
-        if ($count > 0) return;
-
-        $legacy = $config['news'] ?? [];
-        if (!is_array($legacy) || empty($legacy)) return;
-
-        $ins = $pdo->prepare(
-            "INSERT INTO news_posts (slug, title, excerpt, body, icon, author_name, status, published_at, created_at)
-             VALUES (:slug, :title, :excerpt, :body, :icon, :author, 'published', :published_at, :created_at)"
-        );
-
-        foreach ($legacy as $idx => $item) {
-            $title = trim((string)($item['title'] ?? "Update #" . ($idx + 1)));
-            $text  = trim((string)($item['text']  ?? ''));
-            $date  = trim((string)($item['date']  ?? ''));
-            $icon  = trim((string)($item['icon']  ?? 'bi-megaphone'));
-
-            // Try to parse the legacy date; fall back to "now" minus N days so
-            // imports preserve relative ordering.
-            $ts = strtotime($date);
-            if ($ts === false || $ts <= 0) {
-                $ts = time() - ($idx * 86400);
-            }
-            $published = date('Y-m-d H:i:s', $ts);
-
-            $base = news_slugify($title);
-            $slug = news_unique_slug($pdo, $base);
-
-            $excerpt = mb_substr($text, 0, 300);
-            if (mb_strlen($text) > 300) $excerpt .= '…';
-
-            $ins->execute([
-                'slug'         => $slug,
-                'title'        => $title,
-                'excerpt'      => $excerpt,
-                'body'         => $text,
-                'icon'         => $icon ?: 'bi-megaphone',
-                'author'       => 'Admin',
-                'published_at' => $published,
-                'created_at'   => $published,
-            ]);
         }
     }
 }

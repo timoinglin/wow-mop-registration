@@ -141,3 +141,28 @@ CREATE TABLE IF NOT EXISTS news_posts (
   INDEX idx_status_published (status, published_at),
   INDEX idx_published (published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed one starter post the first time setup.sql is run on a fresh install.
+-- Idempotent: the INSERT is guarded by NOT EXISTS so it never re-fires once
+-- the table has any rows (so re-running setup.sql, or deleting the seed
+-- post and re-running, never resurrects it).
+INSERT INTO news_posts (slug, title, excerpt, body, icon, author_name, status, published_at)
+SELECT * FROM (SELECT
+  'welcome-to-your-new-portal'                                       AS slug,
+  'Welcome!'                                                          AS title,
+  'Your registration portal is up and running.'                       AS excerpt,
+  CONCAT(
+    '## Welcome to your new server portal!\n\n',
+    'This is the first post in your news section. From the **Admin Panel → News** tab you can:\n\n',
+    '- Edit or delete this post\n',
+    '- Write new posts in Markdown\n',
+    '- Save drafts before publishing\n',
+    '- Pick a Bootstrap Icon for each post card\n\n',
+    'Have fun, and good luck with launch!'
+  )                                                                   AS body,
+  'bi-megaphone'                                                      AS icon,
+  'Admin'                                                             AS author_name,
+  'published'                                                         AS status,
+  NOW()                                                               AS published_at
+) seed
+WHERE NOT EXISTS (SELECT 1 FROM news_posts LIMIT 1);

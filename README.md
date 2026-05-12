@@ -58,7 +58,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Multi-turn conversation threads (user ↔ GM), Markdown formatting, image attachments with auth-gated serving, separate detail pages, and audit-logged status changes
-- 📰 **News / Blog** — Admin-managed posts with Markdown body + live preview, draft/published states, public `/news` list and `/news/{slug}` detail pages, automatic homepage section. Legacy `config.news` entries are auto-imported on first run.
+- 📰 **News / Blog** — Admin-managed posts with Markdown body + live preview, draft/published states, public `/news` list and `/news/{slug}` detail pages, automatic homepage section. A starter post is seeded by `sql/setup.sql` on first install.
 - ❓ **FAQ** — Configurable FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
 - 🔗 **Social Links** — Discord, YouTube, X (Twitter), Instagram — each individually toggleable
@@ -316,7 +316,7 @@ FAQ items and vote sites are configured in `config.php`:
 ```
 
 > [!NOTE]
-> News is now stored in the `news_posts` database table and managed from the admin panel (`/admin_news`). The legacy `config.news` array is still read on a fresh install and migrated into the DB automatically the first time the news section is visited — after that, all post management happens in the admin UI. You can leave `config.news` in `config.php` or remove it; it's only consulted when the `news_posts` table is empty.
+> News is stored in the `news_posts` database table and managed from the admin panel at `/admin_news`. A starter "Welcome!" post is seeded by `sql/setup.sql` on a fresh install so the news section is never empty out of the gate — edit or delete it from the admin UI. There is no `config.news` entry; everything lives in the DB.
 
 ### 6. Dependencies
 

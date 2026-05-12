@@ -82,14 +82,6 @@ return [
         'instagram' => 'https://www.instagram.com/',
     ],
 
-    // Seed news entries. These are imported into the `news_posts` table the
-    // very first time the news section is visited (only when the table is
-    // empty). After that, manage news from the admin panel at /admin_news.
-    // Safe to leave as-is, edit, or remove entirely.
-    'news' => [
-        ['date' => '2026-01-01', 'title' => 'Server Launch!', 'text' => 'Welcome to our server!', 'icon' => 'bi-megaphone'],
-    ],
-
     // FAQ entries shown on the home page
     'faq' => [
         ['q' => 'Is it free to play?',      'a' => 'Yes! Registration and gameplay are completely free.'],
