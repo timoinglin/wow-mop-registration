@@ -32,6 +32,7 @@ return [
   'news_page_subtitle'       => 'Actualizaciones, notas del parche y anuncios.',
   'news_empty'               => 'Aún no hay noticias. ¡Vuelve pronto!',
   'news_back_to_list'        => 'Volver a Noticias',
+  'news_edit_post'           => 'Editar Entrada',
   'news_not_found_title'     => 'Entrada no encontrada',
   'news_not_found_hint'      => 'Esta noticia no existe o ya no está publicada.',
   'news_pager_counter'       => 'Mostrando {from}–{to} de {total}',

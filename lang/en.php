@@ -32,6 +32,7 @@ return [
   'news_page_subtitle'       => 'Updates, patch notes, and announcements.',
   'news_empty'               => 'No news posts yet. Check back soon!',
   'news_back_to_list'        => 'Back to News',
+  'news_edit_post'           => 'Edit Post',
   'news_not_found_title'     => 'Post not found',
   'news_not_found_hint'      => 'This news post does not exist or is no longer published.',
   'news_pager_counter'       => 'Showing {from}–{to} of {total}',

@@ -43,11 +43,21 @@ if ($slug !== '') {
     $body_html = render_markdown((string)$post['body']);
     $published = $post['published_at'] ? date('F j, Y', strtotime($post['published_at'])) : '';
     ?>
+    <?php $is_admin = isset($_SESSION['user_id']) && (int)($_SESSION['gm_level'] ?? 0) >= 9; ?>
     <main class="container" style="padding-top:120px;padding-bottom:3rem;max-width:880px">
         <article>
-            <a href="/news" style="color:#8899aa;text-decoration:none;font-size:.9rem">
-                <i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['news_back_to_list'] ?? 'Back to News') ?>
-            </a>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <a href="/news" style="color:#8899aa;text-decoration:none;font-size:.9rem">
+                    <i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['news_back_to_list'] ?? 'Back to News') ?>
+                </a>
+                <?php if ($is_admin): ?>
+                    <a href="/admin_news?id=<?= (int)$post['id'] ?>"
+                       class="btn btn-sm"
+                       style="background:#8B4513;color:#fff;border:1px solid #A0522D;font-size:.8rem;padding:.3rem .75rem">
+                        <i class="bi bi-pencil-square me-1"></i><?= htmlspecialchars($TEXT['news_edit_post'] ?? 'Edit Post') ?>
+                    </a>
+                <?php endif; ?>
+            </div>
             <header class="text-center my-4">
                 <div class="d-flex align-items-center justify-content-center mb-3">
                     <div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(145deg,#1a1a2e,#12121f);border:1px solid rgba(139,69,19,.3)">
