@@ -227,7 +227,7 @@ $faq_items = $config['faq'] ?? [];
                 </div>
                 <div class="col-md-4">
                     <div class="counter-card">
-                        <div class="counter-icon" style="color:#ABD473"><i class="bi bi-sword"></i></div>
+                        <div class="counter-icon" style="color:#ABD473"><i class="bi bi-person-fill"></i></div>
                         <div class="counter-value" data-target="<?= $total_characters ?>" style="color:#ABD473">0</div>
                         <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_characters'] ?? 'Characters Created') ?></div>
                     </div>
