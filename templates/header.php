@@ -33,7 +33,12 @@ if (!empty($config['features']['maintenance'])) {
     $_og_base   = $_og_scheme . '://' . $_og_host;
 
     $_og_title       = $og_title       ?? ($page_title ?? ($config['realm']['name'] ?? $config['site']['title']));
-    $_og_description = $og_description ?? ($config['realm']['description'] ?? 'World of Warcraft: Mists of Pandaria private server.');
+    // realm.description supports plain string OR per-language array
+    $_raw_realm_desc = $config['realm']['description'] ?? 'World of Warcraft: Mists of Pandaria private server.';
+    if (is_array($_raw_realm_desc)) {
+        $_raw_realm_desc = $_raw_realm_desc[$lang] ?? ($_raw_realm_desc['en'] ?? reset($_raw_realm_desc) ?: '');
+    }
+    $_og_description = $og_description ?? $_raw_realm_desc;
     $_og_image       = $og_image       ?? ($_og_base . '/assets/img/logo.webp');
     $_og_type        = $og_type        ?? 'website';
     $_og_url         = $og_url         ?? ($_og_base . ($_SERVER['REQUEST_URI'] ?? '/'));

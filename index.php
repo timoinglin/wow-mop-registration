@@ -102,7 +102,7 @@ $faq_items = $config['faq'] ?? [];
     <section id="news" class="content-section py-5 my-4 rounded">
         <div class="container">
             <div class="section-title text-center mb-5">
-                <h2><i class="bi bi-newspaper me-2"></i>Latest Updates</h2>
+                <h2><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['home_latest_updates'] ?? 'Latest Updates') ?></h2>
             </div>
             <div class="row justify-content-center g-4">
                 <?php foreach ($news_items as $news): ?>
@@ -200,21 +200,21 @@ $faq_items = $config['faq'] ?? [];
                     <div class="counter-card">
                         <div class="counter-icon"><i class="bi bi-people-fill"></i></div>
                         <div class="counter-value" data-target="<?= $total_accounts ?>">0</div>
-                        <div class="counter-label">Registered Accounts</div>
+                        <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_accounts'] ?? 'Registered Accounts') ?></div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="counter-card">
                         <div class="counter-icon" style="color:#ABD473"><i class="bi bi-sword"></i></div>
                         <div class="counter-value" data-target="<?= $total_characters ?>" style="color:#ABD473">0</div>
-                        <div class="counter-label">Characters Created</div>
+                        <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_characters'] ?? 'Characters Created') ?></div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="counter-card">
                         <div class="counter-icon" style="color:#5dd87c"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div class="counter-value" data-target="<?= is_numeric($player_count_r1) ? $player_count_r1 : 0 ?>" style="color:#5dd87c">0</div>
-                        <div class="counter-label">Players Online</div>
+                        <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_online'] ?? 'Players Online') ?></div>
                     </div>
                 </div>
             </div>
@@ -228,7 +228,16 @@ $faq_items = $config['faq'] ?? [];
                 <h2><?= htmlspecialchars($config['realm']['name']) ?> <?= $TEXT['server_status'] ?></h2>
             </div>
 
-            <p class="text-center lead mb-4 text-warning" style="font-size: 1.3rem;"><?= htmlspecialchars($config['realm']['description']) ?></p>
+            <?php
+            // Realm description supports either a plain string (used as-is)
+            // or a per-language array, e.g.:
+            //   'description' => ['en' => 'Mists of Pandaria...', 'es' => 'Mists of Pandaria...']
+            $realm_desc = $config['realm']['description'] ?? '';
+            if (is_array($realm_desc)) {
+                $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
+            }
+            ?>
+            <p class="text-center lead mb-4 text-warning" style="font-size: 1.3rem;"><?= htmlspecialchars($realm_desc) ?></p>
             <div class="row text-center justify-content-center g-4">
                 <div class="col-md-6 col-lg-4">
                     <div class="game-card h-100">
@@ -310,7 +319,7 @@ $faq_items = $config['faq'] ?? [];
     <section id="faq" class="content-section py-5 my-4 rounded">
         <div class="container" style="max-width:800px">
             <div class="section-title text-center mb-5">
-                <h2><i class="bi bi-question-circle me-2"></i>Frequently Asked Questions</h2>
+                <h2><i class="bi bi-question-circle me-2"></i><?= htmlspecialchars($TEXT['home_faq_title'] ?? 'Frequently Asked Questions') ?></h2>
             </div>
             <div class="accordion" id="faqAccordion">
                 <?php foreach ($faq_items as $i => $faq): ?>

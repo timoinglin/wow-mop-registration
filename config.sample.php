@@ -18,6 +18,8 @@ return [
     // Realm Configuration
     'realm' => [
         'name' => 'Your Server Name',
+        // Single string, or per-language array, e.g.:
+        //   'description' => ['en' => '...', 'es' => '...']
         'description' => 'Your Server Description (e.g. x2 XP, Progressive Release)',
         'realmlist' => 'logon.yourserver.com',
         'expansion' => 5, // 5 for MoP, change if another expansion is used
