@@ -488,23 +488,29 @@ body:has(.editor-preview-side.fullscreen) #mainNavbar { display: none; }
    etc.) — a JS-applied body class still works. */
 body.easymde-fullscreen #mainNavbar { display: none; }
 
-/* Toolbar overflow in fullscreen / side-by-side.
-   EasyMDE pins the CodeMirror at top: 50px in fullscreen, but the toolbar
-   wraps onto two rows when there are many buttons — so row 2 ends up hidden
-   under the editor. Force the toolbar into a single horizontal-scroll row
-   so all buttons stay reachable and the editor's top offset stays valid. */
+/* Toolbar layout in fullscreen / side-by-side.
+   Two problems EasyMDE has out of the box that we override here:
+     (1) Some buttons get float:right / margin-left:auto, which under
+         position:fixed creates a huge empty gap and pushes icons offscreen.
+         Strip the floats so every icon packs flush to the left.
+     (2) The CodeMirror is pinned at top:50px regardless of how tall the
+         toolbar actually is — so a wrapped 2-row toolbar gets covered by
+         the editor. We let the toolbar grow with flex-wrap and the JS
+         further down resets the editor's top to the real toolbar height. */
 .EasyMDEContainer .editor-toolbar.fullscreen {
-    white-space: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(139,69,19,.4) transparent;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    height: auto;
+    min-height: 50px;
+    padding: 0 4px;
 }
-.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar { height: 6px; }
-.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar-track { background: transparent; }
-.EasyMDEContainer .editor-toolbar.fullscreen::-webkit-scrollbar-thumb {
-    background: rgba(139,69,19,.4);
-    border-radius: 3px;
+.EasyMDEContainer .editor-toolbar.fullscreen > * {
+    float: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    flex: 0 0 auto;
 }
 </style>
 
@@ -588,19 +594,39 @@ document.addEventListener('DOMContentLoaded', function () {
     // side-by-side, so the site navbar can be hidden out of the way (CSS
     // does the actual hiding — this just gives us a reliable hook for
     // browsers without :has() support).
+    //
+    // We also re-measure the toolbar height and pin the CodeMirror / preview
+    // panes to sit right below it. EasyMDE hard-codes top:50px which breaks
+    // when the toolbar wraps to two rows on narrow viewports.
     const container = easyMDE.element.parentNode; // .EasyMDEContainer
     if (container) {
-        const sync = () => {
+        const syncLayout = () => {
             const tb = container.querySelector('.editor-toolbar');
             const fs = tb && tb.classList.contains('fullscreen');
             document.body.classList.toggle('easymde-fullscreen', !!fs);
+
+            // Push the editor + preview below the actual toolbar height
+            const cmFs = container.querySelector('.CodeMirror-fullscreen');
+            const pvFs = container.querySelector('.editor-preview-side.fullscreen');
+            if (fs && tb) {
+                const h = tb.offsetHeight + 'px';
+                if (cmFs) cmFs.style.top = h;
+                if (pvFs) pvFs.style.top = h;
+            } else {
+                if (cmFs) cmFs.style.top = '';
+                if (pvFs) pvFs.style.top = '';
+            }
         };
-        new MutationObserver(sync).observe(container, {
+        new MutationObserver(syncLayout).observe(container, {
             subtree: true,
             attributes: true,
             attributeFilter: ['class'],
         });
-        sync();
+        // Re-sync on resize too — wrap-point changes mean toolbar height changes
+        window.addEventListener('resize', () => {
+            if (document.body.classList.contains('easymde-fullscreen')) syncLayout();
+        });
+        syncLayout();
     }
 
     // Auto-slugify from title only while slug is empty/untouched
