@@ -58,20 +58,11 @@ return [
   'index_cta' => 'Register now or log in to manage your account.',
   'server_status' => 'Server Status',
   'auth_server' => 'Auth Server',
-  'world_server' => 'World Server',
   'players_online' => 'Players Online',
   'status_online' => 'Online',
   'wow_logo_alt' => 'WoW Logo',
   'status_offline' => 'Offline',
 
-  'feature1_title' => 'Blizzlike MoP Core',
-  'feature1_desc' => 'Experience Mists of Pandaria as it was meant to be played, with accurate content and mechanics.',
-  'feature2_title' => 'Active Development',
-  'feature2_desc' => 'Our dedicated team constantly works on fixing bugs and improving the gameplay experience.',
-  'feature3_title' => 'Friendly Community',
-  'feature3_desc' => 'Join a welcoming community of players and make new friends on your adventures.',
-  'feature4_title' => 'Stable & Optimized',
-  'feature4_desc' => 'Hosted on reliable hardware with optimizations for a smooth, lag-free experience.',
   'how_to_connect_title' => 'How to Connect',
   'step1_title' => '1. Create Account',
   'step1_desc' => 'Register a free account right here on our website.',
@@ -130,10 +121,7 @@ return [
   'char_name' => 'Name',
   'last_seen' => 'Last Seen',
   'error_loading_admin_data' => 'Could not load admin data',
-  'download_torrent' => 'Download .torrent',
-  'download_magnet' => 'Open Magnet Link',
   'client_download_info' => 'Download our MoP 5.4.8 Client using your preferred method:',
-  'magnet_info_hash_missing' => 'Info Hash missing - Magnet link disabled.',
   'go_register' => 'Go Register',
   'recover_form_intro' => 'Enter your account email address below and we will send you a link to reset your password.',
   'back_to_login' => 'Back to Login',
@@ -144,17 +132,12 @@ return [
   'change_pw_web_only_notice' => 'Note: This changes your website password only. Your in-game password may require a server command or restart to update.',
   'nav_logo_alt' => 'WoW Legends Logo',
   
-  // Added for multi-realm
-  'realm1_name' => 'WoW Legends', // Realm 1 specific name
-  'realm2_name' => 'Venture',   // Realm 2 specific name
-  'realm1_description' => 'Our main realm offering a balanced Mists of Pandaria experience.',
-  'realm2_description' => 'Step into Venture, a tranquil haven crafted for fearless exploration in the vibrant world of Mists of Pandaria. Here, the lands of Azeroth beckon with gentle enemies and softened challenges, inviting adventurers of all levels to roam freely without fear. Discover hidden vistas, uncover ancient lore, and wander misty valleys at your own pace in this serene, low-stress realm designed for pure, unhurried discovery.',
-  'world_server_r1' => 'WoW Legends World', // Specific world server name for Realm 1
-  'world_server_r2' => 'Venture World',   // Specific world server name for Realm 2
+  // Realm 1 strings (single-realm setup — extend with realm2_* if you ever go multi-realm)
+  'realm1_name' => 'WoW Legends',
+  'world_server_r1' => 'WoW Legends World',
 
   // Dashboard specific
   'no_characters_found_realm' => 'No characters found on the %s realm.', // %s will be replaced by realm name
-  'error_db_realm_conn' => 'Could not connect to the character database for this realm.',
   'error_loading_characters' => 'There was an error loading character data. Some information may be missing.',
 
   // Character Table Headers
@@ -184,11 +167,6 @@ return [
   'actions' => 'Actions',
   'view' => 'View',
   'view_details' => 'View Details',
-  'reset_position' => 'Reset Position',
-  'confirm_reset_position' => 'Are you sure you want to reset the position of %s?',
-  'confirm_reset_position_warning' => 'This will teleport the character to their race\'s starting location.',
-  'position_reset_success' => 'Character position has been reset successfully.',
-  'position_reset_failed' => 'Failed to reset character position.',
   'account_information' => 'Account Information',
   'account_id' => 'Account ID',
   'last_login' => 'Last Login',
@@ -228,27 +206,6 @@ return [
   'offline' => 'Offline',
   'playing_as' => 'Playing as',
   'user_accounts' => 'User Accounts',
-
-  // Interactive Stream Section
-  'interactive_stream_title' => 'Explore Azeroth Together! | WoW MoP Interactive Stream',
-  'interactive_stream_how_to_play' => 'How to Play: Control the character using YouTube chat commands!',
-  'interactive_stream_commands_movement' => 'Movement',
-  'interactive_stream_commands_camera' => 'Camera',
-  'interactive_stream_commands_actionbar' => 'Action Bar',
-  'interactive_stream_commands_emotes' => 'Emotes',
-  'interactive_stream_commands_teleport' => 'Teleport',
-  'cmd_forward_desc' => 'Move forward (e.g. /forward 3.5)',
-  'cmd_back_desc' => 'Move backward',
-  'cmd_left_desc' => 'Turn left',
-  'cmd_right_desc' => 'Turn right',
-  'cmd_jump_desc' => 'Jump',
-  'cmd_zoomin_desc' => 'Zoom in',
-  'cmd_zoomout_desc' => 'Zoom out',
-  'cmd_camera_up_desc' => 'Tilt camera up a little',
-  'cmd_camera_down_desc' => 'Tilt camera down a little',
-  'cmd_actionbar_desc' => 'Press action bar buttons 0–9',
-  'cmd_tel_desc' => 'Teleport to a location (e.g. /tel orgrimmar, 5 min cooldown). Everyone can use this command!',
-  'interactive_stream_tel_locations' => 'Available Teleport Locations',
 
   // Rate limiting
   'login_locked_out' => 'Too many failed login attempts. Please wait {minutes} minute(s) before trying again.',
