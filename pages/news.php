@@ -114,6 +114,16 @@ require_once __DIR__ . '/../templates/header.php';
             <p><?= htmlspecialchars($TEXT['news_empty'] ?? 'No news posts yet. Check back soon!') ?></p>
         </div>
     <?php else: ?>
+        <?php
+        // "Showing X–Y of Z" counter
+        $from = ($page - 1) * $per_page + 1;
+        $to   = min($page * $per_page, $total);
+        $counter_tpl = $TEXT['news_pager_counter'] ?? 'Showing {from}–{to} of {total}';
+        ?>
+        <div class="text-center mb-3" style="color:#8899aa;font-size:.9rem">
+            <?= htmlspecialchars(strtr($counter_tpl, ['{from}' => $from, '{to}' => $to, '{total}' => $total])) ?>
+        </div>
+
         <div class="row g-4">
             <?php foreach ($posts as $p): ?>
                 <?php
@@ -143,15 +153,90 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
 
         <?php if ($pages > 1): ?>
-            <nav class="mt-5" aria-label="Pagination">
-                <ul class="pagination justify-content-center">
-                    <?php for ($i = 1; $i <= $pages; $i++): ?>
-                        <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=<?= $i ?>" style="background:#1a1a2e;color:#c8a96e;border-color:rgba(139,69,19,.3)"><?= $i ?></a>
-                        </li>
-                    <?php endfor; ?>
+            <?php
+            // Windowed pager: first/prev | 1 … (n-2)(n-1)[n](n+1)(n+2) … last | next/last
+            // Adjacent-page window of 2 each side, with ellipses when gaps exist.
+            $win = 2;
+            $start = max(1, $page - $win);
+            $end   = min($pages, $page + $win);
+
+            $items = [];
+            if ($start > 1) {
+                $items[] = ['type' => 'num',  'n' => 1];
+                if ($start > 2) $items[] = ['type' => 'ellipsis'];
+            }
+            for ($i = $start; $i <= $end; $i++) {
+                $items[] = ['type' => 'num', 'n' => $i];
+            }
+            if ($end < $pages) {
+                if ($end < $pages - 1) $items[] = ['type' => 'ellipsis'];
+                $items[] = ['type' => 'num', 'n' => $pages];
+            }
+            ?>
+            <nav class="mt-5" aria-label="<?= htmlspecialchars($TEXT['news_pager_label'] ?? 'News pagination') ?>">
+                <ul class="pagination news-pager justify-content-center flex-wrap">
+                    <?php
+                    $prev_p = max(1, $page - 1);
+                    $next_p = min($pages, $page + 1);
+                    $is_first = ($page <= 1);
+                    $is_last  = ($page >= $pages);
+                    ?>
+
+                    <!-- « First -->
+                    <li class="page-item <?= $is_first ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=1" aria-label="<?= htmlspecialchars($TEXT['news_pager_first'] ?? 'First page') ?>" <?= $is_first ? 'tabindex="-1" aria-disabled="true"' : '' ?>>&laquo;</a>
+                    </li>
+                    <!-- ‹ Prev -->
+                    <li class="page-item <?= $is_first ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $prev_p ?>" aria-label="<?= htmlspecialchars($TEXT['news_pager_prev'] ?? 'Previous page') ?>" <?= $is_first ? 'tabindex="-1" aria-disabled="true"' : '' ?>>&lsaquo;</a>
+                    </li>
+
+                    <?php foreach ($items as $it): ?>
+                        <?php if ($it['type'] === 'ellipsis'): ?>
+                            <li class="page-item disabled" aria-hidden="true"><span class="page-link">&hellip;</span></li>
+                        <?php else: $n = $it['n']; ?>
+                            <li class="page-item <?= $n === $page ? 'active' : '' ?>" <?= $n === $page ? 'aria-current="page"' : '' ?>>
+                                <a class="page-link" href="?page=<?= $n ?>"><?= $n ?></a>
+                            </li>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <!-- › Next -->
+                    <li class="page-item <?= $is_last ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $next_p ?>" aria-label="<?= htmlspecialchars($TEXT['news_pager_next'] ?? 'Next page') ?>" <?= $is_last ? 'tabindex="-1" aria-disabled="true"' : '' ?>>&rsaquo;</a>
+                    </li>
+                    <!-- » Last -->
+                    <li class="page-item <?= $is_last ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=<?= $pages ?>" aria-label="<?= htmlspecialchars($TEXT['news_pager_last'] ?? 'Last page') ?>" <?= $is_last ? 'tabindex="-1" aria-disabled="true"' : '' ?>>&raquo;</a>
+                    </li>
                 </ul>
             </nav>
+            <style>
+                .news-pager .page-link {
+                    background: #1a1a2e;
+                    color: #c8a96e;
+                    border-color: rgba(139,69,19,.3);
+                    min-width: 2.4rem;
+                    text-align: center;
+                }
+                .news-pager .page-link:hover {
+                    background: #2a1f10;
+                    color: #fff;
+                    border-color: #c8a96e;
+                }
+                .news-pager .page-item.active .page-link {
+                    background: #8B4513;
+                    border-color: #A0522D;
+                    color: #fff;
+                    font-weight: 600;
+                }
+                .news-pager .page-item.disabled .page-link {
+                    background: #12121f;
+                    color: #4a5568;
+                    border-color: rgba(139,69,19,.15);
+                    cursor: not-allowed;
+                }
+            </style>
         <?php endif; ?>
     <?php endif; ?>
 </main>

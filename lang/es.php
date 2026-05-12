@@ -34,6 +34,12 @@ return [
   'news_back_to_list'        => 'Volver a Noticias',
   'news_not_found_title'     => 'Entrada no encontrada',
   'news_not_found_hint'      => 'Esta noticia no existe o ya no está publicada.',
+  'news_pager_counter'       => 'Mostrando {from}–{to} de {total}',
+  'news_pager_label'         => 'Paginación de noticias',
+  'news_pager_first'         => 'Primera página',
+  'news_pager_prev'          => 'Página anterior',
+  'news_pager_next'          => 'Página siguiente',
+  'news_pager_last'          => 'Última página',
 
   // News (admin)
   'admin_tab_news'           => 'Noticias',

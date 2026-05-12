@@ -34,6 +34,12 @@ return [
   'news_back_to_list'        => 'Back to News',
   'news_not_found_title'     => 'Post not found',
   'news_not_found_hint'      => 'This news post does not exist or is no longer published.',
+  'news_pager_counter'       => 'Showing {from}–{to} of {total}',
+  'news_pager_label'         => 'News pagination',
+  'news_pager_first'         => 'First page',
+  'news_pager_prev'          => 'Previous page',
+  'news_pager_next'          => 'Next page',
+  'news_pager_last'          => 'Last page',
 
   // News (admin)
   'admin_tab_news'           => 'News',
