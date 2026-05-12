@@ -33,7 +33,9 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [6. Dependencies](#6-dependencies)
   - [7. Enable mod_rewrite](#7-enable-mod_rewrite)
 - [How to Update](#how-to-update)
+  - [Upgrading from v0.3.x → v0.4.0](#upgrading-from-v03x--v040)
 - [Admin Dashboard](#admin-dashboard)
+  - [Managing News](#managing-news)
 - [Customization](#customization)
   - [Changing Text and Labels](#changing-text-and-labels)
   - [Replacing Images and Logo](#replacing-images-and-logo)
@@ -58,7 +60,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Multi-turn conversation threads (user ↔ GM), Markdown formatting, image attachments with auth-gated serving, separate detail pages, and audit-logged status changes
-- 📰 **News / Blog** — Admin-managed posts with Markdown body + live preview, draft/published states, public `/news` list and `/news/{slug}` detail pages, automatic homepage section. A starter post is seeded by `sql/setup.sql` on first install.
+- 📰 **News / Blog** — Admin-managed posts with a GitHub-style **EasyMDE editor** (toolbar with bold/headings/lists/links/tables, drag-and-drop image upload, side-by-side preview, fullscreen mode). Posts are stored as Markdown in the DB, render server-side through Parsedown safe mode, have draft/published states with windowed pagination, and feed both the public `/news` list / `/news/{slug}` detail pages and the homepage "Latest Updates" section. A starter "Welcome!" post is seeded by `sql/setup.sql` on first install.
 - ❓ **FAQ** — Configurable FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
 - 🔗 **Social Links** — Discord, YouTube, X (Twitter), Instagram — each individually toggleable
@@ -389,6 +391,97 @@ If you installed by extracting a release ZIP:
 
 ---
 
+### Upgrading from v0.3.x → v0.4.0
+
+v0.4.0 introduces the **News / Blog system**, which replaces the legacy `config.news` array with a database-backed editor (EasyMDE), public `/news` pages, image uploads, and a windowed pager. None of the existing v0.3.x features were removed.
+
+Follow the three steps below in order. Total time: ~5 minutes.
+
+#### 1. Pull the new code
+
+```bash
+# stop Apache first (XAMPP Control Panel → Stop)
+git pull origin main
+# (or extract the v0.4.0 release ZIP, overwriting everything except
+#  config.php, uploads/, cache/)
+```
+
+#### 2. Run the SQL setup (required)
+
+The new `news_posts` table must be created in your `auth` database, and a starter "Welcome!" post is seeded on first run:
+
+```bash
+mysql -u root -pascent auth < sql/setup.sql
+```
+
+`sql/setup.sql` is idempotent:
+- The `CREATE TABLE news_posts (...)` uses `IF NOT EXISTS` so re-running on an existing install does nothing destructive.
+- The seed `INSERT` is guarded by `WHERE NOT EXISTS (SELECT 1 FROM news_posts LIMIT 1)`, so it only fires when the table is empty. If you delete the seed post from the admin UI later, re-running setup.sql won't resurrect it.
+
+#### 3. Make sure `uploads/news/` exists (required)
+
+The admin editor uploads post images to `uploads/news/`. The release ships a tracked `uploads/news/.htaccess` (override that makes the dir publicly readable while still blocking script execution) — if you used `git pull` or extracted the new ZIP, this is already in place. Verify with:
+
+```bash
+ls uploads/news/.htaccess
+```
+
+If it's missing for any reason, create the dir and add this `.htaccess`:
+
+```apache
+<RequireAll>
+    Require all granted
+</RequireAll>
+
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI
+```
+
+#### 4. (Optional) Clean up `config.news`
+
+The `'news' => [...]` array in `config.php` is **no longer read** — v0.4.0 sources news exclusively from the `news_posts` table. You can:
+
+- **Leave it alone** — it's silently ignored. No harm done.
+- **Delete it** for a cleaner config file (recommended).
+- **Migrate existing entries** — if your `config.news` array had real news posts you want to keep, log in as a GM 9+ admin, go to `/admin_news`, and copy each entry into a new post (~10 seconds per entry).
+
+#### 5. Restart Apache + verify
+
+```bash
+# Start Apache from the XAMPP Control Panel
+```
+
+Then in a browser:
+
+1. Visit `/news` — you should see the seed "Welcome!" post (plus any you migrated).
+2. Visit the homepage — the "Latest Updates" section should pull from the DB now, with a "View All News" CTA underneath.
+3. Log in as a GM 9+ account, click **Admin Panel → News** tab — the new "Manage News" link takes you to `/admin_news`. Click "New Post" to open the EasyMDE editor.
+4. On any public news article you'll also see a small **Edit Post** button (admins only).
+
+#### What's new at a glance
+
+| Area | Change |
+|---|---|
+| Database | New table `news_posts` (+ idempotent seed) |
+| Filesystem | New dir `uploads/news/` (image uploads, tracked `.htaccess`) |
+| Routing | New `.htaccess` rule: `/news/{slug}` → `pages/news.php?slug={slug}` |
+| Pages | `pages/news.php`, `pages/admin_news.php`, `pages/news_image.php`, `pages/news_preview.php` |
+| Helpers | `includes/news.php` (slug, fetchers) |
+| Admin UI | New **News** tab in `/admin_dashboard` |
+| Public UI | New `/news` list (paginated, 9/page, windowed pager) + `/news/{slug}` detail |
+| Homepage | "Latest Updates" section reads 3 newest published posts from DB; new "View All News" CTA |
+| Config | `config.news` deprecated (still ignored gracefully if left) |
+| i18n | ~90 new keys in `lang/en.php` and `lang/es.php` |
+| External | EasyMDE editor loads from jsDelivr CDN (only on `/admin_news` edit form) |
+
+> [!NOTE]
+> The EasyMDE editor is loaded from a public CDN (`cdn.jsdelivr.net`). The admin form needs internet access to render it — the **public** news pages don't depend on the CDN at all (they're rendered server-side through Parsedown).
+
+---
+
 ## Admin Dashboard
 
 Accessible at `/admin_dashboard` for accounts with **GM level ≥ 9**.
@@ -417,6 +510,20 @@ To grant or revoke access, edit the `account_access` table directly (or use any 
 | **Tools** | Character lookup, IP ban management, server stats, email broadcast to all users |
 
 All admin actions are logged to the `admin_audit_log` table automatically.
+
+### Managing News
+
+The News tab in `/admin_dashboard` shows the 10 most recent posts and a **Manage News** button that opens the full editor at `/admin_news`. From there you can:
+
+- **Write posts** in the EasyMDE editor with a familiar toolbar (bold, italic, headings, lists, links, tables, code, quote, image upload, fullscreen, side-by-side preview).
+- **Drag-and-drop images** directly into the editor — they upload to `uploads/news/` with server-generated filenames (`news-{timestamp}-{hash}.{ext}`), get audit-logged, and the `![alt](url)` reference is auto-inserted at your cursor. Max 5 MB per image; accepted formats: jpg, png, webp, gif.
+- **Save as draft** while you're still writing — drafts return 404 to anonymous visitors and don't appear in the homepage or `/news` list. Toggle a post to published when ready.
+- **Override the slug** if the auto-generated one (derived from the title) isn't what you want. Slugs are URL-safe and unique — duplicates get a `-2`, `-3`, … suffix.
+- **Override the publish time** if you want to backdate or schedule a post.
+- **Live preview** through the eye / side-by-side icons. The preview runs through the same Parsedown safe-mode renderer that the public page uses, so what you see is exactly what readers will get.
+- **Delete** posts — there's a confirmation dialog and the action is audit-logged.
+
+When viewing a published post on `/news/{slug}` while logged in as GM 9+, you'll see an **Edit Post** button in the top-right that jumps straight to the editor for that post — no need to go back to the admin list.
 
 ---
 
@@ -495,9 +602,17 @@ All images are stored in `assets/img/`:
 ## Security Notes
 
 - `config.php` is in `.gitignore` — **never commit it**
-- The `uploads/` folder denies **all** direct HTTP access. Ticket attachments are served only through `/ticket_attachment` after an ownership-or-GM check
+- The `uploads/` folder denies **all** direct HTTP access by default. Ticket attachments are served only through `/ticket_attachment` after an ownership-or-GM check.
+- The `uploads/news/` subdir is the one **intentional exception**: it has its own `.htaccess` that allows public reads (so post images can load on the public news pages) **but blocks any executable extension** (`.php`, `.phtml`, `.phar`, `.pl`, `.py`, `.cgi`, `.sh`, `.html`) as defense-in-depth.
+- News image uploads (`/news_image`):
+  - Restricted to GM 9+ via session check
+  - CSRF-token validated
+  - Real MIME sniffed server-side with `mime_content_type()` (not the client's claimed `Content-Type`) — a `.exe` renamed `.png` is rejected with 415
+  - 5 MB size cap returns 413
+  - Filenames are **server-generated** (`news-{timestamp}-{8hex}.{ext}`); the client never controls the on-disk name, so path-traversal payloads in the original filename are moot
+  - Every successful upload is recorded in `admin_audit_log`
+- Markdown in tickets and news posts is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs) — even though only authenticated admins write news, defense-in-depth keeps script tags from rendering even if an admin account were compromised.
 - Attachment endpoint also blocks path traversal (filenames must match `[A-Za-z0-9._-]{1,200}`) and resolves inside `uploads/tickets/` only
-- Markdown in tickets is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs)
 - All forms use CSRF tokens
 - All DB queries use PDO prepared statements
 - Directory listing is disabled via `Options -Indexes`
@@ -519,6 +634,12 @@ All images are stored in `assets/img/`:
 | **Emails not sending** | Verify SMTP credentials; for Gmail use an [App Password](https://support.google.com/accounts/answer/185833) |
 | **Blank page / 500 error** | Check `C:\xampp\php\logs\php_error_log` for details |
 | **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table, and the route is `/admin_dashboard` |
+| **`/news` shows "No news posts yet"** | The `news_posts` table is empty or missing. Re-run `sql/setup.sql` (idempotent), then refresh. The seed creates a starter "Welcome!" post. |
+| **EasyMDE editor doesn't load on `/admin_news?new=1`** | The editor is loaded from `cdn.jsdelivr.net`. Check that your browser can reach the CDN, that nothing is blocking the script (corporate proxy, ad-blocker rules), and that JavaScript is enabled. The public news pages don't depend on the CDN. |
+| **Image upload returns 415 "Unsupported"** | Server-side MIME sniff didn't recognize the file as one of jpg/png/webp/gif. Re-export from your image tool or convert with `magick input.bmp output.png`. The PHP `fileinfo` extension must be enabled (it is by default). |
+| **Image upload returns 413** | File is over the 5 MB cap. Resize or re-compress and try again. |
+| **Post images return 403 on the public page** | The `uploads/news/` directory is missing its override `.htaccess`. The parent `uploads/.htaccess` denies everything; the news subdir needs its own file to opt back in. See the "Upgrading from v0.3.x" section for the contents. |
+| **Edit Post button doesn't show on `/news/{slug}`** | Confirm you're logged in **and** that your `gm_level` is ≥ 9. The session check is `$_SESSION['gm_level']`, which is set fresh at every login — if you changed your `account_access` row, log out and log back in. |
 
 ---
 
