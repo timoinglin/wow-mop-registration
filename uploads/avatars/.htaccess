@@ -1,0 +1,16 @@
+# User avatars are public by design — they're displayed in the dashboard
+# (and later, on forum posts) for any visitor who can see those pages.
+# This file overrides the parent uploads/.htaccess (which denies everything)
+# but still strips any executable extension as defense-in-depth in case a
+# malicious file slipped past the upload endpoint's mime check.
+
+<RequireAll>
+    Require all granted
+</RequireAll>
+
+# Even if Apache misroutes a request, never execute script files from here.
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/login_history.php';
 require_once __DIR__ . '/../includes/playtime_rewards.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/avatar.php';
 
 // --- Auth ---
 if (!isset($_SESSION['user_id'])) {
@@ -66,6 +67,7 @@ try {
     $stmt_gm->execute(['id' => $user_id]);
     $gm_level = (int)($stmt_gm->fetchColumn() ?: 0);
 
+    $user_avatar = avatar_get($pdo_auth, (int)$user_id);
 } catch (PDOException $e) {
     error_log("Dashboard Account DB Error: " . $e->getMessage());
     $errors[] = $TEXT['error_db'];
@@ -187,6 +189,128 @@ if ($pr_just_claimed > 0 && isset($user)) {
     background-clip: text;
 }
 .dash-hero .hero-sub { font-size: .95rem; color: rgba(200,169,110,.75); letter-spacing: 1px; }
+
+/* ── Hero avatar ─────────────────────────────────────────────────────────── */
+.dash-hero .hero-row {
+    display: flex;
+    align-items: center;
+    gap: 1.6rem;
+    flex-wrap: wrap;
+}
+.avatar-wrap {
+    position: relative;
+    cursor: pointer;
+    transition: transform .15s ease;
+    flex-shrink: 0;
+}
+.avatar-wrap:hover { transform: scale(1.04); }
+.avatar-wrap .wl-avatar {
+    width: 112px !important;
+    height: 112px !important;
+    border-width: 3px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,.5), 0 0 0 2px rgba(10,10,15,.85);
+}
+.avatar-wrap .wl-avatar { font-size: 46px !important; }
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: .15rem;
+    opacity: 0;
+    transition: opacity .15s ease;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+.avatar-wrap:hover .avatar-overlay { opacity: 1; }
+.avatar-overlay i { font-size: 1.4rem; }
+
+/* Toast strip for upload/remove result */
+.avatar-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .45rem .9rem;
+    border-radius: 30px;
+    font-size: .82rem;
+    margin-top: .8rem;
+    border: 1px solid;
+}
+.avatar-toast.ok   { background: rgba(46,204,113,.12); color: #5dd87c; border-color: rgba(46,204,113,.4); }
+.avatar-toast.warn { background: rgba(231,76,60,.12); color: #f87e8a; border-color: rgba(231,76,60,.4); }
+
+/* ── Avatar upload modal ─────────────────────────────────────────────────── */
+.av-modal-back {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65);
+    z-index: 1060; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.av-modal-back.show { display: flex; }
+.av-modal {
+    background: linear-gradient(145deg,#16161f,#0d0d14);
+    border: 1px solid rgba(139,69,19,.4);
+    border-radius: 12px;
+    padding: 1.75rem;
+    width: 90%; max-width: 460px;
+    color: #dee2e6;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6);
+    position: relative;
+}
+.av-modal h3 {
+    color: #c8a96e;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 1rem;
+}
+.av-modal .av-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: 0; color: #8899aa;
+    font-size: 1.4rem; cursor: pointer; line-height: 1;
+}
+.av-modal .av-close:hover { color: #fff; }
+.av-modal .av-current { display:flex; align-items:center; gap:1rem; margin-bottom:1.2rem; }
+.av-modal .av-hint { color:#8899aa; font-size:.85rem; line-height:1.5; }
+.av-modal .av-actions { display:flex; gap:.5rem; flex-wrap: wrap; margin-top: 1.2rem; }
+.av-btn {
+    padding: .55rem 1.1rem;
+    border: 1px solid;
+    border-radius: 6px;
+    font-size: .88rem;
+    cursor: pointer;
+    background: transparent;
+    color: #c8a96e;
+    border-color: rgba(200,169,110,.4);
+    transition: all .15s ease;
+    font-family: inherit;
+}
+.av-btn:hover { background:rgba(200,169,110,.12); color:#fff; border-color:#c8a96e; }
+.av-btn-primary { background:#8B4513; color:#fff; border-color:#A0522D; }
+.av-btn-primary:hover { background:#A0522D; color:#fff; border-color:#c8a96e; }
+.av-btn-danger { color:#f87e8a; border-color:rgba(231,76,60,.35); }
+.av-btn-danger:hover { background:rgba(231,76,60,.1); color:#fff; border-color:#f87e8a; }
+.av-modal input[type="file"] {
+    width: 100%;
+    background: #0a0a0f;
+    border: 1px dashed rgba(139,69,19,.4);
+    border-radius: 6px;
+    padding: .8rem;
+    color: #dee2e6;
+    font-size: .85rem;
+}
+.av-modal input[type="file"]::file-selector-button {
+    background: #2a1f10; color: #c8a96e; border: 1px solid rgba(139,69,19,.4);
+    border-radius: 4px; padding: .35rem .8rem; cursor: pointer; margin-right: .8rem;
+    font-size: .82rem;
+}
 
 .status-badge {
     display: inline-block;
@@ -503,22 +627,99 @@ if ($pr_just_claimed > 0 && isset($user)) {
 <?php endif; ?>
 
 <!-- HERO -->
-<div class="dash-hero mb-4">
-    <div class="position-relative">
-        <div class="hero-username"><?= htmlspecialchars($user['username'] ?? 'Adventurer') ?></div>
-        <div class="hero-sub d-flex align-items-center gap-3 mt-1 flex-wrap">
-            <span><?= $TEXT['dashboard'] ?></span>
-            <?php if ($account_status === 'Banned'): ?>
-                <span class="status-badge status-banned"><i class="bi bi-slash-circle me-1"></i><?= $TEXT['status_banned'] ?></span>
-            <?php else: ?>
-                <span class="status-badge status-active"><i class="bi bi-check-circle me-1"></i><?= $TEXT['status_active'] ?></span>
-            <?php endif; ?>
-            <?php if ($gm_level >= 1): ?>
-                <span class="status-badge status-gm"><i class="bi bi-shield-fill me-1"></i>GM <?= $gm_level ?></span>
+<div class="dash-hero mb-4" id="avatar">
+    <div class="position-relative hero-row">
+        <div class="avatar-wrap" onclick="openAvatarModal()" title="<?= htmlspecialchars($TEXT['avatar_change'] ?? 'Change avatar') ?>">
+            <?= render_avatar($user['username'] ?? 'A', $user_avatar ?? null, 112) ?>
+            <div class="avatar-overlay">
+                <i class="bi bi-camera-fill"></i>
+                <span><?= htmlspecialchars($TEXT['avatar_change_short'] ?? 'Change') ?></span>
+            </div>
+        </div>
+        <div style="min-width:0;flex:1">
+            <div class="hero-username"><?= htmlspecialchars($user['username'] ?? 'Adventurer') ?></div>
+            <div class="hero-sub d-flex align-items-center gap-3 mt-1 flex-wrap">
+                <span><?= $TEXT['dashboard'] ?></span>
+                <?php if ($account_status === 'Banned'): ?>
+                    <span class="status-badge status-banned"><i class="bi bi-slash-circle me-1"></i><?= $TEXT['status_banned'] ?></span>
+                <?php else: ?>
+                    <span class="status-badge status-active"><i class="bi bi-check-circle me-1"></i><?= $TEXT['status_active'] ?></span>
+                <?php endif; ?>
+                <?php if ($gm_level >= 1): ?>
+                    <span class="status-badge status-gm"><i class="bi bi-shield-fill me-1"></i>GM <?= $gm_level ?></span>
+                <?php endif; ?>
+            </div>
+            <?php
+            $av_msg = $av_class = '';
+            if (isset($_GET['avatar_uploaded'])) { $av_class = 'ok';   $av_msg = $TEXT['avatar_uploaded']   ?? 'Avatar updated.'; }
+            elseif (isset($_GET['avatar_removed']))  { $av_class = 'ok';   $av_msg = $TEXT['avatar_removed']    ?? 'Avatar removed.'; }
+            elseif (isset($_GET['avatar_error']))    {
+                $av_class = 'warn';
+                $av_msg = match ($_GET['avatar_error']) {
+                    'csrf'    => $TEXT['avatar_err_csrf']  ?? 'Session expired. Please try again.',
+                    'no_file' => $TEXT['avatar_err_nofile']?? 'Please choose an image.',
+                    'size'    => $TEXT['avatar_err_size']  ?? 'Image too large (max 2 MB).',
+                    'type'    => $TEXT['avatar_err_type']  ?? 'Unsupported image type. Use jpg, png, webp, or gif.',
+                    'server'  => $TEXT['avatar_err_server']?? 'Something went wrong, please try again.',
+                    default   => $TEXT['avatar_err_server']?? 'Something went wrong, please try again.',
+                };
+            }
+            if ($av_msg !== ''): ?>
+                <div class="avatar-toast <?= htmlspecialchars($av_class) ?>">
+                    <i class="bi bi-<?= $av_class === 'ok' ? 'check-circle' : 'exclamation-triangle' ?>"></i>
+                    <?= htmlspecialchars($av_msg) ?>
+                </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<!-- Avatar upload modal -->
+<div class="av-modal-back" id="avatarModal" onclick="if(event.target===this)closeAvatarModal()">
+    <div class="av-modal">
+        <button type="button" class="av-close" onclick="closeAvatarModal()" aria-label="Close">&times;</button>
+        <h3><i class="bi bi-person-circle me-2"></i><?= htmlspecialchars($TEXT['avatar_modal_title'] ?? 'Your Avatar') ?></h3>
+
+        <div class="av-current">
+            <?= render_avatar($user['username'] ?? 'A', $user_avatar ?? null, 72) ?>
+            <div>
+                <div style="color:#c8a96e;font-weight:600"><?= htmlspecialchars($user['username'] ?? '') ?></div>
+                <div class="av-hint" style="font-size:.8rem">
+                    <?php if ($user_avatar): ?>
+                        <?= htmlspecialchars($TEXT['avatar_current'] ?? 'Custom avatar') ?>
+                    <?php else: ?>
+                        <?= htmlspecialchars($TEXT['avatar_default'] ?? 'Default initials') ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="/avatar_upload" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generate_csrf_token()) ?>">
+            <input type="hidden" name="action" value="upload">
+            <label for="avatarFile" class="av-hint d-block mb-2">
+                <?= htmlspecialchars($TEXT['avatar_upload_hint'] ?? 'Pick an image (jpg, png, webp or gif, max 2 MB). It will be cropped to a circle.') ?>
+            </label>
+            <input id="avatarFile" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            <div class="av-actions">
+                <button type="submit" class="av-btn av-btn-primary"><i class="bi bi-upload me-1"></i><?= htmlspecialchars($TEXT['avatar_upload_btn'] ?? 'Upload') ?></button>
+                <?php if ($user_avatar): ?>
+                    <button type="submit" class="av-btn av-btn-danger" formaction="/avatar_upload" formnovalidate
+                            onclick="this.form.elements.action.value='delete';this.form.image.removeAttribute('required');this.form.image.value='';">
+                        <i class="bi bi-trash me-1"></i><?= htmlspecialchars($TEXT['avatar_remove_btn'] ?? 'Remove') ?>
+                    </button>
+                <?php endif; ?>
+                <button type="button" class="av-btn" onclick="closeAvatarModal()"><?= htmlspecialchars($TEXT['common_cancel'] ?? 'Cancel') ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAvatarModal()  { document.getElementById('avatarModal').classList.add('show'); document.body.style.overflow='hidden'; }
+function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('show'); document.body.style.overflow=''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarModal(); });
+</script>
 
 <!-- STAT CARDS -->
 <div class="row g-3 mb-4">

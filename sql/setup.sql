@@ -142,6 +142,15 @@ CREATE TABLE IF NOT EXISTS news_posts (
   INDEX idx_published (published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 8. User Avatars (one row per account that has uploaded an avatar; absence of
+-- a row means the user has no avatar and the UI renders colored-initials).
+CREATE TABLE IF NOT EXISTS user_avatars (
+  account_id INT NOT NULL PRIMARY KEY,
+  filename VARCHAR(160) NOT NULL,
+  mime_type VARCHAR(40) NOT NULL,
+  uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed one starter post the first time setup.sql is run on a fresh install.
 -- Idempotent: the INSERT is guarded by NOT EXISTS so it never re-fires once
 -- the table has any rows (so re-running setup.sql, or deleting the seed

@@ -16,6 +16,10 @@
 # tracked so the override rule ships with the repo.
 /uploads/news/*
 !/uploads/news/.htaccess
+# User avatars uploaded from the dashboard. Folder .htaccess is tracked so
+# the public-read override ships with the repo.
+/uploads/avatars/*
+!/uploads/avatars/.htaccess
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
