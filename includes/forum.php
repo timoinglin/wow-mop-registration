@@ -435,21 +435,96 @@ if (!function_exists('forum_threads_in_category')) {
 }
 
 if (!function_exists('forum_thread_get_by_slug')) {
-    function forum_thread_get_by_slug(PDO $pdo, string $slug, bool $include_hidden = false): ?array
+    /**
+     * Look up a thread by slug. Admins (GM 9+) see all statuses; the thread's
+     * author sees their own pending thread; everyone else only sees published.
+     */
+    function forum_thread_get_by_slug(PDO $pdo, string $slug, ?int $viewer_id = null, bool $is_admin = false): ?array
     {
         try {
+            $where = "t.slug = :s";
+            $params = ['s' => $slug];
+            if (!$is_admin) {
+                if ($viewer_id) {
+                    $where .= " AND (t.status = 'published' OR (t.status = 'pending' AND t.author_id = :uid))";
+                    $params['uid'] = $viewer_id;
+                } else {
+                    $where .= " AND t.status = 'published'";
+                }
+            }
             $sql = "SELECT t.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
                     FROM forum_threads t
                     JOIN forum_categories c ON c.id = t.category_id
-                    WHERE t.slug = :s"
-                 . ($include_hidden ? "" : " AND t.status = 'published'")
-                 . " LIMIT 1";
+                    WHERE $where LIMIT 1";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute(['s' => $slug]);
+            $stmt->execute($params);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
         } catch (PDOException $e) {
             return null;
+        }
+    }
+}
+
+if (!function_exists('forum_threads_in_category_for_user')) {
+    /**
+     * Paginated thread list with viewer-aware visibility. Admins see all
+     * (including pending + hidden); a logged-in viewer additionally sees
+     * their own pending threads.
+     */
+    function forum_threads_in_category_for_user(PDO $pdo, int $category_id, ?int $viewer_id, bool $is_admin, int $page = 1, int $per_page = 20): array
+    {
+        $per_page = max(1, min(100, $per_page));
+        $page     = max(1, $page);
+        $offset   = ($page - 1) * $per_page;
+
+        $where = "category_id = :id";
+        $params = ['id' => $category_id];
+        if ($is_admin) {
+            $where .= " AND status IN ('published','pending')";
+        } elseif ($viewer_id) {
+            $where .= " AND (status = 'published' OR (status = 'pending' AND author_id = :uid))";
+            $params['uid'] = $viewer_id;
+        } else {
+            $where .= " AND status = 'published'";
+        }
+
+        try {
+            $sql = "SELECT id, slug, title, author_id, author_name, status, is_sticky, is_locked,
+                           view_count, reply_count, last_reply_at, last_reply_by, created_at
+                    FROM forum_threads
+                    WHERE $where
+                    ORDER BY is_sticky DESC, last_reply_at DESC, created_at DESC
+                    LIMIT $per_page OFFSET $offset";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_threads_in_category_for_user: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('forum_threads_count_in_category_for_user')) {
+    function forum_threads_count_in_category_for_user(PDO $pdo, int $category_id, ?int $viewer_id, bool $is_admin): int
+    {
+        $where = "category_id = :id";
+        $params = ['id' => $category_id];
+        if ($is_admin) {
+            $where .= " AND status IN ('published','pending')";
+        } elseif ($viewer_id) {
+            $where .= " AND (status = 'published' OR (status = 'pending' AND author_id = :uid))";
+            $params['uid'] = $viewer_id;
+        } else {
+            $where .= " AND status = 'published'";
+        }
+        try {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM forum_threads WHERE $where");
+            $stmt->execute($params);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            return 0;
         }
     }
 }
@@ -683,30 +758,214 @@ if (!function_exists('forum_post_edit')) {
     }
 }
 
+// ─── Moderation queue (approve / reject pending content) ────────────────────
+
+if (!function_exists('forum_pending_threads_list')) {
+    /**
+     * Pending threads with their OP body (first post). Used by the admin queue.
+     */
+    function forum_pending_threads_list(PDO $pdo, int $limit = 50): array
+    {
+        $limit = max(1, min(200, $limit));
+        try {
+            return $pdo->query(
+                "SELECT t.id, t.slug, t.title, t.author_id, t.author_name, t.created_at,
+                        t.category_id, c.name AS category_name, c.slug AS category_slug,
+                        p.id AS op_post_id, p.body AS op_body
+                 FROM forum_threads t
+                 JOIN forum_categories c ON c.id = t.category_id
+                 LEFT JOIN forum_posts p ON p.thread_id = t.id AND p.is_op = 1
+                 WHERE t.status = 'pending'
+                 ORDER BY t.created_at ASC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_pending_threads_list: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('forum_pending_posts_list')) {
+    /**
+     * Pending REPLY posts (is_op=0) — the OP rows are reflected in the
+     * pending-threads list above and shouldn't be double-counted here.
+     */
+    function forum_pending_posts_list(PDO $pdo, int $limit = 50): array
+    {
+        $limit = max(1, min(200, $limit));
+        try {
+            return $pdo->query(
+                "SELECT p.id, p.thread_id, p.author_id, p.author_name, p.body, p.created_at,
+                        t.title AS thread_title, t.slug AS thread_slug,
+                        c.name AS category_name, c.slug AS category_slug
+                 FROM forum_posts p
+                 JOIN forum_threads t ON t.id = p.thread_id
+                 JOIN forum_categories c ON c.id = t.category_id
+                 WHERE p.status = 'pending' AND p.is_op = 0
+                 ORDER BY p.created_at ASC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_pending_posts_list: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('forum_pending_count')) {
+    function forum_pending_count(PDO $pdo): int
+    {
+        try {
+            $n  = (int)$pdo->query("SELECT COUNT(*) FROM forum_threads WHERE status = 'pending'")->fetchColumn();
+            $n += (int)$pdo->query("SELECT COUNT(*) FROM forum_posts   WHERE status = 'pending' AND is_op = 0")->fetchColumn();
+            return $n;
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+}
+
+if (!function_exists('forum_approve_thread')) {
+    /**
+     * Approve a pending thread: flip both the thread row AND its OP post to
+     * 'published', and (if not already set) stamp last_reply_at/by from the
+     * thread's creation so the category index sorts it correctly.
+     */
+    function forum_approve_thread(PDO $pdo, int $thread_id): bool
+    {
+        try {
+            $pdo->beginTransaction();
+            $u1 = $pdo->prepare(
+                "UPDATE forum_threads
+                 SET status = 'published',
+                     last_reply_at = COALESCE(last_reply_at, created_at),
+                     last_reply_by = COALESCE(last_reply_by, author_name)
+                 WHERE id = :id AND status = 'pending'"
+            );
+            $u1->execute(['id' => $thread_id]);
+            $changed = $u1->rowCount() > 0;
+
+            $u2 = $pdo->prepare(
+                "UPDATE forum_posts SET status = 'published' WHERE thread_id = :tid AND is_op = 1 AND status = 'pending'"
+            );
+            $u2->execute(['tid' => $thread_id]);
+
+            $pdo->commit();
+            return $changed;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_approve_thread: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('forum_approve_post')) {
+    /**
+     * Approve a pending REPLY: flip the post to 'published' AND bump the
+     * parent thread's reply_count / last_reply_at/by.
+     */
+    function forum_approve_post(PDO $pdo, int $post_id): bool
+    {
+        try {
+            $pdo->beginTransaction();
+            $sel = $pdo->prepare("SELECT thread_id, author_name, status, is_op FROM forum_posts WHERE id = :id");
+            $sel->execute(['id' => $post_id]);
+            $p = $sel->fetch(PDO::FETCH_ASSOC);
+            if (!$p || $p['status'] !== 'pending' || (int)$p['is_op'] === 1) {
+                $pdo->rollBack();
+                return false;
+            }
+
+            $u = $pdo->prepare("UPDATE forum_posts SET status = 'published' WHERE id = :id");
+            $u->execute(['id' => $post_id]);
+
+            $bump = $pdo->prepare(
+                "UPDATE forum_threads
+                 SET reply_count = reply_count + 1,
+                     last_reply_at = NOW(),
+                     last_reply_by = :name
+                 WHERE id = :tid"
+            );
+            $bump->execute(['name' => $p['author_name'], 'tid' => $p['thread_id']]);
+
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_approve_post: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('forum_reject_thread')) {
+    /**
+     * Reject + hard-delete a pending thread plus all of its posts.
+     * Only fires on threads currently in 'pending' status so we don't
+     * accidentally delete already-published content.
+     */
+    function forum_reject_thread(PDO $pdo, int $thread_id): bool
+    {
+        try {
+            $pdo->beginTransaction();
+            $check = $pdo->prepare("SELECT status FROM forum_threads WHERE id = :id");
+            $check->execute(['id' => $thread_id]);
+            if ($check->fetchColumn() !== 'pending') {
+                $pdo->rollBack();
+                return false;
+            }
+            $pdo->prepare("DELETE FROM forum_posts WHERE thread_id = :id")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM forum_threads WHERE id = :id AND status = 'pending'")->execute(['id' => $thread_id]);
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_reject_thread: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('forum_reject_post')) {
+    function forum_reject_post(PDO $pdo, int $post_id): bool
+    {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM forum_posts WHERE id = :id AND status = 'pending' AND is_op = 0");
+            $stmt->execute(['id' => $post_id]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log('forum_reject_post: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
 if (!function_exists('forum_posts_in_thread_for_user')) {
     /**
-     * Same as forum_posts_in_thread() but ALSO includes the current user's
-     * own `pending` posts (so they can see their submission while waiting
-     * for approval). Anonymous users get the public list only.
+     * Same as forum_posts_in_thread() but viewer-aware: admins see all
+     * statuses, the current user sees their own pending posts, anonymous
+     * visitors only see published content.
      */
-    function forum_posts_in_thread_for_user(PDO $pdo, int $thread_id, ?int $user_id, int $page = 1, int $per_page = 20): array
+    function forum_posts_in_thread_for_user(PDO $pdo, int $thread_id, ?int $user_id, bool $is_admin = false, int $page = 1, int $per_page = 20): array
     {
         $per_page = max(1, min(100, $per_page));
         $page     = max(1, $page);
         $offset   = ($page - 1) * $per_page;
         try {
+            $sql_visibility = $is_admin
+                ? "status IN ('published','pending')"
+                : ("status = 'published'" . ($user_id ? " OR (status = 'pending' AND author_id = :uid)" : ""));
             $sql = "SELECT id, thread_id, author_id, author_name, body, status, is_op,
                            edited_at, edited_by, created_at
                     FROM forum_posts
-                    WHERE thread_id = :tid
-                      AND (status = 'published'"
-                 . ($user_id ? " OR (status = 'pending' AND author_id = :uid)" : "")
-                 . ")
+                    WHERE thread_id = :tid AND ($sql_visibility)
                     ORDER BY is_op DESC, created_at ASC
                     LIMIT $per_page OFFSET $offset";
             $stmt = $pdo->prepare($sql);
             $params = ['tid' => $thread_id];
-            if ($user_id) $params['uid'] = $user_id;
+            if (!$is_admin && $user_id) $params['uid'] = $user_id;
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {

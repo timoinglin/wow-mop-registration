@@ -324,7 +324,7 @@ CSS;
 //  MODE: thread detail
 // ════════════════════════════════════════════════════════════════════════════
 if ($mode === 'thread') {
-    $thread = forum_thread_get_by_slug($pdo_auth, $thread_slug);
+    $thread = forum_thread_get_by_slug($pdo_auth, $thread_slug, $user_id ?: null, $is_admin);
     if (!$thread || $thread['category_slug'] !== $cat_slug) {
         http_response_code(404);
         require_once __DIR__ . '/../templates/header.php';
@@ -347,7 +347,7 @@ if ($mode === 'thread') {
     $total    = forum_posts_count_in_thread($pdo_auth, (int)$thread['id']);
     $pages    = max(1, (int)ceil($total / $per_page));
     if ($page > $pages) $page = $pages;
-    $posts = forum_posts_in_thread_for_user($pdo_auth, (int)$thread['id'], $user_id ?: null, $page, $per_page);
+    $posts = forum_posts_in_thread_for_user($pdo_auth, (int)$thread['id'], $user_id ?: null, $is_admin, $page, $per_page);
     [$can_reply, $reply_reason] = forum_can_user_post($pdo_auth, $user_id ?: null, $gm_level, $settings, $thread);
 
     // Batch-load avatars for every author shown
@@ -594,10 +594,10 @@ if ($mode === 'category') {
     }
 
     $per_page = 20;
-    $total    = forum_threads_count_in_category($pdo_auth, (int)$category['id']);
+    $total    = forum_threads_count_in_category_for_user($pdo_auth, (int)$category['id'], $user_id ?: null, $is_admin);
     $pages    = max(1, (int)ceil($total / $per_page));
     if ($page > $pages) $page = $pages;
-    $threads = forum_threads_in_category($pdo_auth, (int)$category['id'], $page, $per_page);
+    $threads = forum_threads_in_category_for_user($pdo_auth, (int)$category['id'], $user_id ?: null, $is_admin, $page, $per_page);
 
     $author_ids = array_unique(array_map(fn($t) => (int)$t['author_id'], $threads));
     $avatars    = avatar_get_many($pdo_auth, $author_ids);
@@ -658,9 +658,11 @@ if ($mode === 'category') {
                 $href = '/forum/' . rawurlencode($category['slug']) . '/' . rawurlencode($t['slug']);
                 $av   = $avatars[(int)$t['author_id']] ?? null;
             ?>
-                <div class="fo-thread-row">
+                <?php $t_pending = (($t['status'] ?? 'published') === 'pending'); ?>
+                <div class="fo-thread-row" <?= $t_pending ? 'style="border-color: rgba(240,192,64,.35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
                     <?= render_avatar((string)$t['author_name'], $av, 40) ?>
                     <div class="fo-thread-main">
+                        <?php if ($t_pending): ?><span class="fo-badge" style="background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35)" title="<?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?>"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
                         <?php if ($t['is_sticky']): ?><span class="fo-badge fo-badge-sticky" title="<?= htmlspecialchars($TEXT['forum_sticky'] ?? 'Sticky') ?>"><i class="bi bi-pin-angle-fill"></i></span><?php endif; ?>
                         <?php if ($t['is_locked']): ?><span class="fo-badge fo-badge-locked" title="<?= htmlspecialchars($TEXT['forum_locked'] ?? 'Locked') ?>"><i class="bi bi-lock-fill"></i></span><?php endif; ?>
                         <a class="fo-thread-title" href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"><?= htmlspecialchars($t['title']) ?></a>

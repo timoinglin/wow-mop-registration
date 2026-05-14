@@ -125,6 +125,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // -- Approve / reject pending content --
+        elseif ($action === 'approve_thread') {
+            $tid = (int)($_POST['thread_id'] ?? 0);
+            if ($tid > 0 && forum_approve_thread($pdo_auth, $tid)) {
+                log_admin_action($pdo_auth, $admin_id, $admin_name, 'forum_thread_approve', "thread:$tid", null, null);
+                $redirect('saved', 'approved');
+            }
+            $errors[] = $TEXT['forum_err_save'] ?? 'Could not approve.';
+        }
+        elseif ($action === 'reject_thread') {
+            $tid = (int)($_POST['thread_id'] ?? 0);
+            if ($tid > 0) {
+                $info = $pdo_auth->prepare("SELECT title, author_name FROM forum_threads WHERE id = :id");
+                $info->execute(['id' => $tid]);
+                $row = $info->fetch(PDO::FETCH_ASSOC);
+                if (forum_reject_thread($pdo_auth, $tid)) {
+                    log_admin_action($pdo_auth, $admin_id, $admin_name, 'forum_thread_reject',
+                        "thread:$tid (" . ($row['title'] ?? '?') . ")",
+                        'author:' . ($row['author_name'] ?? '?'), null);
+                    $redirect('saved', 'rejected');
+                }
+            }
+            $errors[] = $TEXT['forum_err_save'] ?? 'Could not reject.';
+        }
+        elseif ($action === 'approve_post') {
+            $pid = (int)($_POST['post_id'] ?? 0);
+            if ($pid > 0 && forum_approve_post($pdo_auth, $pid)) {
+                log_admin_action($pdo_auth, $admin_id, $admin_name, 'forum_post_approve', "post:$pid", null, null);
+                $redirect('saved', 'approved');
+            }
+            $errors[] = $TEXT['forum_err_save'] ?? 'Could not approve.';
+        }
+        elseif ($action === 'reject_post') {
+            $pid = (int)($_POST['post_id'] ?? 0);
+            if ($pid > 0) {
+                $info = $pdo_auth->prepare("SELECT thread_id, author_name FROM forum_posts WHERE id = :id");
+                $info->execute(['id' => $pid]);
+                $row = $info->fetch(PDO::FETCH_ASSOC);
+                if (forum_reject_post($pdo_auth, $pid)) {
+                    log_admin_action($pdo_auth, $admin_id, $admin_name, 'forum_post_reject',
+                        "post:$pid (thread:" . ($row['thread_id'] ?? '?') . ')',
+                        'author:' . ($row['author_name'] ?? '?'), null);
+                    $redirect('saved', 'rejected');
+                }
+            }
+            $errors[] = $TEXT['forum_err_save'] ?? 'Could not reject.';
+        }
         // -- Ban remove --
         elseif ($action === 'unban') {
             $aid = (int)($_POST['account_id'] ?? 0);
@@ -142,11 +189,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ─── GET: render ────────────────────────────────────────────────────────────
-$settings    = forum_settings_get($pdo_auth);
-$categories  = forum_categories_list($pdo_auth);
-$bans        = forum_bans_list($pdo_auth);
-$edit_cat_id = (int)($_GET['edit_cat'] ?? 0);
-$edit_cat    = $edit_cat_id > 0 ? forum_category_get($pdo_auth, $edit_cat_id) : null;
+$settings      = forum_settings_get($pdo_auth);
+$categories    = forum_categories_list($pdo_auth);
+$bans          = forum_bans_list($pdo_auth);
+$pending_thrs  = forum_pending_threads_list($pdo_auth);
+$pending_posts = forum_pending_posts_list($pdo_auth);
+$edit_cat_id   = (int)($_GET['edit_cat'] ?? 0);
+$edit_cat      = $edit_cat_id > 0 ? forum_category_get($pdo_auth, $edit_cat_id) : null;
 
 $page_title = ($TEXT['forum_admin_title'] ?? 'Forum Configuration') . ' — ' . ($config['site']['title'] ?? 'WoW');
 
@@ -162,9 +211,13 @@ if (isset($_GET['saved'])) {
         'deleted'   => $TEXT['forum_saved_deleted']   ?? 'Category deleted.',
         'banned'    => $TEXT['forum_saved_banned']    ?? 'User banned from forum.',
         'unbanned'  => $TEXT['forum_saved_unbanned']  ?? 'User unbanned.',
+        'approved'  => $TEXT['forum_saved_approved']  ?? 'Post approved and published.',
+        'rejected'  => $TEXT['forum_saved_rejected']  ?? 'Post rejected and removed.',
         default     => '',
     };
 }
+
+require_once __DIR__ . '/../includes/markdown.php';
 ?>
 
 <style>
@@ -245,6 +298,116 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
     <?php foreach ($errors as $err): ?>
         <div class="fa-flash-err"><i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($err) ?></div>
     <?php endforeach; ?>
+
+    <!-- ════════════ MODERATION QUEUE ════════════ -->
+    <?php $pending_total = count($pending_thrs) + count($pending_posts); ?>
+    <div class="fa-card" id="moderation-queue">
+        <h2 style="display:flex;align-items:center;gap:.6rem">
+            <i class="bi bi-hourglass-split"></i>
+            <span><?= htmlspecialchars($TEXT['forum_queue_title'] ?? 'Moderation Queue') ?></span>
+            <?php if ($pending_total > 0): ?>
+                <span style="background:rgba(240,192,64,.18);color:#f0c040;border:1px solid rgba(240,192,64,.4);padding:.1rem .55rem;border-radius:10px;font-size:.72rem;letter-spacing:.5px"><?= $pending_total ?></span>
+            <?php endif; ?>
+        </h2>
+
+        <?php if ($pending_total === 0): ?>
+            <p class="text-center my-3" style="color:#4a5568">
+                <i class="bi bi-check2-circle me-1"></i><?= htmlspecialchars($TEXT['forum_queue_empty'] ?? 'Nothing waiting. Everything is approved.') ?>
+            </p>
+        <?php else: ?>
+            <p style="color:#8899aa;font-size:.85rem;margin-top:-.5rem;margin-bottom:1rem">
+                <?= htmlspecialchars($TEXT['forum_queue_hint'] ?? 'Approve to publish; reject to delete. Both actions are audit-logged.') ?>
+            </p>
+
+            <?php if (!empty($pending_thrs)): ?>
+                <h3 style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin:1rem 0 .6rem">
+                    <i class="bi bi-chat-square-text me-1"></i><?= htmlspecialchars($TEXT['forum_queue_threads'] ?? 'Pending threads') ?> (<?= count($pending_thrs) ?>)
+                </h3>
+                <?php foreach ($pending_thrs as $t): ?>
+                    <div style="background:#0e0e17;border:1px solid rgba(240,192,64,.25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
+                            <div style="min-width:0;flex:1">
+                                <strong style="color:#c8a96e"><?= htmlspecialchars($t['title']) ?></strong>
+                                <div style="color:#8899aa;font-size:.78rem;margin-top:.15rem">
+                                    <i class="bi bi-person me-1"></i><?= htmlspecialchars($t['author_name']) ?>
+                                    &middot;
+                                    <i class="bi bi-folder me-1"></i><?= htmlspecialchars($t['category_name']) ?>
+                                    &middot;
+                                    <i class="bi bi-clock me-1"></i><?= htmlspecialchars(date('M j, Y · H:i', strtotime($t['created_at']))) ?>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 flex-shrink-0">
+                                <form method="post" action="/admin_forum" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                    <input type="hidden" name="action" value="approve_thread">
+                                    <input type="hidden" name="thread_id" value="<?= (int)$t['id'] ?>">
+                                    <button type="submit" class="fa-btn fa-btn-primary" style="padding:.3rem .7rem;font-size:.8rem"><i class="bi bi-check2 me-1"></i><?= htmlspecialchars($TEXT['forum_queue_approve'] ?? 'Approve') ?></button>
+                                </form>
+                                <form method="post" action="/admin_forum" class="d-inline"
+                                      onsubmit="return confirm('<?= htmlspecialchars($TEXT['forum_queue_reject_thread_confirm'] ?? 'Reject this thread? It will be deleted.', ENT_QUOTES) ?>')">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                    <input type="hidden" name="action" value="reject_thread">
+                                    <input type="hidden" name="thread_id" value="<?= (int)$t['id'] ?>">
+                                    <button type="submit" class="fa-btn fa-btn-danger" style="padding:.3rem .7rem;font-size:.8rem"><i class="bi bi-x-lg me-1"></i><?= htmlspecialchars($TEXT['forum_queue_reject'] ?? 'Reject') ?></button>
+                                </form>
+                            </div>
+                        </div>
+                        <details>
+                            <summary style="cursor:pointer;color:#8899aa;font-size:.85rem"><?= htmlspecialchars($TEXT['forum_queue_show_body'] ?? 'Show body') ?></summary>
+                            <div style="margin-top:.7rem;padding:.85rem 1rem;background:#0a0a0f;border-radius:6px;color:rgba(255,255,255,.85);line-height:1.6;font-size:.92rem">
+                                <?= render_markdown((string)($t['op_body'] ?? '')) ?>
+                            </div>
+                        </details>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+
+            <?php if (!empty($pending_posts)): ?>
+                <h3 style="color:#8899aa;font-size:.78rem;text-transform:uppercase;letter-spacing:1px;margin:1.3rem 0 .6rem">
+                    <i class="bi bi-reply me-1"></i><?= htmlspecialchars($TEXT['forum_queue_replies'] ?? 'Pending replies') ?> (<?= count($pending_posts) ?>)
+                </h3>
+                <?php foreach ($pending_posts as $p): ?>
+                    <div style="background:#0e0e17;border:1px solid rgba(240,192,64,.25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
+                            <div style="min-width:0;flex:1">
+                                <span style="color:#8899aa;font-size:.78rem"><?= htmlspecialchars($TEXT['forum_queue_reply_to'] ?? 'Reply to') ?>:</span>
+                                <a href="/forum/<?= htmlspecialchars(rawurlencode($p['category_slug']), ENT_QUOTES) ?>/<?= htmlspecialchars(rawurlencode($p['thread_slug']), ENT_QUOTES) ?>"
+                                   target="_blank" style="color:#c8a96e;text-decoration:none"><?= htmlspecialchars($p['thread_title']) ?></a>
+                                <div style="color:#8899aa;font-size:.78rem;margin-top:.15rem">
+                                    <i class="bi bi-person me-1"></i><?= htmlspecialchars($p['author_name']) ?>
+                                    &middot;
+                                    <i class="bi bi-folder me-1"></i><?= htmlspecialchars($p['category_name']) ?>
+                                    &middot;
+                                    <i class="bi bi-clock me-1"></i><?= htmlspecialchars(date('M j, Y · H:i', strtotime($p['created_at']))) ?>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 flex-shrink-0">
+                                <form method="post" action="/admin_forum" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                    <input type="hidden" name="action" value="approve_post">
+                                    <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="fa-btn fa-btn-primary" style="padding:.3rem .7rem;font-size:.8rem"><i class="bi bi-check2 me-1"></i><?= htmlspecialchars($TEXT['forum_queue_approve'] ?? 'Approve') ?></button>
+                                </form>
+                                <form method="post" action="/admin_forum" class="d-inline"
+                                      onsubmit="return confirm('<?= htmlspecialchars($TEXT['forum_queue_reject_post_confirm'] ?? 'Reject this reply? It will be deleted.', ENT_QUOTES) ?>')">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                    <input type="hidden" name="action" value="reject_post">
+                                    <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="fa-btn fa-btn-danger" style="padding:.3rem .7rem;font-size:.8rem"><i class="bi bi-x-lg me-1"></i><?= htmlspecialchars($TEXT['forum_queue_reject'] ?? 'Reject') ?></button>
+                                </form>
+                            </div>
+                        </div>
+                        <details>
+                            <summary style="cursor:pointer;color:#8899aa;font-size:.85rem"><?= htmlspecialchars($TEXT['forum_queue_show_body'] ?? 'Show body') ?></summary>
+                            <div style="margin-top:.7rem;padding:.85rem 1rem;background:#0a0a0f;border-radius:6px;color:rgba(255,255,255,.85);line-height:1.6;font-size:.92rem">
+                                <?= render_markdown((string)$p['body']) ?>
+                            </div>
+                        </details>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 
     <!-- ════════════ SETTINGS ════════════ -->
     <div class="fa-card">

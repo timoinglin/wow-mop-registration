@@ -730,10 +730,12 @@ $s_world    = check_port_status($db_host, $world_port);
                 </div>
             </div>
             <div class="col-md-3">
-                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
-                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_pending'] ?? 'Pending approvals') ?></div>
-                    <div style="color:<?= $forum_pending > 0 ? '#f0c040' : '#c8a96e' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= $forum_pending ?></div>
-                </div>
+                <a href="/admin_forum#moderation-queue" style="text-decoration:none;display:block">
+                    <div style="background:#0e0e17;border:1px solid <?= $forum_pending > 0 ? 'rgba(240,192,64,.45)' : 'rgba(139,69,19,.2)' ?>;border-radius:6px;padding:.9rem 1rem;transition:border-color .15s">
+                        <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_pending'] ?? 'Pending approvals') ?></div>
+                        <div style="color:<?= $forum_pending > 0 ? '#f0c040' : '#c8a96e' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= $forum_pending ?></div>
+                    </div>
+                </a>
             </div>
             <div class="col-md-3">
                 <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
