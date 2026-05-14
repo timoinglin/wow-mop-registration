@@ -2,7 +2,9 @@
 
 A complete, secure, and modern registration portal for **World of Warcraft: Mists of Pandaria (5.4.8)** private servers. Built for TrinityCore-based cores (including repacks).
 
-![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange) ![GitHub Release](https://img.shields.io/github/v/release/timoinglin/wow-mop-registration?label=release&color=8B4513)
+🌐 **Live demo:** [wow-legends.eu](https://wow-legends.eu/) — every feature you see in this README is running there.
+
+![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange) ![GitHub Release](https://img.shields.io/github/v/release/timoinglin/wow-mop-registration?label=release&color=8B4513) [![Live Demo](https://img.shields.io/badge/demo-wow--legends.eu-c8a96e?logo=globe)](https://wow-legends.eu/)
 
 > ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [How to Update](#how-to-update) section to stay current.
 
@@ -74,6 +76,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 ---
 
 ## Preview
+
+> 💡 Screenshots below — or [**view it running live at wow-legends.eu →**](https://wow-legends.eu/)
 
 ### Home Page
 ![Home Page](assets/img/screenshots/home.png)
