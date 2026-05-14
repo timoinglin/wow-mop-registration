@@ -26,6 +26,12 @@ RewriteRule ^admin_ticket/(\d+)/?$ pages/admin_ticket.php?id=$1 [L,QSA]
 # 2d. News post detail: /news/{slug} → pages/news.php?slug={slug}
 RewriteRule ^news/([A-Za-z0-9_-]+)/?$ pages/news.php?slug=$1 [L,QSA]
 
+# 2e. Forum routes (one file handles all three views via query params)
+#     /forum/{cat}            → pages/forum.php?cat={cat}
+#     /forum/{cat}/{thread}   → pages/forum.php?cat={cat}&thread={thread}
+RewriteRule ^forum/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)/?$ pages/forum.php?cat=$1&thread=$2 [L,QSA]
+RewriteRule ^forum/([A-Za-z0-9_-]+)/?$ pages/forum.php?cat=$1 [L,QSA]
+
 # 2. Route /page → pages/page.php (pages/ directory)
 RewriteCond %{DOCUMENT_ROOT}/pages/$1.php -f
 RewriteRule ^([^/]+)/?$ pages/$1.php [L,QSA]

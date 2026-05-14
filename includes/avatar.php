@@ -34,6 +34,36 @@ if (!function_exists('avatar_get')) {
     }
 }
 
+if (!function_exists('avatar_get_many')) {
+    /**
+     * Batch-load avatars by account_id. Returns a map keyed by account_id;
+     * accounts without an avatar are absent from the map (so the caller falls
+     * back to colored initials via render_avatar()).
+     */
+    function avatar_get_many(PDO $pdo, array $account_ids): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $account_ids)));
+        $ids = array_values(array_filter($ids, fn($i) => $i > 0));
+        if (empty($ids)) return [];
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $pdo->prepare(
+                "SELECT account_id, filename, mime_type, uploaded_at
+                 FROM user_avatars WHERE account_id IN ($placeholders)"
+            );
+            $stmt->execute($ids);
+            $out = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $out[(int)$r['account_id']] = $r;
+            }
+            return $out;
+        } catch (PDOException $e) {
+            error_log('avatar_get_many failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
 if (!function_exists('avatar_url')) {
     /**
      * Build a public URL for an uploaded avatar with a cache-buster derived

@@ -337,6 +337,179 @@ if (!function_exists('forum_should_auto_approve')) {
     }
 }
 
+// ─── Public-read fetchers (Phase 3) ──────────────────────────────────────────
+
+if (!function_exists('forum_categories_with_stats')) {
+    /**
+     * Categories + thread count + last-activity info, in display order.
+     * Joins forum_threads to surface "last reply by X at Y" so the index
+     * feels alive even when there's just one row in each category.
+     */
+    function forum_categories_with_stats(PDO $pdo): array
+    {
+        try {
+            return $pdo->query(
+                "SELECT c.id, c.slug, c.name, c.description, c.icon, c.sort_order,
+                        (SELECT COUNT(*) FROM forum_threads t
+                         WHERE t.category_id = c.id AND t.status = 'published') AS thread_count,
+                        latest.title          AS latest_title,
+                        latest.slug           AS latest_slug,
+                        latest.last_reply_at  AS latest_at,
+                        latest.last_reply_by  AS latest_by
+                 FROM forum_categories c
+                 LEFT JOIN (
+                     SELECT t1.category_id, t1.title, t1.slug, t1.last_reply_at, t1.last_reply_by
+                     FROM forum_threads t1
+                     JOIN (
+                         SELECT category_id, MAX(last_reply_at) AS max_at
+                         FROM forum_threads
+                         WHERE status = 'published' AND last_reply_at IS NOT NULL
+                         GROUP BY category_id
+                     ) m ON m.category_id = t1.category_id AND m.max_at = t1.last_reply_at
+                     WHERE t1.status = 'published'
+                 ) latest ON latest.category_id = c.id
+                 ORDER BY c.sort_order ASC, c.name ASC"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_categories_with_stats: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('forum_category_get_by_slug')) {
+    function forum_category_get_by_slug(PDO $pdo, string $slug): ?array
+    {
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM forum_categories WHERE slug = :s LIMIT 1");
+            $stmt->execute(['s' => $slug]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_threads_count_in_category')) {
+    function forum_threads_count_in_category(PDO $pdo, int $category_id): int
+    {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM forum_threads WHERE category_id = :id AND status = 'published'"
+            );
+            $stmt->execute(['id' => $category_id]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+}
+
+if (!function_exists('forum_threads_in_category')) {
+    /**
+     * Paginated thread list for a category. Sticky threads always first,
+     * then ordered by last_reply_at DESC.
+     */
+    function forum_threads_in_category(PDO $pdo, int $category_id, int $page = 1, int $per_page = 20): array
+    {
+        $per_page = max(1, min(100, $per_page));
+        $page     = max(1, $page);
+        $offset   = ($page - 1) * $per_page;
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT id, slug, title, author_id, author_name, is_sticky, is_locked,
+                        view_count, reply_count, last_reply_at, last_reply_by, created_at
+                 FROM forum_threads
+                 WHERE category_id = :id AND status = 'published'
+                 ORDER BY is_sticky DESC, last_reply_at DESC
+                 LIMIT $per_page OFFSET $offset"
+            );
+            $stmt->execute(['id' => $category_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_threads_in_category: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('forum_thread_get_by_slug')) {
+    function forum_thread_get_by_slug(PDO $pdo, string $slug, bool $include_hidden = false): ?array
+    {
+        try {
+            $sql = "SELECT t.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
+                    FROM forum_threads t
+                    JOIN forum_categories c ON c.id = t.category_id
+                    WHERE t.slug = :s"
+                 . ($include_hidden ? "" : " AND t.status = 'published'")
+                 . " LIMIT 1";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['s' => $slug]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_thread_increment_views')) {
+    function forum_thread_increment_views(PDO $pdo, int $thread_id): void
+    {
+        try {
+            $stmt = $pdo->prepare("UPDATE forum_threads SET view_count = view_count + 1 WHERE id = :id");
+            $stmt->execute(['id' => $thread_id]);
+        } catch (PDOException $e) {
+            // non-fatal
+        }
+    }
+}
+
+if (!function_exists('forum_posts_count_in_thread')) {
+    function forum_posts_count_in_thread(PDO $pdo, int $thread_id): int
+    {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM forum_posts WHERE thread_id = :id AND status = 'published'"
+            );
+            $stmt->execute(['id' => $thread_id]);
+            return (int)$stmt->fetchColumn();
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+}
+
+if (!function_exists('forum_posts_in_thread')) {
+    /**
+     * Paginated post list (OP first, then replies in chronological order).
+     * Returns the OP on every page (it's always shown above the replies)
+     * by querying replies-only and prepending the OP manually in the caller.
+     */
+    function forum_posts_in_thread(PDO $pdo, int $thread_id, int $page = 1, int $per_page = 20): array
+    {
+        $per_page = max(1, min(100, $per_page));
+        $page     = max(1, $page);
+        $offset   = ($page - 1) * $per_page;
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT id, thread_id, author_id, author_name, body, status, is_op,
+                        edited_at, edited_by, created_at
+                 FROM forum_posts
+                 WHERE thread_id = :id AND status = 'published'
+                 ORDER BY is_op DESC, created_at ASC
+                 LIMIT $per_page OFFSET $offset"
+            );
+            $stmt->execute(['id' => $thread_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_posts_in_thread: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
 // ─── Lookup by username (used by the admin ban form) ─────────────────────────
 if (!function_exists('forum_find_account_by_username')) {
     /**
