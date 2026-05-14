@@ -416,7 +416,7 @@ $csrf = generate_csrf_token();
     line-height: 1.55;
     min-height: 420px;
 }
-.EasyMDEContainer .CodeMirror-cursor { border-left-color: #c8a96e; }
+.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid #c8a96e !important; }
 .EasyMDEContainer .CodeMirror-selected { background: rgba(200,169,110,.18); }
 .EasyMDEContainer .CodeMirror-gutters { background: #0a0a0f; border-right-color: rgba(139,69,19,.2); }
 .EasyMDEContainer .CodeMirror-linenumber { color: #4a5568; }

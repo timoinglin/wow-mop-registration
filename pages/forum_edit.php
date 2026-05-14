@@ -111,6 +111,8 @@ $csrf = generate_csrf_token();
 .EasyMDEContainer .editor-toolbar button { color:#c8a96e !important; border-color:transparent !important; }
 .EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(139,69,19,.3) !important; color:#fff !important; }
 .EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(139,69,19,.3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:280px; }
+.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid #c8a96e !important; }
+.EasyMDEContainer .CodeMirror-selected { background: rgba(200,169,110,.18); }
 .EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(139,69,19,.3); line-height:1.7; }
 .EasyMDEContainer .editor-preview h1,.EasyMDEContainer .editor-preview h2,.EasyMDEContainer .editor-preview h3,.EasyMDEContainer .editor-preview-side h1,.EasyMDEContainer .editor-preview-side h2,.EasyMDEContainer .editor-preview-side h3 { color:#c8a96e; }
 .EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(139,69,19,.15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
