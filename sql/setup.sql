@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS password_resets (
   token_key VARCHAR(255) NOT NULL,
   created_at DATETIME NOT NULL,
   INDEX idx_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Support Tickets (DB-stored with admin replies)
 CREATE TABLE IF NOT EXISTS tickets (
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   updated_at DATETIME DEFAULT NULL,
   INDEX idx_user (user_id),
   INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. Admin Audit Log
 CREATE TABLE IF NOT EXISTS admin_audit_log (
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS admin_audit_log (
   INDEX idx_admin (admin_id),
   INDEX idx_action (action),
   INDEX idx_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Playtime Rewards (per-account rolling state)
 CREATE TABLE IF NOT EXISTS playtime_rewards (
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS playtime_rewards (
   today_date DATE NOT NULL,
   total_paid_dp INT NOT NULL DEFAULT 0,
   last_claim_at DATETIME DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. Playtime Rewards Log (audit trail of every claim)
 CREATE TABLE IF NOT EXISTS playtime_reward_log (
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS playtime_reward_log (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_account (account_id),
   INDEX idx_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. Ticket Messages (multi-turn conversation between user and admins).
 -- Replaces the old single-message + single-admin_reply model. The original
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_ticket (ticket_id),
   INDEX idx_created (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Idempotent column add for installs that have ticket_messages without the
 -- attachments column. Uses prepared statements + INFORMATION_SCHEMA so it
@@ -120,6 +120,73 @@ WHERE t.admin_reply IS NOT NULL
     SELECT 1 FROM ticket_messages tm
     WHERE tm.ticket_id = t.id AND tm.sender_type = 'admin'
   );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Idempotent character-set upgrade for the legacy tables (1–6 above).
+--
+-- The original schema shipped with DEFAULT CHARSET=utf8 (an alias for the
+-- 3-byte utf8mb3 encoding). MySQL 8 deprecates the `utf8` alias and will
+-- repoint it to utf8mb4 in a future release — emitting warning 3719 on every
+-- run until then. The newer tables (news_posts, user_avatars, and all of the
+-- forum_* tables) already use utf8mb4.
+--
+-- These blocks convert any of the legacy tables that's still on utf8/utf8mb3
+-- to utf8mb4 in place. The conversion only fires when the existing collation
+-- isn't already utf8mb4, so subsequent re-runs are a no-op (no table rebuild).
+-- ─────────────────────────────────────────────────────────────────────────────
+SET @t := 'password_resets';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
+
+SET @t := 'tickets';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
+
+SET @t := 'admin_audit_log';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
+
+SET @t := 'playtime_rewards';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
+
+SET @t := 'playtime_reward_log';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
+
+SET @t := 'ticket_messages';
+SET @cs := (SELECT CCSA.CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.TABLES T
+            JOIN INFORMATION_SCHEMA.COLLATION_CHARACTER_SET_APPLICABILITY CCSA
+              ON T.TABLE_COLLATION = CCSA.COLLATION_NAME
+            WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_NAME = @t);
+SET @ddl := IF(@cs IS NOT NULL AND @cs <> 'utf8mb4',
+  CONCAT('ALTER TABLE ', @t, ' CONVERT TO CHARACTER SET utf8mb4'), 'SELECT 1');
+PREPARE conv FROM @ddl; EXECUTE conv; DEALLOCATE PREPARE conv;
 
 -- 7. News Posts (admin-authored blog/news, Markdown body, public /news pages).
 -- Monolingual on purpose — admins write in whatever language fits their audience.
