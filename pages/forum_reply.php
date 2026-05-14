@@ -68,6 +68,15 @@ if (mb_strlen($body) > 50000) {
     exit;
 }
 
+// Anti-spam cooldown (GM 9+ bypasses)
+if ($gm_level < 9) {
+    [$ok, $wait] = forum_user_can_post_now($pdo_auth, $user_id, 30);
+    if (!$ok) {
+        header('Location: ' . $back . '?reply_error=cooldown&wait=' . (int)$wait);
+        exit;
+    }
+}
+
 $auto = forum_should_auto_approve($pdo_auth, $user_id, $gm_level, $settings);
 $result = forum_create_reply($pdo_auth, (int)$thread['id'], $user_id, $username, $body, $auto);
 if (!$result) {

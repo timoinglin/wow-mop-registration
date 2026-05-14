@@ -69,6 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($body === '')               $errors[] = $TEXT['forum_err_body']     ?? 'Body is required.';
         if (mb_strlen($body) > 50000)   $errors[] = $TEXT['forum_err_body_long']  ?? 'Body too long.';
 
+        // Anti-spam cooldown (GM 9+ bypasses)
+        if (empty($errors) && $gm_level < 9) {
+            [$ok, $wait] = forum_user_can_post_now($pdo_auth, $user_id, 30);
+            if (!$ok) {
+                $errors[] = sprintf($TEXT['forum_err_cooldown'] ?? 'Please wait %d more second(s) before posting again.', $wait);
+            }
+        }
+
         if (empty($errors)) {
             $auto = forum_should_auto_approve($pdo_auth, $user_id, $gm_level, $settings);
             $result = forum_create_thread($pdo_auth, (int)$category['id'], $user_id, $username, $title, $body, $auto);

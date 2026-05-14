@@ -172,6 +172,9 @@ return [
   'mod_flash_unlocked'               => 'Hilo reabierto.',
   'mod_flash_stickied'               => 'Hilo fijado en lo alto.',
   'mod_flash_unstickied'             => 'Fijación eliminada.',
+
+  // Foro — temporizador anti-spam (Fase 6)
+  'forum_err_cooldown'               => 'Espera %d segundo(s) más antes de volver a publicar.',
   'username' => 'Nombre de usuario',
   'password' => 'Contraseña',
   'email' => 'Correo electrónico',

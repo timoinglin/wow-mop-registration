@@ -373,9 +373,12 @@ if ($mode === 'thread') {
         exit;
     }
 
-    // Increment view count (don't count the author refreshing their own post repeatedly —
-    // a session-based de-dupe would be nicer, but Phase 6 polish will handle that)
-    forum_thread_increment_views($pdo_auth, (int)$thread['id']);
+    // Session-tracked view de-dupe so refreshes and author re-visits don't
+    // inflate the counter. First touch in a session bumps; subsequent ones
+    // are no-ops. See forum_should_count_view() in includes/forum.php.
+    if (forum_should_count_view((int)$thread['id'])) {
+        forum_thread_increment_views($pdo_auth, (int)$thread['id']);
+    }
 
     $per_page = 20;
     $total    = forum_posts_count_in_thread($pdo_auth, (int)$thread['id']);
@@ -552,6 +555,7 @@ if ($mode === 'thread') {
             </div>
         <?php endif; ?>
         <?php if ($reply_error !== ''):
+            $wait = max(0, (int)($_GET['wait'] ?? 0));
             $msg = match ($reply_error) {
                 'csrf'           => $TEXT['forum_reply_err_csrf']   ?? 'Session expired. Please try again.',
                 'empty'          => $TEXT['forum_reply_err_empty']  ?? 'Reply cannot be empty.',
@@ -560,6 +564,7 @@ if ($mode === 'thread') {
                 'locked'         => $TEXT['forum_locked_hint']      ?? 'This thread is locked. No new replies.',
                 'forum_disabled' => $TEXT['forum_disabled_hint']    ?? 'The forum is currently disabled.',
                 'not_logged_in'  => $TEXT['forum_login_to_reply']   ?? 'Log in to reply.',
+                'cooldown'       => sprintf($TEXT['forum_err_cooldown'] ?? 'Please wait %d more second(s) before posting again.', $wait),
                 default          => $TEXT['forum_err_save']         ?? 'Could not save reply.',
             };
         ?>

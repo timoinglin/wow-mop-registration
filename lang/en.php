@@ -172,6 +172,9 @@ return [
   'mod_flash_unlocked'               => 'Thread unlocked.',
   'mod_flash_stickied'               => 'Thread stuck to top.',
   'mod_flash_unstickied'             => 'Sticky removed.',
+
+  // Forum — anti-spam cooldown (Phase 6)
+  'forum_err_cooldown'               => 'Please wait %d more second(s) before posting again.',
   'username' => 'Username',
   'password' => 'Password',
   'email' => 'Email',

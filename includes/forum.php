@@ -541,6 +541,56 @@ if (!function_exists('forum_thread_increment_views')) {
     }
 }
 
+if (!function_exists('forum_should_count_view')) {
+    /**
+     * Per-session view de-dupe. Returns true on the FIRST visit to a thread
+     * within the current session; false on any subsequent refresh.
+     *
+     * State lives in $_SESSION['forum_viewed_threads'] keyed by thread_id →
+     * timestamp. The array is capped at 500 entries (FIFO trim) so a long
+     * browsing session can't bloat the session record.
+     */
+    function forum_should_count_view(int $thread_id): bool
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) return true;
+        $key = 'forum_viewed_threads';
+        if (!isset($_SESSION[$key]) || !is_array($_SESSION[$key])) {
+            $_SESSION[$key] = [];
+        }
+        if (isset($_SESSION[$key][$thread_id])) return false;
+        $_SESSION[$key][$thread_id] = time();
+        if (count($_SESSION[$key]) > 500) {
+            $_SESSION[$key] = array_slice($_SESSION[$key], -500, null, true);
+        }
+        return true;
+    }
+}
+
+if (!function_exists('forum_user_can_post_now')) {
+    /**
+     * Anti-spam cooldown — checks the user's most recent post timestamp.
+     * Returns [bool $ok, int $wait_seconds_remaining]. GM 9+ accounts always
+     * pass; the caller is responsible for skipping this check for admins.
+     */
+    function forum_user_can_post_now(PDO $pdo, int $account_id, int $cooldown_seconds = 30): array
+    {
+        if ($cooldown_seconds <= 0 || $account_id <= 0) return [true, 0];
+        try {
+            $stmt = $pdo->prepare("SELECT MAX(created_at) FROM forum_posts WHERE author_id = :id");
+            $stmt->execute(['id' => $account_id]);
+            $last = $stmt->fetchColumn();
+            if (!$last) return [true, 0];
+            $elapsed = time() - strtotime($last);
+            if ($elapsed >= $cooldown_seconds) return [true, 0];
+            return [false, max(1, $cooldown_seconds - $elapsed)];
+        } catch (PDOException $e) {
+            // On DB error, fail-open so spam-prevention doesn't accidentally
+            // block legitimate posting.
+            return [true, 0];
+        }
+    }
+}
+
 if (!function_exists('forum_posts_count_in_thread')) {
     function forum_posts_count_in_thread(PDO $pdo, int $thread_id): int
     {
