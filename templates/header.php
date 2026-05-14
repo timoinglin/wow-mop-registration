@@ -1,7 +1,25 @@
-<?php 
+<?php
 require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 $current_page = basename($_SERVER['PHP_SELF']);
+
+// Navbar avatar lookup: only when the user is logged in AND a DB handle is
+// available. Wrapped in try/catch so a missing helper / DB hiccup never
+// breaks the header on every page.
+$nav_avatar = null;
+if (isset($_SESSION['user_id'])) {
+    try {
+        if (!isset($pdo_auth)) {
+            @require_once __DIR__ . '/../includes/db.php';
+        }
+        @require_once __DIR__ . '/../includes/avatar.php';
+        if (isset($pdo_auth) && function_exists('avatar_get')) {
+            $nav_avatar = avatar_get($pdo_auth, (int)$_SESSION['user_id']);
+        }
+    } catch (Throwable $e) {
+        error_log('header nav-avatar lookup failed: ' . $e->getMessage());
+    }
+}
 
 // --- Maintenance Mode ---
 if (!empty($config['features']['maintenance'])) {
@@ -102,6 +120,19 @@ if (!empty($config['features']['maintenance'])) {
             border-color: #A0522D; /* Match background color */
             font-weight: 500; /* Slightly bolder text */
         }
+
+        /* Navbar user avatar — sized to match the fs-5 person-circle icon
+           it replaces (~28px so it lines up vertically with the navbar text). */
+        .nav-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid rgba(200,169,110,.5);
+            box-shadow: 0 2px 6px rgba(0,0,0,.4);
+            display: inline-block;
+            vertical-align: middle;
+        }
     </style>
     <?php if (!empty($extra_head)) { echo $extra_head; } ?>
 </head>
@@ -142,7 +173,13 @@ if (!empty($config['features']['maintenance'])) {
                 <!-- User Menu Dropdown -->
                 <li class="nav-item dropdown">
                     <a class="nav-link nav-user dropdown-toggle d-flex align-items-center px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle fs-5 <?= isset($_SESSION['user_id']) ? 'me-md-2' : '' ?>"></i>
+                        <?php if ($nav_avatar && !empty($nav_avatar['filename']) && function_exists('avatar_url')): ?>
+                            <img src="<?= htmlspecialchars(avatar_url($nav_avatar), ENT_QUOTES) ?>"
+                                 alt="<?= htmlspecialchars(($_SESSION['username'] ?? '') . ' avatar', ENT_QUOTES) ?>"
+                                 class="nav-avatar <?= isset($_SESSION['user_id']) ? 'me-md-2' : '' ?>">
+                        <?php else: ?>
+                            <i class="bi bi-person-circle fs-5 <?= isset($_SESSION['user_id']) ? 'me-md-2' : '' ?>"></i>
+                        <?php endif; ?>
                         <?php if (isset($_SESSION['username'])): ?>
                             <span class="d-none d-md-inline nav-user-name"><?= htmlspecialchars($_SESSION['username']) ?></span>
                         <?php endif; ?>
