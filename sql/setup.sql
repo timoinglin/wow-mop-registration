@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS user_avatars (
 -- 9. Forum — single-row settings table. id is always 1; seeded once below.
 CREATE TABLE IF NOT EXISTS forum_settings (
   id TINYINT NOT NULL PRIMARY KEY,
-  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  enabled TINYINT NOT NULL DEFAULT 0,
   auto_approve_threshold INT NOT NULL DEFAULT 3,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -189,8 +189,8 @@ CREATE TABLE IF NOT EXISTS forum_threads (
   author_id INT NOT NULL,
   author_name VARCHAR(50) NOT NULL,
   status ENUM('pending','published','hidden') NOT NULL DEFAULT 'pending',
-  is_sticky TINYINT(1) NOT NULL DEFAULT 0,
-  is_locked TINYINT(1) NOT NULL DEFAULT 0,
+  is_sticky TINYINT NOT NULL DEFAULT 0,
+  is_locked TINYINT NOT NULL DEFAULT 0,
   view_count INT NOT NULL DEFAULT 0,
   reply_count INT NOT NULL DEFAULT 0,
   last_reply_at DATETIME DEFAULT NULL,
@@ -213,7 +213,7 @@ CREATE TABLE IF NOT EXISTS forum_posts (
   author_name VARCHAR(50) NOT NULL,
   body MEDIUMTEXT NOT NULL,
   status ENUM('pending','published','hidden') NOT NULL DEFAULT 'pending',
-  is_op TINYINT(1) NOT NULL DEFAULT 0,
+  is_op TINYINT NOT NULL DEFAULT 0,
   edited_at DATETIME DEFAULT NULL,
   edited_by VARCHAR(50) DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -234,6 +234,58 @@ CREATE TABLE IF NOT EXISTS forum_bans (
   INDEX idx_username (username),
   INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed a default "General Discussion" category on first install. Idempotent —
+-- the INSERT is guarded by NOT EXISTS so it only fires when the table is
+-- completely empty (admins who delete it won't see it reappear on re-run).
+INSERT INTO forum_categories (slug, name, description, icon, sort_order)
+SELECT * FROM (SELECT
+  'general'                                                                                  AS slug,
+  'General Discussion'                                                                       AS name,
+  'Anything related to the server — introductions, screenshots, questions, and chatting.'   AS description,
+  'bi-chat-dots'                                                                             AS icon,
+  0                                                                                          AS sort_order
+) seed
+WHERE NOT EXISTS (SELECT 1 FROM forum_categories LIMIT 1);
+
+-- Seed an example thread under the default category on first install.
+-- Fires only when forum_threads is empty AND the category exists.
+INSERT INTO forum_threads (category_id, slug, title, author_id, author_name, status, last_reply_at, last_reply_by)
+SELECT c.id,
+       'welcome-to-the-forum',
+       'Welcome to the forum!',
+       0,
+       'Admin',
+       'published',
+       NOW(),
+       'Admin'
+FROM forum_categories c
+WHERE c.slug = 'general'
+  AND NOT EXISTS (SELECT 1 FROM forum_threads LIMIT 1);
+
+-- Seed the OP post (first message) for the example thread. Keyed off the
+-- thread's slug + is_op=1 so re-running setup.sql never duplicates it,
+-- even if the example thread is recreated after deletion.
+INSERT INTO forum_posts (thread_id, author_id, author_name, body, status, is_op)
+SELECT t.id,
+       0,
+       'Admin',
+       CONCAT(
+         '## Welcome to the forum!\n\n',
+         'This is your community space. Share screenshots, ask questions, suggest features, or just say hi.\n\n',
+         '### A few quick notes\n\n',
+         '- **Markdown is supported** — use the editor toolbar for bold, italic, lists, links, and images.\n',
+         '- **Be kind.** Treat everyone the way you''d want to be treated.\n',
+         '- **GMs can edit or delete posts**, and may forum-ban users without affecting their game account.\n\n',
+         'Have fun!'
+       ),
+       'published',
+       1
+FROM forum_threads t
+WHERE t.slug = 'welcome-to-the-forum'
+  AND NOT EXISTS (
+    SELECT 1 FROM forum_posts p WHERE p.thread_id = t.id AND p.is_op = 1
+  );
 
 -- Seed one starter post the first time setup.sql is run on a fresh install.
 -- Idempotent: the INSERT is guarded by NOT EXISTS so it never re-fires once
