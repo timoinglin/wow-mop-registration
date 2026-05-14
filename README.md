@@ -15,8 +15,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [Public Armory](#public-armory)
   - [Leaderboards](#leaderboards)
   - [Custom 404 Page](#custom-404-page)
-  - [Forum (User)](#forum-user)
-  - [Forum (Admin)](#forum-admin)
+  - [Forum — Thread Page](#forum--thread-page)
+  - [Forum — Admin Configuration](#forum--admin-configuration)
   - [Admin Dashboard - Overview](#admin-dashboard---overview)
   - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
   - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
@@ -92,15 +92,15 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![404 Page](assets/img/404-spirit-healer.png)
 
-### Forum (User)
-*The public forum from a regular user's view — category index, thread list, and a thread page with the inline reply composer.*
+### Forum — Thread Page
+*A thread on `/forum/{category}/{thread}` — same page everyone sees, but viewed as a GM 9+ admin so the **Mod tools** row (Approve / Sticky / Lock / Delete) appears in the hero, alongside per-post Edit and Delete links.*
 
-![Forum (User)](assets/img/screenshots/forum_user.png)
+![Forum Thread Page](assets/img/screenshots/forum_user.png)
 
-### Forum (Admin)
-*The same forum, viewed by a GM 9+ admin — inline moderation toolbar in the thread hero (approve / sticky / lock / delete) and per-post Approve + Delete links.*
+### Forum — Admin Configuration
+*The full forum admin page at `/admin_forum` — Moderation Queue (pending threads + replies with Approve / Reject), Settings (enable toggle + auto-approve threshold), Categories CRUD, and Forum Bans.*
 
-![Forum (Admin)](assets/img/screenshots/forum_admin.png)
+![Forum Admin Configuration](assets/img/screenshots/forum_admin.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
