@@ -20,6 +20,10 @@
 # the public-read override ships with the repo.
 /uploads/avatars/*
 !/uploads/avatars/.htaccess
+# Forum post images (admin- and user-uploaded via the forum composer).
+# Folder .htaccess is tracked so the override rule ships with the repo.
+/uploads/forum/*
+!/uploads/forum/.htaccess
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log

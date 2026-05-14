@@ -14,12 +14,17 @@
 require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/forum.php';
 require_once __DIR__ . '/../includes/avatar.php';
 require_once __DIR__ . '/../includes/markdown.php';
 
-$settings = forum_settings_get($pdo_auth);
-$gm_level = (int)($_SESSION['gm_level'] ?? 0);
+$settings    = forum_settings_get($pdo_auth);
+$user_id     = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+$username    = (string)($_SESSION['username'] ?? '');
+$gm_level    = (int)($_SESSION['gm_level'] ?? 0);
+$is_banned   = $user_id > 0 ? forum_is_user_banned($pdo_auth, $user_id) : false;
+$is_admin    = $gm_level >= 9;
 
 // Disabled forum gate — admins still allowed in for preview
 if (!$settings['enabled'] && $gm_level < 9) {
@@ -342,7 +347,8 @@ if ($mode === 'thread') {
     $total    = forum_posts_count_in_thread($pdo_auth, (int)$thread['id']);
     $pages    = max(1, (int)ceil($total / $per_page));
     if ($page > $pages) $page = $pages;
-    $posts = forum_posts_in_thread($pdo_auth, (int)$thread['id'], $page, $per_page);
+    $posts = forum_posts_in_thread_for_user($pdo_auth, (int)$thread['id'], $user_id ?: null, $page, $per_page);
+    [$can_reply, $reply_reason] = forum_can_user_post($pdo_auth, $user_id ?: null, $gm_level, $settings, $thread);
 
     // Batch-load avatars for every author shown
     $author_ids = array_unique(array_map(fn($p) => (int)$p['author_id'], $posts));
@@ -383,8 +389,12 @@ if ($mode === 'thread') {
             </p>
         </div>
 
-        <?php foreach ($posts as $p): ?>
-            <article class="fo-post">
+        <?php foreach ($posts as $p):
+            $is_pending = ($p['status'] === 'pending');
+            $is_mine    = ($user_id > 0 && (int)$p['author_id'] === $user_id);
+            $can_edit   = ($is_admin || $is_mine);
+        ?>
+            <article class="fo-post" id="post-<?= (int)$p['id'] ?>" <?= $is_pending ? 'style="border-color: rgba(240,192,64,.35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
                 <div class="fo-post-side">
                     <?= render_avatar((string)$p['author_name'], $avatars[(int)$p['author_id']] ?? null, 64) ?>
                     <div class="fo-post-author"><?= htmlspecialchars($p['author_name']) ?></div>
@@ -394,8 +404,18 @@ if ($mode === 'thread') {
                 </div>
                 <div class="fo-post-main">
                     <div class="fo-post-meta">
-                        <span><i class="bi bi-clock me-1"></i><?= htmlspecialchars(date('M j, Y · H:i', strtotime($p['created_at']))) ?></span>
-                        <span style="font-family:monospace;font-size:.72rem">#<?= (int)$p['id'] ?></span>
+                        <span>
+                            <i class="bi bi-clock me-1"></i><?= htmlspecialchars(date('M j, Y · H:i', strtotime($p['created_at']))) ?>
+                            <?php if ($is_pending): ?>
+                                <span style="margin-left:.6rem;padding:.1rem .5rem;background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35);border-radius:10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span>
+                            <?php endif; ?>
+                        </span>
+                        <span style="display:flex;align-items:center;gap:.6rem">
+                            <?php if ($can_edit): ?>
+                                <a href="/forum/edit/<?= (int)$p['id'] ?>" style="color:#8899aa;text-decoration:none;font-size:.78rem" title="<?= htmlspecialchars($TEXT['forum_edit_link'] ?? 'Edit') ?>"><i class="bi bi-pencil"></i> <?= htmlspecialchars($TEXT['forum_edit_link'] ?? 'Edit') ?></a>
+                            <?php endif; ?>
+                            <span style="font-family:monospace;font-size:.72rem;color:#4a5568">#<?= (int)$p['id'] ?></span>
+                        </span>
                     </div>
                     <div class="fo-post-body"><?= render_markdown((string)$p['body']) ?></div>
                     <?php if (!empty($p['edited_at'])): ?>
@@ -412,6 +432,143 @@ if ($mode === 'thread') {
         <?php endforeach; ?>
 
         <?= fp_pager($page, $pages, $base, $TEXT) ?>
+
+        <?php
+        // ─── Reply form (inline at the bottom of the thread page) ──────────
+        $reply_pending = isset($_GET['reply_pending']);
+        $reply_error   = $_GET['reply_error'] ?? '';
+        ?>
+        <?php if ($reply_pending): ?>
+            <div style="margin-top:1.5rem;padding:.85rem 1rem;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);border-radius:6px;color:#f0c040;font-size:.92rem">
+                <i class="bi bi-hourglass-split me-1"></i><?= htmlspecialchars($TEXT['forum_reply_pending_msg'] ?? 'Your reply was submitted and is waiting for admin approval.') ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($reply_error !== ''):
+            $msg = match ($reply_error) {
+                'csrf'           => $TEXT['forum_reply_err_csrf']   ?? 'Session expired. Please try again.',
+                'empty'          => $TEXT['forum_reply_err_empty']  ?? 'Reply cannot be empty.',
+                'too_long'       => $TEXT['forum_reply_err_long']   ?? 'Reply too long.',
+                'banned'         => $TEXT['forum_banned_hint']      ?? 'You are banned from posting in the forum.',
+                'locked'         => $TEXT['forum_locked_hint']      ?? 'This thread is locked. No new replies.',
+                'forum_disabled' => $TEXT['forum_disabled_hint']    ?? 'The forum is currently disabled.',
+                'not_logged_in'  => $TEXT['forum_login_to_reply']   ?? 'Log in to reply.',
+                default          => $TEXT['forum_err_save']         ?? 'Could not save reply.',
+            };
+        ?>
+            <div style="margin-top:1.5rem;padding:.85rem 1rem;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:6px;color:#e74c3c;font-size:.92rem">
+                <i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($msg) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($can_reply): ?>
+            <?php $reply_csrf = generate_csrf_token(); ?>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js" defer></script>
+            <style>
+            .EasyMDEContainer .editor-toolbar { background:#15151f; border:1px solid rgba(139,69,19,.3); border-bottom:none; }
+            .EasyMDEContainer .editor-toolbar button { color:#c8a96e !important; border-color:transparent !important; }
+            .EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(139,69,19,.3) !important; color:#fff !important; }
+            .EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(139,69,19,.3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:200px; }
+            .EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(139,69,19,.3); line-height:1.7; }
+            .EasyMDEContainer .editor-preview h1,.EasyMDEContainer .editor-preview h2,.EasyMDEContainer .editor-preview h3, .EasyMDEContainer .editor-preview-side h1, .EasyMDEContainer .editor-preview-side h2, .EasyMDEContainer .editor-preview-side h3 { color:#c8a96e; }
+            .EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(139,69,19,.15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
+            .EasyMDEContainer .editor-toolbar.fullscreen, .EasyMDEContainer .CodeMirror-fullscreen, .EasyMDEContainer .editor-preview-side { z-index:1050; }
+            body:has(.editor-toolbar.fullscreen) #mainNavbar, body:has(.editor-preview-side.fullscreen) #mainNavbar, body.easymde-fullscreen #mainNavbar { display:none; }
+            .EasyMDEContainer .editor-toolbar.fullscreen { display:flex; flex-wrap:wrap; align-items:center; height:auto; min-height:50px; padding:0 4px; }
+            .EasyMDEContainer .editor-toolbar.fullscreen > * { float:none !important; margin:0 !important; flex:0 0 auto; }
+            </style>
+            <div style="margin-top:2rem">
+                <h4 style="color:#c8a96e;font-size:1rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">
+                    <i class="bi bi-reply me-2"></i><?= htmlspecialchars($TEXT['forum_post_reply'] ?? 'Post a reply') ?>
+                </h4>
+                <?php
+                $auto = forum_should_auto_approve($pdo_auth, $user_id, $gm_level, $settings);
+                if (!$auto):
+                    $need = max(0, (int)$settings['auto_approve_threshold'] - forum_user_approved_post_count($pdo_auth, $user_id));
+                ?>
+                    <div style="background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.25);color:#f0c040;padding:.55rem .85rem;border-radius:6px;font-size:.85rem;margin-bottom:.8rem">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        <?= htmlspecialchars(sprintf(
+                            $TEXT['forum_threshold_notice'] ?? 'Your post will wait for admin approval. After %d more approved posts, your posts publish instantly.',
+                            $need
+                        )) ?>
+                    </div>
+                <?php endif; ?>
+                <form method="post" action="/forum/reply">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($reply_csrf) ?>">
+                    <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
+                    <textarea id="replyBody" name="body" required></textarea>
+                    <div class="d-flex gap-2 justify-content-end mt-3">
+                        <button type="submit" style="padding:.55rem 1.1rem;border-radius:4px;border:1px solid #A0522D;background:#8B4513;color:#fff;cursor:pointer;font-family:inherit">
+                            <i class="bi bi-send me-1"></i><?= htmlspecialchars($TEXT['forum_submit_reply'] ?? 'Post Reply') ?>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const ta = document.getElementById('replyBody');
+                if (!ta || typeof EasyMDE === 'undefined') return;
+                const CSRF = '<?= htmlspecialchars($reply_csrf, ENT_QUOTES) ?>';
+                const ed = new EasyMDE({
+                    element: ta, autoDownloadFontAwesome: true, spellChecker: false,
+                    status: ['lines','words'], minHeight: '180px',
+                    autosave: { enabled: false }, forceSync: true,
+                    placeholder: '<?= htmlspecialchars($TEXT['forum_reply_placeholder'] ?? "Write your reply in Markdown…", ENT_QUOTES) ?>',
+                    previewRender: function (t, el) {
+                        const fd = new FormData(); fd.append('csrf_token', CSRF); fd.append('body', t);
+                        fetch('/news_preview', { method:'POST', body:fd, credentials:'same-origin' })
+                            .then(r => r.json()).then(j => { el.innerHTML = j.html || ''; })
+                            .catch(() => { el.innerHTML = '<em>Preview unavailable.</em>'; });
+                        return el.innerHTML;
+                    },
+                    uploadImage: true, imageMaxSize: 5 * 1024 * 1024,
+                    imageAccept: 'image/png, image/jpeg, image/webp, image/gif',
+                    imageUploadFunction: function (file, ok, err) {
+                        const fd = new FormData(); fd.append('csrf_token', CSRF); fd.append('image', file);
+                        fetch('/forum_image', { method:'POST', body:fd, credentials:'same-origin' })
+                            .then(r => r.json().then(j => ({ ok: r.ok, body: j })))
+                            .then(({ ok: ok2, body }) => ok2 && body.url ? ok(body.url) : err(body.error || 'Upload failed.'))
+                            .catch(() => err('Upload failed.'));
+                    },
+                    toolbar: ['bold','italic','strikethrough','|','heading-2','heading-3','|','quote','unordered-list','ordered-list','|','link','image','code','|','preview','side-by-side','fullscreen'],
+                });
+                const container = ed.element.parentNode;
+                if (container) {
+                    const sync = () => {
+                        const tb = container.querySelector('.editor-toolbar');
+                        document.body.classList.toggle('easymde-fullscreen', !!(tb && tb.classList.contains('fullscreen')));
+                        const cmFs = container.querySelector('.CodeMirror-fullscreen');
+                        const pvFs = container.querySelector('.editor-preview-side.fullscreen');
+                        if (tb && tb.classList.contains('fullscreen')) {
+                            const h = tb.offsetHeight + 'px';
+                            if (cmFs) cmFs.style.top = h;
+                            if (pvFs) pvFs.style.top = h;
+                        } else {
+                            if (cmFs) cmFs.style.top = '';
+                            if (pvFs) pvFs.style.top = '';
+                        }
+                    };
+                    new MutationObserver(sync).observe(container, { subtree:true, attributes:true, attributeFilter:['class'] });
+                    window.addEventListener('resize', () => { if (document.body.classList.contains('easymde-fullscreen')) sync(); });
+                    sync();
+                }
+            });
+            </script>
+        <?php else: ?>
+            <div style="margin-top:2rem;padding:1rem 1.2rem;background:#0e0e17;border:1px solid rgba(139,69,19,.25);border-radius:8px;color:#8899aa;text-align:center;font-size:.9rem">
+                <?php
+                $msg = match ($reply_reason) {
+                    'not_logged_in'  => sprintf($TEXT['forum_login_to_reply_link'] ?? 'Please <a href="%s" style="color:#c8a96e">log in</a> to reply.', '/login'),
+                    'banned'         => $TEXT['forum_banned_hint']   ?? 'You are banned from posting in the forum.',
+                    'locked'         => '<i class="bi bi-lock-fill me-1"></i>' . htmlspecialchars($TEXT['forum_locked_hint'] ?? 'This thread is locked. No new replies.'),
+                    'forum_disabled' => $TEXT['forum_disabled_hint'] ?? 'The forum is currently disabled.',
+                    default          => $TEXT['forum_cannot_post']   ?? 'You cannot post right now.',
+                };
+                echo $msg;
+                ?>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
     require_once __DIR__ . '/../templates/footer.php';
@@ -457,6 +614,12 @@ if ($mode === 'category') {
 
         <div class="fo-crumb"><a href="/forum"><i class="bi bi-chevron-left"></i> <?= htmlspecialchars($TEXT['forum_nav'] ?? 'Forum') ?></a></div>
 
+        <?php if (isset($_GET['pending'])): ?>
+            <div style="margin-bottom:1rem;padding:.7rem 1rem;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);border-radius:6px;color:#f0c040;font-size:.92rem">
+                <i class="bi bi-hourglass-split me-1"></i><?= htmlspecialchars($TEXT['forum_thread_pending_msg'] ?? 'Your thread was submitted and is waiting for admin approval. It will appear here once approved.') ?>
+            </div>
+        <?php endif; ?>
+
         <div class="fo-hero d-flex align-items-center gap-3">
             <div class="fo-cat-icon" style="width:64px;height:64px;font-size:1.7rem">
                 <i class="bi <?= htmlspecialchars($category['icon'] ?: 'bi-chat-square-text') ?>"></i>
@@ -467,8 +630,21 @@ if ($mode === 'category') {
                     <p><?= htmlspecialchars($category['description']) ?></p>
                 <?php endif; ?>
             </div>
-            <div style="color:#8899aa;font-size:.85rem;text-align:right">
+            <div style="color:#8899aa;font-size:.85rem;text-align:right;flex-shrink:0">
                 <div><?= (int)$total ?> <?= htmlspecialchars($TEXT['forum_threads'] ?? 'threads') ?></div>
+                <?php
+                [$can_post_here, $post_reason] = forum_can_user_post($pdo_auth, $user_id ?: null, $gm_level, $settings, null);
+                if ($can_post_here):
+                ?>
+                    <a href="/forum/new/<?= htmlspecialchars(rawurlencode($category['slug']), ENT_QUOTES) ?>"
+                       style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:#8B4513;color:#fff;border:1px solid #A0522D;border-radius:4px;text-decoration:none;font-size:.85rem">
+                        <i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['forum_new_thread_btn'] ?? 'New Thread') ?>
+                    </a>
+                <?php elseif ($post_reason === 'not_logged_in'): ?>
+                    <a href="/login" style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:transparent;color:#c8a96e;border:1px solid rgba(200,169,110,.4);border-radius:4px;text-decoration:none;font-size:.85rem">
+                        <i class="bi bi-box-arrow-in-right me-1"></i><?= htmlspecialchars($TEXT['forum_login_to_post'] ?? 'Log in to post') ?>
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 

@@ -1,0 +1,13 @@
+# Forum post images are public by design — every forum reader needs to load
+# them to see the post properly. This file overrides the parent uploads/.htaccess
+# deny rule, while still blocking any executable extension as defense-in-depth.
+
+<RequireAll>
+    Require all granted
+</RequireAll>
+
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI

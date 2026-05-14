@@ -510,6 +510,212 @@ if (!function_exists('forum_posts_in_thread')) {
     }
 }
 
+// ─── Write helpers (Phase 4) ─────────────────────────────────────────────────
+
+if (!function_exists('forum_can_user_post')) {
+    /**
+     * Quick allow-check before showing the composer. Returns [bool $ok, string $reason_key].
+     * $reason_key is one of: 'not_logged_in', 'forum_disabled', 'banned', 'locked', 'ok'.
+     */
+    function forum_can_user_post(PDO $pdo, ?int $account_id, int $gm_level, array $settings, ?array $thread = null): array
+    {
+        if (!$settings['enabled'] && $gm_level < 9) return [false, 'forum_disabled'];
+        if (!$account_id)                          return [false, 'not_logged_in'];
+        if (forum_is_user_banned($pdo, $account_id)) return [false, 'banned'];
+        if ($thread && !empty($thread['is_locked']) && $gm_level < 9) return [false, 'locked'];
+        return [true, 'ok'];
+    }
+}
+
+if (!function_exists('forum_create_thread')) {
+    /**
+     * Insert a new thread + its OP post in a single transaction.
+     * Returns ['thread_id', 'thread_slug', 'status'] (status is 'published' or 'pending').
+     * Returns null on failure.
+     */
+    function forum_create_thread(PDO $pdo, int $category_id, int $author_id, string $author_name, string $title, string $body, bool $auto_approve): ?array
+    {
+        $title = trim($title);
+        $body  = trim($body);
+        if ($title === '' || $body === '') return null;
+
+        $base = forum_slugify($title);
+        $slug = forum_unique_slug($pdo, 'forum_threads', $base);
+        $status = $auto_approve ? 'published' : 'pending';
+
+        try {
+            $pdo->beginTransaction();
+
+            $ins_t = $pdo->prepare(
+                "INSERT INTO forum_threads
+                   (category_id, slug, title, author_id, author_name, status, last_reply_at, last_reply_by)
+                 VALUES
+                   (:cid, :slug, :title, :aid, :aname, :status,
+                    " . ($auto_approve ? "NOW()" : "NULL") . ",
+                    " . ($auto_approve ? ":aname2" : "NULL") . ")"
+            );
+            $params = [
+                'cid' => $category_id, 'slug' => $slug, 'title' => $title,
+                'aid' => $author_id, 'aname' => $author_name, 'status' => $status,
+            ];
+            if ($auto_approve) $params['aname2'] = $author_name;
+            $ins_t->execute($params);
+            $thread_id = (int)$pdo->lastInsertId();
+
+            $ins_p = $pdo->prepare(
+                "INSERT INTO forum_posts
+                   (thread_id, author_id, author_name, body, status, is_op)
+                 VALUES
+                   (:tid, :aid, :aname, :body, :status, 1)"
+            );
+            $ins_p->execute([
+                'tid' => $thread_id, 'aid' => $author_id, 'aname' => $author_name,
+                'body' => $body, 'status' => $status,
+            ]);
+
+            $pdo->commit();
+            return ['thread_id' => $thread_id, 'thread_slug' => $slug, 'status' => $status];
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_create_thread: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_create_reply')) {
+    /**
+     * Insert a reply post. When approved, also bumps the thread's reply_count
+     * and last_reply_at/by. Returns ['post_id', 'status'] or null on failure.
+     */
+    function forum_create_reply(PDO $pdo, int $thread_id, int $author_id, string $author_name, string $body, bool $auto_approve): ?array
+    {
+        $body = trim($body);
+        if ($body === '') return null;
+        $status = $auto_approve ? 'published' : 'pending';
+
+        try {
+            $pdo->beginTransaction();
+
+            $ins = $pdo->prepare(
+                "INSERT INTO forum_posts
+                   (thread_id, author_id, author_name, body, status, is_op)
+                 VALUES
+                   (:tid, :aid, :aname, :body, :status, 0)"
+            );
+            $ins->execute([
+                'tid' => $thread_id, 'aid' => $author_id, 'aname' => $author_name,
+                'body' => $body, 'status' => $status,
+            ]);
+            $post_id = (int)$pdo->lastInsertId();
+
+            if ($auto_approve) {
+                $upd = $pdo->prepare(
+                    "UPDATE forum_threads
+                     SET reply_count   = reply_count + 1,
+                         last_reply_at = NOW(),
+                         last_reply_by = :name
+                     WHERE id = :id"
+                );
+                $upd->execute(['name' => $author_name, 'id' => $thread_id]);
+            }
+
+            $pdo->commit();
+            return ['post_id' => $post_id, 'status' => $status];
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_create_reply: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_post_get')) {
+    /**
+     * Load a post + the thread + category it lives in, in one query.
+     * Returns null if the post doesn't exist.
+     */
+    function forum_post_get(PDO $pdo, int $post_id): ?array
+    {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT p.*,
+                        t.title AS thread_title,
+                        t.slug  AS thread_slug,
+                        t.is_locked,
+                        c.name  AS category_name,
+                        c.slug  AS category_slug
+                 FROM forum_posts p
+                 JOIN forum_threads t ON t.id = p.thread_id
+                 JOIN forum_categories c ON c.id = t.category_id
+                 WHERE p.id = :id
+                 LIMIT 1"
+            );
+            $stmt->execute(['id' => $post_id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_post_edit')) {
+    /**
+     * Update a post's body, marking it edited. Returns true on success.
+     * Permission is the caller's responsibility (own-post or GM).
+     */
+    function forum_post_edit(PDO $pdo, int $post_id, string $body, string $editor_name): bool
+    {
+        $body = trim($body);
+        if ($body === '') return false;
+        try {
+            $stmt = $pdo->prepare(
+                "UPDATE forum_posts
+                 SET body = :body, edited_at = NOW(), edited_by = :who
+                 WHERE id = :id"
+            );
+            return $stmt->execute(['body' => $body, 'who' => $editor_name, 'id' => $post_id]);
+        } catch (PDOException $e) {
+            error_log('forum_post_edit: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('forum_posts_in_thread_for_user')) {
+    /**
+     * Same as forum_posts_in_thread() but ALSO includes the current user's
+     * own `pending` posts (so they can see their submission while waiting
+     * for approval). Anonymous users get the public list only.
+     */
+    function forum_posts_in_thread_for_user(PDO $pdo, int $thread_id, ?int $user_id, int $page = 1, int $per_page = 20): array
+    {
+        $per_page = max(1, min(100, $per_page));
+        $page     = max(1, $page);
+        $offset   = ($page - 1) * $per_page;
+        try {
+            $sql = "SELECT id, thread_id, author_id, author_name, body, status, is_op,
+                           edited_at, edited_by, created_at
+                    FROM forum_posts
+                    WHERE thread_id = :tid
+                      AND (status = 'published'"
+                 . ($user_id ? " OR (status = 'pending' AND author_id = :uid)" : "")
+                 . ")
+                    ORDER BY is_op DESC, created_at ASC
+                    LIMIT $per_page OFFSET $offset";
+            $stmt = $pdo->prepare($sql);
+            $params = ['tid' => $thread_id];
+            if ($user_id) $params['uid'] = $user_id;
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_posts_in_thread_for_user: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
 // ─── Lookup by username (used by the admin ban form) ─────────────────────────
 if (!function_exists('forum_find_account_by_username')) {
     /**
