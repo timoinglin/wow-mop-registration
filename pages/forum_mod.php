@@ -45,10 +45,13 @@ $host = $_SERVER['HTTP_HOST'] ?? '';
 $same_origin = $ref !== '' && (strpos($ref, '://' . $host) !== false);
 $back = $same_origin ? $ref : '/forum';
 $append = function (string $url, string $flag): string {
-    $sep = (strpos($url, '?') === false) ? '?' : '&';
-    // Strip any prior mod= flag so the toast doesn't pile up
+    // Strip any prior mod= flag so the toast doesn't pile up. Important to
+    // do this BEFORE picking the separator — otherwise we see an existing
+    // `?mod=…`, pick `&`, then strip the `?` and end up gluing on `…&mod=`
+    // with no `?` in front (which Apache treats as part of the path → 404).
     $url = preg_replace('/([?&])mod=[^&#]*(&|$)/', '$1', $url);
     $url = rtrim($url, '?&');
+    $sep = (strpos($url, '?') === false) ? '?' : '&';
     return $url . $sep . 'mod=' . urlencode($flag);
 };
 
