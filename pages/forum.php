@@ -308,6 +308,40 @@ $forum_css = <<<'CSS'
 .news-pager .page-item.disabled .page-link { background:#12121f; color:#4a5568; border-color:rgba(139,69,19,.15); cursor:not-allowed; }
 
 /* Admin-disabled banner shown to GMs previewing while the public toggle is off */
+/* Inline moderation buttons (GM-only) */
+.fo-mod-btn {
+    background: transparent;
+    color: #c8a96e;
+    border: 1px solid rgba(200,169,110,.35);
+    border-radius: 4px;
+    padding: .35rem .75rem;
+    font-size: .8rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s ease;
+}
+.fo-mod-btn:hover { background: rgba(200,169,110,.12); color: #fff; border-color: #c8a96e; }
+.fo-mod-btn-ok { background: #2d6936; color: #fff; border-color: #3a7e44; }
+.fo-mod-btn-ok:hover { background: #3a7e44; color: #fff; border-color: #5dd87c; }
+.fo-mod-btn-danger { background: transparent; color: #f87e8a; border-color: rgba(231,76,60,.4); }
+.fo-mod-btn-danger:hover { background: rgba(231,76,60,.15); color: #fff; border-color: #f87e8a; }
+
+.fo-mod-link {
+    background: transparent;
+    border: 0;
+    color: #8899aa;
+    font-size: .78rem;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    text-decoration: none;
+}
+.fo-mod-link:hover { color: #fff; }
+.fo-mod-link-ok { color: #5dd87c; }
+.fo-mod-link-ok:hover { color: #98ffae; }
+.fo-mod-link-danger { color: #f87e8a; }
+.fo-mod-link-danger:hover { color: #ffbac0; }
+
 .fo-preview-banner {
     background: rgba(240,192,64,.1);
     border: 1px solid rgba(240,192,64,.3);
@@ -376,8 +410,30 @@ if ($mode === 'thread') {
             <a href="/forum/<?= htmlspecialchars(rawurlencode($thread['category_slug']), ENT_QUOTES) ?>"><?= htmlspecialchars($thread['category_name']) ?></a>
         </div>
 
+        <?php
+        // Inline mod result toast
+        $mod_flash = $_GET['mod'] ?? '';
+        if ($mod_flash !== ''):
+            $is_ok = !in_array($mod_flash, ['err','csrf'], true);
+            $msg = match ($mod_flash) {
+                'approved'   => $TEXT['mod_flash_approved']   ?? 'Approved and published.',
+                'deleted'    => $TEXT['mod_flash_deleted']    ?? 'Deleted.',
+                'locked'     => $TEXT['mod_flash_locked']     ?? 'Thread locked.',
+                'unlocked'   => $TEXT['mod_flash_unlocked']   ?? 'Thread unlocked.',
+                'stickied'   => $TEXT['mod_flash_stickied']   ?? 'Thread stuck to top.',
+                'unstickied' => $TEXT['mod_flash_unstickied'] ?? 'Sticky removed.',
+                'csrf'       => $TEXT['forum_reply_err_csrf'] ?? 'Session expired. Please try again.',
+                default      => $TEXT['forum_err_save']        ?? 'Action failed.',
+            };
+        ?>
+            <div style="margin-bottom:1rem;padding:.7rem 1rem;background:rgba(<?= $is_ok ? '46,204,113' : '231,76,60' ?>,.1);border:1px solid rgba(<?= $is_ok ? '46,204,113' : '231,76,60' ?>,.3);color:<?= $is_ok ? '#5dd87c' : '#e74c3c' ?>;border-radius:6px;font-size:.92rem">
+                <i class="bi bi-<?= $is_ok ? 'check-circle' : 'exclamation-triangle' ?> me-1"></i><?= htmlspecialchars($msg) ?>
+            </div>
+        <?php endif; ?>
+
         <div class="fo-hero">
             <h1>
+                <?php if ($thread['status'] === 'pending'): ?><span class="fo-badge" style="background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35)"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
                 <?php if ($thread['is_sticky']): ?><span class="fo-badge fo-badge-sticky"><i class="bi bi-pin-angle-fill"></i> <?= htmlspecialchars($TEXT['forum_sticky'] ?? 'Sticky') ?></span><?php endif; ?>
                 <?php if ($thread['is_locked']): ?><span class="fo-badge fo-badge-locked"><i class="bi bi-lock-fill"></i> <?= htmlspecialchars($TEXT['forum_locked'] ?? 'Locked') ?></span><?php endif; ?>
                 <?= htmlspecialchars($thread['title']) ?>
@@ -387,6 +443,41 @@ if ($mode === 'thread') {
                 &middot;
                 <i class="bi bi-chat-left-text me-1"></i><?= (int)$thread['reply_count'] ?> <?= htmlspecialchars($TEXT['forum_replies'] ?? 'replies') ?>
             </p>
+
+            <?php if ($is_admin): $mod_csrf = generate_csrf_token(); ?>
+                <div class="d-flex gap-2 flex-wrap" style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid rgba(139,69,19,.25)">
+                    <span style="color:#8899aa;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;padding:.35rem .15rem">
+                        <i class="bi bi-shield-lock me-1"></i><?= htmlspecialchars($TEXT['forum_mod_label'] ?? 'Mod tools') ?>
+                    </span>
+                    <?php if ($thread['status'] === 'pending'): ?>
+                        <form method="post" action="/forum/mod" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($mod_csrf) ?>">
+                            <input type="hidden" name="action" value="approve_thread">
+                            <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
+                            <button type="submit" class="fo-mod-btn fo-mod-btn-ok"><i class="bi bi-check2-circle me-1"></i><?= htmlspecialchars($TEXT['forum_mod_approve'] ?? 'Approve') ?></button>
+                        </form>
+                    <?php endif; ?>
+                    <form method="post" action="/forum/mod" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($mod_csrf) ?>">
+                        <input type="hidden" name="action" value="toggle_sticky">
+                        <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
+                        <button type="submit" class="fo-mod-btn"><i class="bi bi-pin-angle me-1"></i><?= htmlspecialchars($thread['is_sticky'] ? ($TEXT['forum_mod_unsticky'] ?? 'Unsticky') : ($TEXT['forum_mod_sticky'] ?? 'Sticky')) ?></button>
+                    </form>
+                    <form method="post" action="/forum/mod" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($mod_csrf) ?>">
+                        <input type="hidden" name="action" value="toggle_lock">
+                        <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
+                        <button type="submit" class="fo-mod-btn"><i class="bi bi-<?= $thread['is_locked'] ? 'unlock' : 'lock' ?> me-1"></i><?= htmlspecialchars($thread['is_locked'] ? ($TEXT['forum_mod_unlock'] ?? 'Unlock') : ($TEXT['forum_mod_lock'] ?? 'Lock')) ?></button>
+                    </form>
+                    <form method="post" action="/forum/mod" class="d-inline"
+                          onsubmit="return confirm('<?= htmlspecialchars($TEXT['forum_mod_delete_thread_confirm'] ?? 'Delete this entire thread and all its replies? This cannot be undone.', ENT_QUOTES) ?>')">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($mod_csrf) ?>">
+                        <input type="hidden" name="action" value="delete_thread">
+                        <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
+                        <button type="submit" class="fo-mod-btn fo-mod-btn-danger"><i class="bi bi-trash me-1"></i><?= htmlspecialchars($TEXT['forum_mod_delete_thread'] ?? 'Delete Thread') ?></button>
+                    </form>
+                </div>
+            <?php endif; ?>
         </div>
 
         <?php foreach ($posts as $p):
@@ -410,9 +501,26 @@ if ($mode === 'thread') {
                                 <span style="margin-left:.6rem;padding:.1rem .5rem;background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35);border-radius:10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span>
                             <?php endif; ?>
                         </span>
-                        <span style="display:flex;align-items:center;gap:.6rem">
+                        <span style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                            <?php if ($is_admin && $is_pending && !$p['is_op']): $pcsrf = generate_csrf_token(); ?>
+                                <form method="post" action="/forum/mod" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($pcsrf) ?>">
+                                    <input type="hidden" name="action" value="approve_post">
+                                    <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="fo-mod-link fo-mod-link-ok" title="<?= htmlspecialchars($TEXT['forum_mod_approve'] ?? 'Approve') ?>"><i class="bi bi-check2-circle"></i> <?= htmlspecialchars($TEXT['forum_mod_approve'] ?? 'Approve') ?></button>
+                                </form>
+                            <?php endif; ?>
                             <?php if ($can_edit): ?>
                                 <a href="/forum/edit/<?= (int)$p['id'] ?>" style="color:#8899aa;text-decoration:none;font-size:.78rem" title="<?= htmlspecialchars($TEXT['forum_edit_link'] ?? 'Edit') ?>"><i class="bi bi-pencil"></i> <?= htmlspecialchars($TEXT['forum_edit_link'] ?? 'Edit') ?></a>
+                            <?php endif; ?>
+                            <?php if ($is_admin): $pcsrf2 = generate_csrf_token(); ?>
+                                <form method="post" action="/forum/mod" class="d-inline"
+                                      onsubmit="return confirm('<?= htmlspecialchars($p['is_op'] ? ($TEXT['forum_mod_delete_thread_confirm'] ?? 'Delete this entire thread and all its replies? This cannot be undone.') : ($TEXT['forum_mod_delete_post_confirm'] ?? 'Delete this reply? This cannot be undone.'), ENT_QUOTES) ?>')">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($pcsrf2) ?>">
+                                    <input type="hidden" name="action" value="delete_post">
+                                    <input type="hidden" name="post_id" value="<?= (int)$p['id'] ?>">
+                                    <button type="submit" class="fo-mod-link fo-mod-link-danger" title="<?= htmlspecialchars($TEXT['forum_mod_delete'] ?? 'Delete') ?>"><i class="bi bi-trash"></i> <?= htmlspecialchars($TEXT['forum_mod_delete'] ?? 'Delete') ?></button>
+                                </form>
                             <?php endif; ?>
                             <span style="font-family:monospace;font-size:.72rem;color:#4a5568">#<?= (int)$p['id'] ?></span>
                         </span>

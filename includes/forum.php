@@ -942,6 +942,145 @@ if (!function_exists('forum_reject_post')) {
     }
 }
 
+// ─── Inline moderation (Phase 5) ────────────────────────────────────────────
+// Hard-delete + lock/sticky toggles. All callers must be GM-checked first.
+
+if (!function_exists('forum_delete_post')) {
+    /**
+     * Hard-delete a post regardless of status. Two behaviours:
+     *   - If the post is the OP (is_op=1) → delete the whole thread + all
+     *     its posts in one transaction (because a thread with no OP makes
+     *     no sense).
+     *   - If the post is a reply → delete just that row; when it was
+     *     'published' also decrement reply_count and refresh
+     *     last_reply_at/by to whatever's still left.
+     *
+     * Returns ['deleted_thread' => bool, 'thread_id' => int|null] so the
+     * caller can decide where to redirect.
+     */
+    function forum_delete_post(PDO $pdo, int $post_id): ?array
+    {
+        try {
+            $sel = $pdo->prepare("SELECT id, thread_id, status, is_op FROM forum_posts WHERE id = :id");
+            $sel->execute(['id' => $post_id]);
+            $p = $sel->fetch(PDO::FETCH_ASSOC);
+            if (!$p) return null;
+            $tid = (int)$p['thread_id'];
+
+            $pdo->beginTransaction();
+            if ((int)$p['is_op'] === 1) {
+                // OP delete = whole thread gone
+                $pdo->prepare("DELETE FROM forum_posts   WHERE thread_id = :id")->execute(['id' => $tid]);
+                $pdo->prepare("DELETE FROM forum_threads WHERE id = :id")->execute(['id' => $tid]);
+                $pdo->commit();
+                return ['deleted_thread' => true, 'thread_id' => $tid];
+            }
+
+            // Reply delete
+            $pdo->prepare("DELETE FROM forum_posts WHERE id = :id")->execute(['id' => $post_id]);
+
+            if ($p['status'] === 'published') {
+                // Refresh reply_count + last_reply from what's still there
+                $cnt = $pdo->prepare("SELECT COUNT(*) FROM forum_posts WHERE thread_id = :tid AND status = 'published' AND is_op = 0");
+                $cnt->execute(['tid' => $tid]);
+                $new_count = (int)$cnt->fetchColumn();
+
+                // Most recent published activity in this thread (reply OR OP)
+                $last = $pdo->prepare(
+                    "SELECT author_name, created_at
+                     FROM forum_posts
+                     WHERE thread_id = :tid AND status = 'published'
+                     ORDER BY created_at DESC LIMIT 1"
+                );
+                $last->execute(['tid' => $tid]);
+                $lr = $last->fetch(PDO::FETCH_ASSOC);
+
+                $upd = $pdo->prepare(
+                    "UPDATE forum_threads
+                     SET reply_count = :rc,
+                         last_reply_at = :at,
+                         last_reply_by = :by
+                     WHERE id = :tid"
+                );
+                $upd->execute([
+                    'rc'  => $new_count,
+                    'at'  => $lr['created_at'] ?? null,
+                    'by'  => $lr['author_name'] ?? null,
+                    'tid' => $tid,
+                ]);
+            }
+            $pdo->commit();
+            return ['deleted_thread' => false, 'thread_id' => $tid];
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_delete_post: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_delete_thread')) {
+    /**
+     * Hard-delete a thread regardless of status (so GMs can nuke published
+     * threads too, not just pending ones).
+     */
+    function forum_delete_thread(PDO $pdo, int $thread_id): bool
+    {
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("DELETE FROM forum_posts   WHERE thread_id = :id")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM forum_threads WHERE id = :id")->execute(['id' => $thread_id]);
+            $pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('forum_delete_thread: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('forum_toggle_lock')) {
+    /**
+     * Flip is_locked on a thread. Returns the NEW value (true = now locked).
+     */
+    function forum_toggle_lock(PDO $pdo, int $thread_id): ?bool
+    {
+        try {
+            $sel = $pdo->prepare("SELECT is_locked FROM forum_threads WHERE id = :id");
+            $sel->execute(['id' => $thread_id]);
+            $cur = $sel->fetchColumn();
+            if ($cur === false) return null;
+            $new = ((int)$cur === 1) ? 0 : 1;
+            $upd = $pdo->prepare("UPDATE forum_threads SET is_locked = :v WHERE id = :id");
+            $upd->execute(['v' => $new, 'id' => $thread_id]);
+            return $new === 1;
+        } catch (PDOException $e) {
+            error_log('forum_toggle_lock: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('forum_toggle_sticky')) {
+    function forum_toggle_sticky(PDO $pdo, int $thread_id): ?bool
+    {
+        try {
+            $sel = $pdo->prepare("SELECT is_sticky FROM forum_threads WHERE id = :id");
+            $sel->execute(['id' => $thread_id]);
+            $cur = $sel->fetchColumn();
+            if ($cur === false) return null;
+            $new = ((int)$cur === 1) ? 0 : 1;
+            $upd = $pdo->prepare("UPDATE forum_threads SET is_sticky = :v WHERE id = :id");
+            $upd->execute(['v' => $new, 'id' => $thread_id]);
+            return $new === 1;
+        } catch (PDOException $e) {
+            error_log('forum_toggle_sticky: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
 if (!function_exists('forum_posts_in_thread_for_user')) {
     /**
      * Same as forum_posts_in_thread() but viewer-aware: admins see all

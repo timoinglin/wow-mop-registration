@@ -38,6 +38,7 @@ RewriteRule ^news/([A-Za-z0-9_-]+)/?$ pages/news.php?slug=$1 [L,QSA]
 RewriteRule ^forum/new/([A-Za-z0-9_-]+)/?$ pages/forum_new_thread.php?cat=$1 [L,QSA]
 RewriteRule ^forum/edit/(\d+)/?$ pages/forum_edit.php?id=$1 [L,QSA]
 RewriteRule ^forum/reply/?$ pages/forum_reply.php [L,QSA]
+RewriteRule ^forum/mod/?$ pages/forum_mod.php [L,QSA]
 RewriteRule ^forum/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)/?$ pages/forum.php?cat=$1&thread=$2 [L,QSA]
 RewriteRule ^forum/([A-Za-z0-9_-]+)/?$ pages/forum.php?cat=$1 [L,QSA]
 
