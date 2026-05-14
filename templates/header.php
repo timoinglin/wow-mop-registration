@@ -21,6 +21,20 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
+// Forum nav-link visibility — same defensive pattern as the avatar lookup.
+$nav_forum_enabled = false;
+try {
+    if (!isset($pdo_auth)) {
+        @require_once __DIR__ . '/../includes/db.php';
+    }
+    @require_once __DIR__ . '/../includes/forum.php';
+    if (isset($pdo_auth) && function_exists('forum_is_enabled')) {
+        $nav_forum_enabled = forum_is_enabled($pdo_auth);
+    }
+} catch (Throwable $e) {
+    error_log('header forum-enabled check failed: ' . $e->getMessage());
+}
+
 // --- Maintenance Mode ---
 if (!empty($config['features']['maintenance'])) {
     $gm_level = $_SESSION['gm_level'] ?? 0;
@@ -168,6 +182,13 @@ if (!empty($config['features']['maintenance'])) {
                         <i class="bi bi-trophy-fill me-1"></i> <?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
                     </a>
                 </li>
+                <?php if ($nav_forum_enabled): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?= (in_array($current_page, ['forum.php','forum_category.php','forum_thread.php'])) ? 'active' : '' ?>" href="/forum">
+                        <i class="bi bi-chat-square-text me-1"></i> <?= $TEXT['forum_nav'] ?? 'Forum' ?>
+                    </a>
+                </li>
+                <?php endif; ?>
             </ul>
             <div class="navbar-nav ms-auto align-items-center">
                 <!-- User Menu Dropdown -->

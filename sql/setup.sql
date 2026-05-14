@@ -151,6 +151,90 @@ CREATE TABLE IF NOT EXISTS user_avatars (
   uploaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 9. Forum — single-row settings table. id is always 1; seeded once below.
+CREATE TABLE IF NOT EXISTS forum_settings (
+  id TINYINT NOT NULL PRIMARY KEY,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  auto_approve_threshold INT NOT NULL DEFAULT 3,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed the single settings row only when missing.
+INSERT INTO forum_settings (id, enabled, auto_approve_threshold)
+SELECT 1, 0, 3
+WHERE NOT EXISTS (SELECT 1 FROM forum_settings WHERE id = 1);
+
+-- 10. Forum Categories — one level (no sub-categories by design). Slug is
+-- URL-safe and unique. `icon` is a Bootstrap-Icons class shown on the card.
+CREATE TABLE IF NOT EXISTS forum_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(160) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  description VARCHAR(500) DEFAULT NULL,
+  icon VARCHAR(60) DEFAULT 'bi-chat-square-text',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_cat_slug (slug),
+  INDEX idx_sort (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 11. Forum Threads — a topic under a category. First post in forum_posts is
+-- the thread body (is_op=1); subsequent rows are replies.
+CREATE TABLE IF NOT EXISTS forum_threads (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT NOT NULL,
+  slug VARCHAR(180) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  author_id INT NOT NULL,
+  author_name VARCHAR(50) NOT NULL,
+  status ENUM('pending','published','hidden') NOT NULL DEFAULT 'pending',
+  is_sticky TINYINT(1) NOT NULL DEFAULT 0,
+  is_locked TINYINT(1) NOT NULL DEFAULT 0,
+  view_count INT NOT NULL DEFAULT 0,
+  reply_count INT NOT NULL DEFAULT 0,
+  last_reply_at DATETIME DEFAULT NULL,
+  last_reply_by VARCHAR(50) DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_thread_slug (slug),
+  INDEX idx_category (category_id, is_sticky, last_reply_at),
+  INDEX idx_status (status),
+  INDEX idx_author (author_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 12. Forum Posts — every message in every thread. is_op=1 marks the thread
+-- body (the OP), is_op=0 marks replies. status mirrors the thread approval
+-- flow so individual replies can be moderated independently.
+CREATE TABLE IF NOT EXISTS forum_posts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  thread_id INT NOT NULL,
+  author_id INT NOT NULL,
+  author_name VARCHAR(50) NOT NULL,
+  body MEDIUMTEXT NOT NULL,
+  status ENUM('pending','published','hidden') NOT NULL DEFAULT 'pending',
+  is_op TINYINT(1) NOT NULL DEFAULT 0,
+  edited_at DATETIME DEFAULT NULL,
+  edited_by VARCHAR(50) DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_thread (thread_id, created_at),
+  INDEX idx_status (status),
+  INDEX idx_author (author_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 13. Forum Bans — forum-only mute (does not affect game login). account_id
+-- is unique so a user is either banned or not. expires_at NULL = permanent.
+CREATE TABLE IF NOT EXISTS forum_bans (
+  account_id INT NOT NULL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  banned_by VARCHAR(50) NOT NULL,
+  reason VARCHAR(500) DEFAULT NULL,
+  banned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME DEFAULT NULL,
+  INDEX idx_username (username),
+  INDEX idx_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed one starter post the first time setup.sql is run on a fresh install.
 -- Idempotent: the INSERT is guarded by NOT EXISTS so it never re-fires once
 -- the table has any rows (so re-running setup.sql, or deleting the seed

@@ -368,6 +368,7 @@ $s_world    = check_port_status($db_host, $world_port);
     <button class="adm-tab" onclick="switchTab('accounts',this)"><i class="bi bi-people me-1"></i><?= htmlspecialchars($TEXT['admin_tab_accounts'] ?? 'Accounts') ?></button>
     <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tickets'] ?? 'Tickets') ?></button>
     <button class="adm-tab" onclick="switchTab('news',this)"><i class="bi bi-newspaper me-1"></i><?= htmlspecialchars($TEXT['admin_tab_news'] ?? 'News') ?></button>
+    <button class="adm-tab" onclick="switchTab('forum',this)"><i class="bi bi-chat-square-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_forum'] ?? 'Forum') ?></button>
     <button class="adm-tab" onclick="switchTab('audit',this)"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_audit'] ?? 'Audit Log') ?></button>
     <button class="adm-tab" onclick="switchTab('tools',this)"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tools'] ?? 'Tools') ?></button>
 
@@ -684,6 +685,67 @@ $s_world    = check_port_status($db_host, $world_port);
                 </table>
             </div>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ TAB: FORUM -->
+<div class="adm-tab-content" id="tab-forum">
+    <div class="admin-panel" style="height:auto">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="panel-title mb-0"><i class="bi bi-chat-square-text me-2"></i><?= htmlspecialchars($TEXT['admin_forum_title'] ?? 'Forum Overview') ?></div>
+            <a href="/admin_forum" class="tool-btn tool-btn-primary" style="text-decoration:none">
+                <i class="bi bi-sliders me-1"></i><?= htmlspecialchars($TEXT['admin_forum_manage'] ?? 'Configure Forum') ?>
+            </a>
+        </div>
+        <?php
+        require_once __DIR__ . '/../includes/forum.php';
+        try {
+            $forum_settings = forum_settings_get($pdo_auth);
+            $forum_cats     = forum_categories_list($pdo_auth);
+            $forum_bans     = forum_bans_list($pdo_auth);
+            $forum_pending  = (int)$pdo_auth->query("SELECT COUNT(*) FROM forum_threads WHERE status = 'pending'")->fetchColumn();
+            $forum_pending += (int)$pdo_auth->query("SELECT COUNT(*) FROM forum_posts WHERE status = 'pending' AND is_op = 0")->fetchColumn();
+        } catch (PDOException $e) {
+            $forum_settings = ['enabled' => false, 'auto_approve_threshold' => 3];
+            $forum_cats = $forum_bans = []; $forum_pending = 0;
+        }
+        ?>
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_status'] ?? 'Status') ?></div>
+                    <div style="margin-top:.2rem">
+                        <?php if ($forum_settings['enabled']): ?>
+                            <span style="color:#5dd87c;font-weight:700"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($TEXT['admin_forum_enabled'] ?? 'Enabled') ?></span>
+                        <?php else: ?>
+                            <span style="color:#8899aa;font-weight:700"><i class="bi bi-pause-circle"></i> <?= htmlspecialchars($TEXT['admin_forum_disabled'] ?? 'Disabled') ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_categories'] ?? 'Categories') ?></div>
+                    <div style="color:#c8a96e;font-weight:700;font-size:1.4rem;line-height:1.2"><?= count($forum_cats) ?></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_pending'] ?? 'Pending approvals') ?></div>
+                    <div style="color:<?= $forum_pending > 0 ? '#f0c040' : '#c8a96e' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= $forum_pending ?></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_bans'] ?? 'Active bans') ?></div>
+                    <div style="color:<?= count($forum_bans) > 0 ? '#f87e8a' : '#c8a96e' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= count($forum_bans) ?></div>
+                </div>
+            </div>
+        </div>
+        <p style="color:#8899aa;font-size:.85rem;margin:0">
+            <i class="bi bi-info-circle me-1"></i>
+            <?= htmlspecialchars($TEXT['admin_forum_hint'] ?? 'Use "Configure Forum" to enable/disable the public forum, set the auto-approve threshold, manage categories, and forum-ban users.') ?>
+        </p>
     </div>
 </div>
 
