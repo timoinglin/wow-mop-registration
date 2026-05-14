@@ -94,13 +94,24 @@ $social = $config['social'] ?? [];
             if (window.scrollY > 50) {
                 mainNavbar.classList.add('navbar-scrolled');
                 // Optional: Remove opacity class if it interferes
-                 mainNavbar.classList.remove('bg-opacity-75'); 
+                 mainNavbar.classList.remove('bg-opacity-75');
             } else {
                 mainNavbar.classList.remove('navbar-scrolled');
                  // Optional: Add opacity class back
-                 mainNavbar.classList.add('bg-opacity-75'); 
+                 mainNavbar.classList.add('bg-opacity-75');
             }
         });
+
+        // Mobile: force the dark navbar look while the collapsible menu is
+        // expanded, otherwise the dropped-down items render with a
+        // transparent background over the hero and become unreadable.
+        const navCollapse = document.getElementById('navbarNav');
+        if (navCollapse) {
+            navCollapse.addEventListener('show.bs.collapse',  () => mainNavbar.classList.add('navbar-scrolled'));
+            navCollapse.addEventListener('hidden.bs.collapse', () => {
+                if (window.scrollY <= 50) mainNavbar.classList.remove('navbar-scrolled');
+            });
+        }
     }
 </script>
 <?php if (!empty($extra_scripts)) { echo $extra_scripts; } ?>
