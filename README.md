@@ -15,6 +15,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [Public Armory](#public-armory)
   - [Leaderboards](#leaderboards)
   - [Custom 404 Page](#custom-404-page)
+  - [Forum (User)](#forum-user)
+  - [Forum (Admin)](#forum-admin)
   - [Admin Dashboard - Overview](#admin-dashboard---overview)
   - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
   - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
@@ -34,8 +36,10 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [7. Enable mod_rewrite](#7-enable-mod_rewrite)
 - [How to Update](#how-to-update)
   - [Upgrading from v0.3.x → v0.4.0](#upgrading-from-v03x--v040)
+  - [Upgrading from v0.4.x → v0.5.0](#upgrading-from-v04x--v050)
 - [Admin Dashboard](#admin-dashboard)
   - [Managing News](#managing-news)
+  - [Managing the Forum](#managing-the-forum)
 - [Customization](#customization)
   - [Changing Text and Labels](#changing-text-and-labels)
   - [Replacing Images and Logo](#replacing-images-and-logo)
@@ -61,6 +65,8 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
 - 🎫 **Ticket System** — Multi-turn conversation threads (user ↔ GM), Markdown formatting, image attachments with auth-gated serving, separate detail pages, and audit-logged status changes
 - 📰 **News / Blog** — Admin-managed posts with a GitHub-style **EasyMDE editor** (toolbar with bold/headings/lists/links/tables, drag-and-drop image upload, side-by-side preview, fullscreen mode). Posts are stored as Markdown in the DB, render server-side through Parsedown safe mode, have draft/published states with windowed pagination, and feed both the public `/news` list / `/news/{slug}` detail pages and the homepage "Latest Updates" section. A starter "Welcome!" post is seeded by `sql/setup.sql` on first install.
+- 💬 **Forum** — Lean community forum with categories, threads, replies, **per-user approval workflow** (auto-publish kicks in after N approved posts; configurable, 0 = auto-publish everyone), forum-only bans that don't affect game login, EasyMDE composer with image uploads, sticky/locked threads, inline GM moderation (approve / delete / lock / sticky on the thread itself), per-session view de-dupe, and a 30-second anti-spam cooldown. Disabled by default — admin flips one toggle to expose `/forum` in the navbar.
+- 👤 **User Avatars** — Each user can upload an avatar from the dashboard. When no avatar is uploaded, a deterministic colored-initials badge is rendered (no external service like Gravatar). Avatars appear on the dashboard, the navbar dropdown, and next to every forum post.
 - ❓ **FAQ** — Configurable FAQ accordion on the home page
 - 🗳️ **Vote System** — Vote site links on the user dashboard (configurable)
 - 🔗 **Social Links** — Discord, YouTube, X (Twitter), Instagram — each individually toggleable
@@ -85,6 +91,16 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 *"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
 
 ![404 Page](assets/img/404-spirit-healer.png)
+
+### Forum (User)
+*The public forum from a regular user's view — category index, thread list, and a thread page with the inline reply composer.*
+
+![Forum (User)](assets/img/screenshots/forum_user.png)
+
+### Forum (Admin)
+*The same forum, viewed by a GM 9+ admin — inline moderation toolbar in the thread hero (approve / sticky / lock / delete) and per-post Approve + Delete links.*
+
+![Forum (Admin)](assets/img/screenshots/forum_admin.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
@@ -240,7 +256,7 @@ Open `config.php` and set:
 Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, go to the **SQL** tab, and run the contents of `sql/setup.sql`:
 
 ```sql
--- This creates 7 tables (and an idempotent column-add migration):
+-- This creates 13 tables (plus idempotent column-add and charset migrations):
 -- 1. password_resets       — password recovery tokens
 -- 2. tickets               — support ticket headers (subject, category, status…)
 -- 3. admin_audit_log       — chronological log of admin actions
@@ -248,10 +264,18 @@ Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, 
 -- 5. playtime_reward_log   — audit trail for every Battle Pay claim
 -- 6. ticket_messages       — per-message thread (user + admin replies, attachments)
 -- 7. news_posts            — admin-authored blog/news (Markdown body, draft/published)
+-- 8. user_avatars          — per-account uploaded avatars (one row when uploaded)
+-- 9. forum_settings        — single-row forum config (enabled + auto-approve threshold)
+-- 10. forum_categories     — one level (no sub-categories), slug + name + icon + sort
+-- 11. forum_threads        — title + author + status + sticky/locked + view/reply counts
+-- 12. forum_posts          — every message (OP + replies), status, edited_at/by
+-- 13. forum_bans           — forum-only mutes (game login unaffected); expires_at NULL = permanent
 
 -- Compatible with MySQL 5.5.9+
--- All CREATEs use IF NOT EXISTS, and the ticket_messages.attachments
--- ALTER is INFORMATION_SCHEMA-checked, so it's safe to re-run.
+-- All CREATEs use IF NOT EXISTS. Idempotent migration blocks handle:
+--   - ticket_messages.attachments column add (INFORMATION_SCHEMA-checked)
+--   - utf8 → utf8mb4 conversion for the legacy tables (only fires when needed)
+-- so re-running setup.sql is always safe.
 -- See sql/setup.sql for the full script.
 ```
 
@@ -482,6 +506,106 @@ Then in a browser:
 
 ---
 
+### Upgrading from v0.4.x → v0.5.0
+
+v0.5.0 introduces the **Forum** system, **user avatars**, and an internal **charset migration** for the legacy tables. Forum stays disabled by default — flip one toggle when you're ready to expose it.
+
+Follow the steps in order. Total time: ~5 minutes (the charset conversion runs once on existing data and is sub-second for typical installs).
+
+#### 1. Pull the new code
+
+```bash
+# stop Apache first (XAMPP Control Panel → Stop)
+git pull origin main
+# (or extract the v0.5.0 release ZIP, overwriting everything except
+#  config.php, uploads/, cache/)
+```
+
+#### 2. Run the SQL setup (required)
+
+`sql/setup.sql` adds 6 new tables (`user_avatars` + the 5 `forum_*` tables) and runs a one-time charset migration on the original 6 legacy tables to upgrade them from `utf8` (alias for utf8mb3) to `utf8mb4`:
+
+```bash
+mysql -u root -pascent auth < sql/setup.sql
+```
+
+Idempotent — safe to re-run:
+- `CREATE TABLE IF NOT EXISTS` for every new table.
+- The settings + default-category + welcome-thread seeds are guarded by `WHERE NOT EXISTS`, so admins who delete them won't see them resurrected on a re-run.
+- The charset migration only fires on tables not already at utf8mb4 (INFORMATION_SCHEMA-checked). A second run of the entire script measures ~3 ms total.
+
+> [!NOTE]
+> The charset migration rewrites the legacy tables in place (`ALTER TABLE … CONVERT TO CHARACTER SET utf8mb4`). For a typical install with thousands of rows it finishes in under a second. The only edge case is **very old MySQL with InnoDB ANTELOPE row format** where the `password_resets.idx_email` index could exceed the 767-byte prefix limit at utf8mb4 — modern XAMPP / MariaDB 10.2+ / MySQL 5.7.7+ default to DYNAMIC row format, which supports 3072 bytes, so it just works. If your install hits the edge case, the ALTER errors cleanly with no data loss; fix is `ALTER TABLE password_resets DROP INDEX idx_email, ADD INDEX idx_email (email(191))` and re-run setup.sql.
+
+#### 3. Make sure `uploads/avatars/` and `uploads/forum/` exist (required)
+
+Both new directories have tracked override `.htaccess` files that allow public reads (so images render on the site) while still blocking script extensions. `git pull` / fresh ZIP extraction puts them in place automatically — verify with:
+
+```bash
+ls uploads/avatars/.htaccess uploads/forum/.htaccess
+```
+
+If either is missing, create the dir and add this `.htaccess`:
+
+```apache
+<RequireAll>
+    Require all granted
+</RequireAll>
+
+<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI
+```
+
+#### 4. (Optional) Decide if you want the forum exposed
+
+The forum table seeds with `enabled = 0`, so even after running the SQL the public `/forum` URL stays invisible. To turn it on:
+
+1. Log in as GM 9+
+2. Visit **Admin Panel → Forum tab → Configure Forum**
+3. Flip **Forum enabled** to on, set the **auto-approve threshold** (default 3; `0` = auto-publish everyone)
+4. The **Forum** link will appear in the main nav for everyone
+
+You can also leave it disabled, browse it yourself as an admin (`/forum` is admin-previewable when off), populate some categories, and only enable it when you're ready.
+
+#### 5. Restart Apache + verify
+
+Then in a browser:
+
+1. Visit `/dashboard` → click your avatar in the hero (or in the navbar dropdown) → upload an image. Refresh — your avatar appears across the site.
+2. Visit `/admin_forum` → the seeded "General Discussion" category + "Welcome to the forum!" thread are there. Edit the welcome thread or delete it.
+3. Toggle the forum on. The nav link appears. Visit `/forum` as a regular user → category index. Click in → thread list → thread detail. Reply, see the approval-queue flow if you're below the threshold.
+4. As a GM: open any thread → Mod tools row in the hero (Approve / Sticky / Lock / Delete) + Approve/Delete links on individual pending posts.
+
+#### What's new at a glance
+
+| Area | Change |
+|---|---|
+| Database | 6 new tables (`user_avatars`, `forum_settings`, `forum_categories`, `forum_threads`, `forum_posts`, `forum_bans`) + idempotent seeds (forum settings row, default category, welcome thread + OP post) |
+| Schema migrations | One-time `utf8` → `utf8mb4` charset upgrade on the 6 legacy tables, INFORMATION_SCHEMA-checked so re-runs are no-ops (~3 ms total) |
+| Filesystem | New dirs `uploads/avatars/` and `uploads/forum/` (each with tracked override `.htaccess`) |
+| Routing | `.htaccess` gains rules for `/forum`, `/forum/{cat}`, `/forum/{cat}/{thread}`, `/forum/new/{cat}`, `/forum/edit/{post}`, `/forum/reply`, `/forum/mod`, `/avatar_upload` |
+| Pages | `pages/forum.php`, `pages/forum_new_thread.php`, `pages/forum_reply.php`, `pages/forum_edit.php`, `pages/forum_mod.php`, `pages/forum_image.php`, `pages/admin_forum.php`, `pages/avatar_upload.php` |
+| Helpers | `includes/forum.php` (settings, slug, fetchers, write, approve/reject, moderation, view de-dupe, anti-spam), `includes/avatar.php` (render, fallback initials, batch lookup) |
+| Admin UI | New **Forum** tab in `/admin_dashboard` with stat tiles + moderation queue (deep-link from "Pending approvals"). Full config at `/admin_forum` (settings, categories CRUD, bans CRUD, queue) |
+| Public UI | `/forum` index, `/forum/{cat}` category, `/forum/{cat}/{thread}` detail. Windowed pager (20/page). Avatars next to every post. Author + admins see their own pending content with a yellow border + "Awaiting approval" pill |
+| Dashboard | Hero now has an avatar block (click to upload/remove). Navbar dropdown shows the same avatar |
+| i18n | ~200 new EN+ES keys covering the entire forum surface + avatar UI |
+| External | EasyMDE editor loads from jsDelivr CDN (only on `/admin_news`, `/admin_forum`, and the forum write pages — the public forum read pages don't depend on it) |
+| Config | Nothing to change. The forum's enable + threshold live in the DB, edited from the admin panel |
+
+#### Notable behavioural notes
+
+- **Forum bans are forum-only.** Banned users can still log in, play the game, and use tickets — they just can't post or reply. GM 9+ accounts cannot be banned (prevents admin-vs-admin lockout).
+- **GM 9+ bypasses everything**: auto-approval, anti-spam cooldown, locked threads (admins can reply through locked threads), and the public-disabled gate (admins get an "admin preview" banner instead of the friendly notice).
+- **Editing never resets approval status.** A pending post stays pending; a published post stays published. Admin edits stamp the editor name as `"{name} (admin)"`.
+- **Anti-spam cooldown is 30 seconds**, hardcoded. It reads `MAX(created_at)` from the user's posts at submit time — no new storage.
+- **Per-session view de-dupe** keeps refresh-spam out of the view counter. Tracked in `$_SESSION` (capped at 500 thread IDs FIFO, so long sessions can't bloat).
+
+---
+
 ## Admin Dashboard
 
 Accessible at `/admin_dashboard` for accounts with **GM level ≥ 9**.
@@ -506,6 +630,7 @@ To grant or revoke access, edit the `account_access` table directly (or use any 
 | **Accounts** | Full account list with search/filter, inline Ban/Unban buttons, account detail modal (view chars, reset password, edit email, set GM level) |
 | **Tickets** | View all support tickets, filter by status, reply to tickets, close/reopen |
 | **News** | Quick view of recent posts with deep-link to the full `/admin_news` editor (create/edit/publish/delete + live Markdown preview) |
+| **Forum** | Status + counters (enabled, categories, pending approvals, active bans). "Pending approvals" tile glows gold when non-zero and deep-links to the moderation queue at `/admin_forum#moderation-queue`. Full config (settings, categories, bans, queue) at `/admin_forum`. |
 | **Audit Log** | Chronological log of all admin actions (bans, unbans, edits, etc.) |
 | **Tools** | Character lookup, IP ban management, server stats, email broadcast to all users |
 
@@ -524,6 +649,33 @@ The News tab in `/admin_dashboard` shows the 10 most recent posts and a **Manage
 - **Delete** posts — there's a confirmation dialog and the action is audit-logged.
 
 When viewing a published post on `/news/{slug}` while logged in as GM 9+, you'll see an **Edit Post** button in the top-right that jumps straight to the editor for that post — no need to go back to the admin list.
+
+### Managing the Forum
+
+The Forum tab in `/admin_dashboard` shows status tiles and a **Configure Forum** button that opens `/admin_forum`. From there you have four sections:
+
+**Settings** — one row in `forum_settings`:
+- **Forum enabled** — when off, `/forum` shows a "currently disabled" notice to regular users (admins still get an "admin preview" view so they can populate the forum before launch).
+- **Auto-approve threshold** — `0` means every post publishes instantly; otherwise a user's posts queue for admin approval until they've accumulated this many *approved* posts. GM 9+ always bypass.
+
+**Categories** — one level only (no sub-categories by design). Each has a slug, name, description, Bootstrap-Icons class, and sort order. Deleting a category cascades to its threads + posts (confirmation-gated).
+
+**Forum Bans** — forum-only mute. Banned users can still log in and play; they just can't post or reply. Add by username + reason + optional expiry datetime. GM 9+ accounts cannot be banned.
+
+**Moderation Queue** — pending threads + replies waiting for approval. Each shows the body (collapsed by default), author, category, time, and Approve / Reject buttons. Approve flips the row to published and bumps the right counters; Reject hard-deletes. Threads are also approvable inline from the thread page itself (see below).
+
+When viewing any thread as GM 9+, you also get a **Mod tools** row in the thread hero:
+- **Approve** (only when the thread itself is pending)
+- **Sticky** / **Unsticky** toggle
+- **Lock** / **Unlock** toggle
+- **Delete Thread** (cascades — thread + all posts gone)
+
+Plus per-post actions in each post's meta row:
+- **Approve** (only on pending replies)
+- **Edit** (any post — admin edits stamp the editor as `"{name} (admin)"`)
+- **Delete** (any post — deleting the OP is the same as deleting the thread)
+
+Every moderation action is recorded in `admin_audit_log` with the admin name, target, and IP.
 
 ---
 
@@ -611,7 +763,13 @@ All images are stored in `assets/img/`:
   - 5 MB size cap returns 413
   - Filenames are **server-generated** (`news-{timestamp}-{8hex}.{ext}`); the client never controls the on-disk name, so path-traversal payloads in the original filename are moot
   - Every successful upload is recorded in `admin_audit_log`
-- Markdown in tickets and news posts is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs) — even though only authenticated admins write news, defense-in-depth keeps script tags from rendering even if an admin account were compromised.
+- Forum image uploads (`/forum_image`) follow the same pipeline as news uploads (CSRF, server-side MIME sniff, 5 MB cap, server-generated filenames, audit-logged), but the auth gate is **"logged in AND not forum-banned"** instead of GM 9+. Forum bans propagate to the upload endpoint, so a muted user can't sneak attachments in.
+- Avatar uploads (`/avatar_upload`) are open to any logged-in user but capped at 2 MB, MIME-sniffed (jpg/png/webp/gif), server-renamed to `{account_id}.{ext}` so each user has exactly one slot — no path traversal, no slot collision.
+- The `uploads/avatars/` and `uploads/forum/` directories override the parent deny-all with tracked `.htaccess` files. Both still block script extensions (`.php`, `.phtml`, `.phar`, `.pl`, `.py`, `.cgi`, `.sh`, `.html`) as defense-in-depth.
+- Forum **approval queue** keeps new users from spamming the front page on day one. Threshold is admin-configurable per-install; bypass is GM-only.
+- Forum **anti-spam cooldown** (30 seconds, hardcoded) reads `MAX(created_at)` from the user's posts at submit time, fail-open on DB error so a hiccup can't lock out legitimate posters.
+- Forum **bans are forum-only** (separate `forum_bans` table). They don't touch `account_banned` and don't affect game login or the ticket system. GM 9+ accounts cannot be added to `forum_bans` — admin-vs-admin lockout is impossible by construction.
+- Markdown in tickets, news posts, and forum posts is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs). Even though only authenticated users write forum content, defense-in-depth keeps script tags from rendering even if an account were compromised.
 - Attachment endpoint also blocks path traversal (filenames must match `[A-Za-z0-9._-]{1,200}`) and resolves inside `uploads/tickets/` only
 - All forms use CSRF tokens
 - All DB queries use PDO prepared statements
@@ -640,6 +798,13 @@ All images are stored in `assets/img/`:
 | **Image upload returns 413** | File is over the 5 MB cap. Resize or re-compress and try again. |
 | **Post images return 403 on the public page** | The `uploads/news/` directory is missing its override `.htaccess`. The parent `uploads/.htaccess` denies everything; the news subdir needs its own file to opt back in. See the "Upgrading from v0.3.x" section for the contents. |
 | **Edit Post button doesn't show on `/news/{slug}`** | Confirm you're logged in **and** that your `gm_level` is ≥ 9. The session check is `$_SESSION['gm_level']`, which is set fresh at every login — if you changed your `account_access` row, log out and log back in. |
+| **`/forum` shows "Forum is currently disabled"** | The forum's enable flag is off in the DB. Log in as GM 9+, go to `/admin_forum`, toggle **Forum enabled**. GMs always see the forum (with an admin-preview banner) regardless of the toggle. |
+| **My new thread shows "waiting for admin approval" but doesn't appear in the category** | Expected — the auto-approve threshold isn't met yet. The thread is visible *to you* (with a yellow border + "Awaiting approval" pill) and to GMs (in `/admin_forum`'s moderation queue). Other users can't see it until a GM approves. Set the threshold to `0` to auto-publish everyone. |
+| **"Please wait N seconds before posting again"** | Anti-spam cooldown — hardcoded 30 seconds between forum posts per user. GM 9+ bypasses. |
+| **404 after a moderation action (sticky / lock / approve)** | Fixed in v0.5.0 (`e3f1039`). If you're on an older `main` snapshot, pull the latest. |
+| **MySQL warning 1681 ("Integer display width is deprecated")** | Fixed in v0.5.0 — the original `TINYINT(1)` columns were narrowed to plain `TINYINT`. If you still see it, re-run `sql/setup.sql` against the newest schema. |
+| **MySQL warning 3719 ("utf8 is currently an alias for UTF8MB3")** | Fixed in v0.5.0 — `sql/setup.sql` now runs an idempotent `CONVERT TO CHARACTER SET utf8mb4` block on the legacy tables. One re-run silences the warning permanently. |
+| **EasyMDE fullscreen toolbar hidden behind navbar / second row clipped** | Fixed during Phase 5 polish. The site navbar auto-hides while EasyMDE is fullscreen, the toolbar is wrap-friendly, and floated icons are stripped. If you still see it, hard-refresh to bypass CSS cache. |
 
 ---
 
