@@ -790,7 +790,7 @@ try {
             continue
         }
 
-        # World DB is optional — the in-game shop is feature-flagged OFF by
+        # World DB is optional - the in-game shop is feature-flagged OFF by
         # default. Don't gate the install on it; just report using the
         # database list we already fetched.
         if (@($dbCheck.Result.server.databases) -contains $dbSettings.WorldDatabase) {
