@@ -64,6 +64,11 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 ### Leaderboards
 ![Leaderboards](assets/img/screenshots/leaderboards.png)
 
+### Public Shop
+*The player-facing `/shop` — an in-game-shop-styled, read-only catalog of everything buyable with Battle Coins (left category rail, real item icons + hover tooltips via Wowhead), the logged-in user's balance, and the Ko-fi donate panel with a personal attribution code.*
+
+![Public Shop](assets/img/screenshots/shop_public.png)
+
 ### Custom 404 Page
 *"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
 
@@ -78,6 +83,11 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 *The full forum admin page at `/admin_forum` — Moderation Queue (pending threads + replies with Approve / Reject), Settings (enable toggle + auto-approve threshold), Categories CRUD, and Forum Bans.*
 
 ![Forum Admin Configuration](assets/img/screenshots/forum_admin.png)
+
+### In-Game Shop Management
+*The GM-only `/admin_shop` — full CRUD over the repack's Battle Pay store (categories, item tiles, prices, reorder, move, Wowhead previews) plus the Battle Coins exchange-rate setting, all feature-flagged and repack-portable.*
+
+![In-Game Shop Management](assets/img/screenshots/shop_management.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
