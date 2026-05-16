@@ -376,7 +376,30 @@ Already running and want the latest version? **Keep your existing `config.php`, 
 > [!IMPORTANT]
 > Before updating, back up `config.php` and the `uploads/` folder. Both are gitignored, so `git pull` won't touch them — but a backup is cheap insurance in case you need to roll back.
 
-### Option A — Git (recommended)
+### Option A — One-Click Updater (recommended, Windows)
+
+Run this from **inside your website folder** in PowerShell (no admin needed):
+
+```powershell
+cd C:\xampp\htdocs\wow-legends   # your install folder
+irm "https://raw.githubusercontent.com/timoinglin/wow-mop-registration/main/update.ps1" -OutFile update.ps1
+.\update.ps1
+```
+
+The updater is fully guided and safe-by-default. It will:
+
+1. **Verify** the folder really is a WoW Legends install (fingerprint check).
+2. **Stop Apache** automatically (one keypress) — or wait until you stop it.
+3. **Make a FULL zip backup of the entire website folder** to a sibling folder (`..\wow-legends-backup-<timestamp>.zip`) **before touching anything**, plus a quick `config.php`/`uploads/`/`cache/` copy-aside for fast rollback.
+4. Download the **latest release** and overwrite program files only — `config.php`, `uploads/`, `cache/` and `.git/` are never touched (it uses `robocopy` without purge, and the release archive contains tracked files only).
+5. Apply `sql/setup.sql` (idempotent) using the **bundled XAMPP PHP** (no `mysql` client needed).
+6. **Report any new `config.php` keys** to add by hand (it never auto-rewrites your config).
+7. Restart Apache, open the site, and show `old → new` version.
+
+> [!TIP]
+> The full backup zip exists because many admins customise shipped files **in place** — logo, background images, `assets/bg-video-mop.mp4`, theme CSS, `lang/*.php`. A clean update replaces those; the zip is your guaranteed recovery point. Delete it once the updated site looks good.
+
+### Option B — Git
 
 If you cloned with Git originally:
 
@@ -392,7 +415,7 @@ mysql -u root -pascent auth < sql/setup.sql
 # 4. Restart Apache and you're done
 ```
 
-### Option B — Manual (release ZIP)
+### Option C — Manual (release ZIP)
 
 If you installed by extracting a release ZIP:
 
@@ -408,8 +431,9 @@ If you installed by extracting a release ZIP:
 | File / Folder | Why it's preserved |
 |---|---|
 | `config.php` | DB credentials, realm info, social links, news, FAQ, vote sites, feature flags |
-| `uploads/` | Ticket attachments uploaded by users |
+| `uploads/` | User avatars, news/forum images, ticket attachments |
 | `cache/` | Login history and rate-limit data |
+| `.git/` | Left intact for git-cloned installs (bonus rollback path) |
 
 ### Worth knowing
 
