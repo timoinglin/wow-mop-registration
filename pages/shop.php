@@ -16,20 +16,41 @@ require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/shop.php';
+require_once __DIR__ . '/../includes/donation.php';
 
 [$ok, $reason] = shop_public_availability($pdo_world ?? null, $config);
-$donations_on  = shop_donations_enabled($config);
 
-$balance = null;
-if (isset($_SESSION['user_id'])) {
+// Donations are fully independent of the catalog: they only touch the auth DB,
+// so the donate panel renders even when features.shop is off or the world DB
+// is down. Gated solely by features.donations + a configured Ko-fi token.
+$donate_ready = donation_enabled($config);
+$don_cfg      = $donate_ready ? donation_config($config) : null;
+
+$uid        = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+$balance    = null;
+$don_code   = null;
+$don_recent = [];
+if ($uid > 0) {
     try {
         $st = $pdo_auth->prepare("SELECT dp FROM account WHERE id = :id");
-        $st->execute(['id' => (int)$_SESSION['user_id']]);
+        $st->execute(['id' => $uid]);
         $v = $st->fetchColumn();
         if ($v !== false) $balance = (int)$v;
     } catch (PDOException $e) {
         error_log('shop balance lookup: ' . $e->getMessage());
     }
+    if ($donate_ready) {
+        $don_code   = donation_get_code($pdo_auth, $uid);
+        $don_recent = donation_recent_for_account($pdo_auth, $uid, 3);
+    }
+}
+
+// Currency symbol for the rate hint (display only — no conversion happens).
+$cur_sym = '';
+if ($don_cfg) {
+    $cur = strtoupper($don_cfg['currency']);
+    $cur_sym = ['EUR' => '€', 'USD' => '$', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$'][$cur]
+               ?? ($cur . ' ');
 }
 
 $page_title = ($TEXT['shop_nav'] ?? 'Shop') . ' — ' . ($config['site']['title'] ?? 'WoW');
@@ -51,14 +72,51 @@ require_once __DIR__ . '/../templates/header.php';
 
 .shp-donate {
     background: linear-gradient(145deg,#1f1b10,#241608); border:1px solid rgba(240,192,64,.4);
-    border-radius:10px; padding:.95rem 1.3rem; margin-bottom:1.25rem;
+    border-radius:10px 10px 0 0; padding:.95rem 1.3rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
 }
+.shp-donate.solo { border-radius:10px; margin-bottom:1.25rem; }
 .shp-donate .t { color:#f0c040; font-weight:700; }
 .shp-donate .s { color:#8899aa; font-size:.84rem; margin-top:.15rem; }
-.shp-btn { padding:.5rem 1.15rem; border-radius:6px; border:1px solid; font-size:.88rem; text-decoration:none; display:inline-block; font-family:inherit; }
+.shp-donate .s b { color:#f0c040; }
+.shp-btn { padding:.55rem 1.2rem; border-radius:6px; border:1px solid; font-size:.9rem; text-decoration:none; display:inline-block; font-family:inherit; transition:background .14s ease; }
 .shp-btn-kofi { background:#8B4513; color:#fff; border-color:#A0522D; }
-.shp-btn-kofi.disabled { opacity:.55; pointer-events:none; }
+.shp-btn-kofi:hover { background:#A0522D; color:#fff; }
+
+/* Attribution-code box (sits directly under the donate bar) */
+.shp-code-box {
+    background: rgba(0,0,0,.30); border:1px solid rgba(240,192,64,.3); border-top:none;
+    border-radius:0 0 10px 10px; padding:1rem 1.3rem; margin-bottom:1.25rem;
+}
+.shp-code-box.muted {
+    color:#9aa7b4; font-size:.9rem; display:flex; align-items:center; gap:.5rem;
+}
+.shp-code-box.muted a { color:#f0c040; text-decoration:none; font-weight:600; }
+.shp-code-cap { color:#c8a96e; font-size:.85rem; font-weight:600; margin-bottom:.55rem; }
+.shp-code-row { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.9rem; }
+.shp-code {
+    font-family:'Courier New',monospace; font-size:1.45rem; font-weight:700; letter-spacing:2px;
+    color:#f0c040; background:linear-gradient(145deg,#241608,#15100a);
+    border:1px dashed rgba(240,192,64,.55); border-radius:7px; padding:.4rem 1rem;
+}
+.shp-copy {
+    background:#8B4513; color:#fff; border:1px solid #A0522D; border-radius:6px;
+    padding:.45rem .9rem; font-size:.82rem; cursor:pointer; font-family:inherit; transition:background .14s ease;
+}
+.shp-copy:hover { background:#A0522D; }
+.shp-copy.ok { background:#2e7d32; border-color:#388e3c; }
+.shp-steps { margin:0; padding-left:1.2rem; color:#9aa7b4; font-size:.85rem; line-height:1.75; }
+.shp-steps code, .shp-code-cap code {
+    color:#f0c040; background:rgba(240,192,64,.12); padding:.03rem .35rem; border-radius:4px;
+    font-family:'Courier New',monospace;
+}
+.shp-recent {
+    margin-top:.85rem; padding-top:.7rem; border-top:1px solid rgba(139,69,19,.3);
+    font-size:.8rem; color:#8899aa;
+}
+.shp-recent .ti { color:#c8a96e; font-weight:600; margin-bottom:.3rem; }
+.shp-recent .rr { display:flex; justify-content:space-between; gap:1rem; padding:.12rem 0; }
+.shp-recent .rr b { color:#69ccf0; font-weight:700; }
 
 /* ── In-game-shop-style layout: left category rail + content panel ── */
 .shp-shell {
@@ -148,8 +206,73 @@ require_once __DIR__ . '/../templates/header.php';
 
 <div class="container shp-wrap">
 
+    <div class="shp-topbar">
+        <div>
+            <h1><i class="bi bi-shop me-2"></i><?= htmlspecialchars($TEXT['shop_pub_title'] ?? 'Battle Coins Shop') ?></h1>
+            <div class="sub"><?= htmlspecialchars($TEXT['shop_pub_sub'] ?? 'Everything below is purchasable in-game with Battle Coins.') ?></div>
+        </div>
+        <?php if ($balance !== null): ?>
+            <div class="shp-bal">
+                <div class="lbl"><?= htmlspecialchars($TEXT['shop_your_balance'] ?? 'Your Battle Coins') ?></div>
+                <div class="val"><i class="bi bi-gem"></i> <?= number_format($balance) ?></div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($donate_ready): ?>
+        <?php
+        // Code box renders when logged-in (the user's code) OR logged-out
+        // (a "log in" prompt). Only a bare donate bar (".solo") shows in the
+        // rare logged-in-but-code-mint-failed case.
+        $show_code_box = ($uid > 0 && $don_code !== null) || $uid === 0;
+        $rate_hint = '1' . $cur_sym . ' = ' . number_format((int)$don_cfg['rate'])
+                   . ' ' . ($TEXT['shop_coins'] ?? 'Battle Coins');
+        ?>
+        <div class="shp-donate<?= $show_code_box ? '' : ' solo' ?>">
+            <div>
+                <div class="t"><i class="bi bi-heart-fill me-1"></i><?= htmlspecialchars($TEXT['shop_donate_title'] ?? 'Support the server — get Battle Coins') ?></div>
+                <div class="s"><?= htmlspecialchars($TEXT['shop_donate_desc'] ?? 'Donate via Ko-fi and Battle Coins are added to your account automatically.') ?>
+                    <b><?= htmlspecialchars($rate_hint) ?></b></div>
+            </div>
+            <a href="<?= htmlspecialchars($don_cfg['kofi_url'] !== '' ? $don_cfg['kofi_url'] : '#') ?>" target="_blank" rel="noopener noreferrer" class="shp-btn shp-btn-kofi">
+                <i class="bi bi-cup-hot me-1"></i><?= htmlspecialchars($TEXT['shop_donate_btn'] ?? 'Donate on Ko-fi') ?>
+            </a>
+        </div>
+        <?php if ($uid > 0 && $don_code !== null): ?>
+            <div class="shp-code-box">
+                <div class="shp-code-cap"><?= htmlspecialchars($TEXT['shop_donate_code_cap'] ?? "Your personal donation code — paste it into the Ko-fi message so we know it's you:") ?></div>
+                <div class="shp-code-row">
+                    <span class="shp-code" id="donCode"><?= htmlspecialchars($don_code) ?></span>
+                    <button type="button" class="shp-copy" data-code="<?= htmlspecialchars($don_code) ?>"><i class="bi bi-clipboard me-1"></i><?= htmlspecialchars($TEXT['shop_donate_copy'] ?? 'Copy') ?></button>
+                </div>
+                <ol class="shp-steps">
+                    <li><?= htmlspecialchars($TEXT['shop_donate_step1'] ?? 'Click "Donate on Ko-fi" above and choose any amount.') ?></li>
+                    <li><?= str_replace('{code}', '<code>' . htmlspecialchars($don_code) . '</code>',
+                              htmlspecialchars($TEXT['shop_donate_step2'] ?? 'Paste your code {code} into the Ko-fi message field.')) ?></li>
+                    <li><?= htmlspecialchars($TEXT['shop_donate_step3'] ?? 'Battle Coins are credited automatically, usually within a minute of payment.') ?></li>
+                </ol>
+                <?php if (!empty($don_recent)): ?>
+                    <div class="shp-recent">
+                        <div class="ti"><?= htmlspecialchars($TEXT['shop_donate_recent'] ?? 'Your recent donations') ?></div>
+                        <?php foreach ($don_recent as $r): ?>
+                            <?php $amt = rtrim(rtrim(number_format((float)$r['amount'], 2, '.', ''), '0'), '.'); ?>
+                            <div class="rr">
+                                <span><?= htmlspecialchars(date('M j, Y', strtotime((string)$r['created_at']))) ?> · <?= htmlspecialchars($amt) ?> <?= htmlspecialchars((string)$r['currency']) ?></span>
+                                <b>+<?= number_format((int)$r['dp_credited']) ?> <?= htmlspecialchars($TEXT['shop_coins'] ?? 'Battle Coins') ?></b>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php elseif ($uid === 0): ?>
+            <div class="shp-code-box muted">
+                <i class="bi bi-info-circle"></i>
+                <span><a href="/login"><?= htmlspecialchars($TEXT['login'] ?? 'Log in') ?></a> <?= htmlspecialchars($TEXT['shop_donate_login_hint'] ?? 'to get your personal donation code so your Battle Coins are credited automatically.') ?></span>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <?php if (!$ok): ?>
-        <div class="shp-topbar"><div><h1><i class="bi bi-shop me-2"></i><?= htmlspecialchars($TEXT['shop_nav'] ?? 'Shop') ?></h1></div></div>
         <div class="shp-notice">
             <i class="bi bi-info-circle me-2"></i>
             <?= htmlspecialchars($reason === 'disabled'
@@ -167,30 +290,6 @@ require_once __DIR__ . '/../templates/header.php';
             fn($c) => !empty($c['tiles']) && strcasecmp(trim($c['name']), 'Balance') !== 0
         ));
         ?>
-
-        <div class="shp-topbar">
-            <div>
-                <h1><i class="bi bi-shop me-2"></i><?= htmlspecialchars($TEXT['shop_pub_title'] ?? 'Battle Coins Shop') ?></h1>
-                <div class="sub"><?= htmlspecialchars($TEXT['shop_pub_sub'] ?? 'Everything below is purchasable in-game with Battle Coins.') ?></div>
-            </div>
-            <?php if ($balance !== null): ?>
-                <div class="shp-bal">
-                    <div class="lbl"><?= htmlspecialchars($TEXT['shop_your_balance'] ?? 'Your Battle Coins') ?></div>
-                    <div class="val"><i class="bi bi-gem"></i> <?= number_format($balance) ?></div>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <?php if ($donations_on): ?>
-            <div class="shp-donate">
-                <div>
-                    <div class="t"><i class="bi bi-heart-fill me-1"></i><?= htmlspecialchars($TEXT['shop_donate_title'] ?? 'Support the server — get Battle Coins') ?></div>
-                    <div class="s"><?= htmlspecialchars($TEXT['shop_donate_soon'] ?? 'Donation checkout is being set up — available very soon.') ?></div>
-                </div>
-                <span class="shp-btn shp-btn-kofi disabled"><i class="bi bi-cup-hot me-1"></i><?= htmlspecialchars($TEXT['shop_donate_btn'] ?? 'Donate') ?></span>
-            </div>
-        <?php endif; ?>
-
         <?php if (empty($shop)): ?>
             <div class="shp-empty">
                 <i class="bi bi-bag-x" style="font-size:2.5rem;display:block;margin-bottom:.6rem;opacity:.4"></i>
@@ -239,6 +338,33 @@ require_once __DIR__ . '/../templates/header.php';
         <?php endif; ?>
     <?php endif; ?>
 </div>
+
+<?php if ($donate_ready): ?>
+<script>
+// Copy the donation code to the clipboard (independent of the catalog).
+(function () {
+    var btn = document.querySelector('.shp-copy');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+        var code = btn.getAttribute('data-code') || '';
+        var done = function () {
+            var html = btn.innerHTML;
+            btn.classList.add('ok');
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i><?= htmlspecialchars($TEXT['shop_donate_copied'] ?? 'Copied!', ENT_QUOTES) ?>';
+            setTimeout(function () { btn.classList.remove('ok'); btn.innerHTML = html; }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(done).catch(done);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = code; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta); done();
+        }
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php if ($ok): ?>
 <script>

@@ -123,4 +123,43 @@ return [
         'dp_per_hour'  => 10,   // DP awarded per hour played
         'daily_cap_dp' => 50,   // max DP earnable per server-day
     ],
+
+    // Ko-fi Donations — automatic Battle Pay (DP) crediting from Ko-fi.
+    // Only used when features.donations = true. Ko-fi is the ONLY supported
+    // processor by design: it's free, offers a webhook on the free tier, and
+    // needs no merchant identity verification. (PayPal/Stripe are deliberately
+    // out of scope — once real money flows you inherit refunds, chargebacks,
+    // tax and fraud; one well-supported path beats four half-supported ones.)
+    //
+    // One-time setup:
+    //   1. Create a free Ko-fi account and set your page currency.
+    //   2. Ko-fi dashboard → Settings → Advanced → API/Webhooks:
+    //        - copy the Verification Token into kofi_verification_token below
+    //        - set the Webhook URL to:  https://<your-site>/kofi_webhook
+    //   3. Pick your rate + currency below, then set features.donations = true.
+    //
+    // How a donation reaches the right account: a logged-in player opens /shop,
+    // copies their personal code, and pastes it into the Ko-fi message field.
+    // The webhook reads the real paid amount, so the donate button is fully
+    // dynamic — the donor chooses any amount, DP = floor(amount × rate).
+    'donation' => [
+        // Ko-fi → Settings → API → "Verification Token". The webhook rejects
+        // any delivery whose token doesn't match this exactly. KEEP SECRET.
+        'kofi_verification_token' => 'YOUR_KOFI_VERIFICATION_TOKEN_HERE',
+
+        // DP granted per 1.00 unit of your Ko-fi currency.
+        // e.g. 100 → a 5.00 donation credits 500 DP. (floor() is applied.)
+        'eur_to_dp_rate' => 100,
+
+        // Your Ko-fi page currency. Label/display only — Ko-fi sends the
+        // amount already in this currency; there is no conversion table.
+        'currency' => 'EUR',
+
+        // Donations below this amount (in currency units) are logged but
+        // credit 0 DP (status = ignored). Set to 0 to credit everything.
+        'min_amount' => 1,
+
+        // Your public Ko-fi page — the "Donate" button links here.
+        'kofi_url' => 'https://ko-fi.com/yourpage',
+    ],
 ];
