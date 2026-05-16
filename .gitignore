@@ -7,6 +7,7 @@
 # files are tracked — only the per-user runtime data is ignored.
 /cache/login_history/*.json
 /cache/rate_limit/*.json
+/cache/shop/*.flag
 
 # ── User-generated uploads ───────────────────────────────────────────────────
 # Ticket attachments (kept private to the ticket owner + GMs at runtime,

@@ -167,3 +167,218 @@ if (!function_exists('shop_get_full')) {
         return $out;
     }
 }
+
+// ─── Worldserver "pending restart" flag (Phase A2) ──────────────────────────
+// battle_pay_* tables are read into worldserver memory at startup only. After
+// ANY shop write the change is invisible in-game until the admin restarts the
+// worldserver. We can't detect the restart from PHP, so we raise a persistent
+// flag on write and let the admin clear it manually after restarting.
+// Stored as a file under cache/shop/ (deny-all .htaccess, gitignored).
+
+if (!function_exists('shop_dirty_flag_path')) {
+    function shop_dirty_flag_path(): string
+    {
+        return __DIR__ . '/../cache/shop/pending_restart.flag';
+    }
+}
+if (!function_exists('shop_mark_dirty')) {
+    function shop_mark_dirty(): void
+    {
+        $p = shop_dirty_flag_path();
+        $dir = dirname($p);
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        @file_put_contents($p, (string)time());
+    }
+}
+if (!function_exists('shop_is_dirty')) {
+    /** Returns the unix ts of the first un-applied write, or null if clean. */
+    function shop_is_dirty(): ?int
+    {
+        $p = shop_dirty_flag_path();
+        if (!is_file($p)) return null;
+        $ts = (int)@file_get_contents($p);
+        return $ts > 0 ? $ts : time();
+    }
+}
+if (!function_exists('shop_clear_dirty')) {
+    function shop_clear_dirty(): void
+    {
+        $p = shop_dirty_flag_path();
+        if (is_file($p)) @unlink($p);
+    }
+}
+
+// ─── Write helpers — Category CRUD (Phase A2) ───────────────────────────────
+
+if (!function_exists('shop_next_id')) {
+    /**
+     * Next manual id for a battle_pay table. No AUTO_INCREMENT in this schema.
+     * Returns GREATEST(SHOP_CUSTOM_ID_BASE, MAX(id)+1) over the WHOLE table so
+     * it (a) prefers the reserved ≥9000 range when repack ids are low (normal)
+     * and (b) can never collide with any existing row, even an unusually high
+     * repack id. $table is whitelisted (never user input).
+     */
+    function shop_next_id(PDO $pdo_world, string $table): int
+    {
+        $allowed = ['battle_pay_group', 'battle_pay_product', 'battle_pay_product_items', 'battle_pay_entry'];
+        if (!in_array($table, $allowed, true)) {
+            throw new InvalidArgumentException('shop_next_id: illegal table ' . $table);
+        }
+        $max = (int)$pdo_world->query("SELECT COALESCE(MAX(id),0) FROM `$table`")->fetchColumn();
+        return max(SHOP_CUSTOM_ID_BASE, $max + 1);
+    }
+}
+
+if (!function_exists('shop_category_get')) {
+    function shop_category_get(PDO $pdo_world, int $id): ?array
+    {
+        try {
+            $stmt = $pdo_world->prepare("SELECT id, idx, name, icon, type FROM battle_pay_group WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('shop_category_get: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('shop_category_add')) {
+    /**
+     * Insert a new category at the end (idx = max+1). 16-char name limit is the
+     * caller's to enforce for UX, but we hard-truncate here as a safety net.
+     * Returns the new id, or null on failure.
+     */
+    function shop_category_add(PDO $pdo_world, string $name, int $icon, int $type): ?int
+    {
+        $name = mb_substr(trim($name), 0, 16);
+        if ($name === '') return null;
+        $type = $type === 1 ? 1 : 0;
+        try {
+            $pdo_world->beginTransaction();
+            $id  = shop_next_id($pdo_world, 'battle_pay_group');
+            $idx = (int)$pdo_world->query("SELECT COALESCE(MAX(idx),0)+1 FROM battle_pay_group")->fetchColumn();
+            $stmt = $pdo_world->prepare(
+                "INSERT INTO battle_pay_group (id, idx, name, icon, type)
+                 VALUES (:id, :idx, :name, :icon, :type)"
+            );
+            $stmt->execute(['id' => $id, 'idx' => $idx, 'name' => $name, 'icon' => max(0, $icon), 'type' => $type]);
+            $pdo_world->commit();
+            return $id;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_category_add: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('shop_category_update')) {
+    function shop_category_update(PDO $pdo_world, int $id, string $name, int $icon, int $type): bool
+    {
+        $name = mb_substr(trim($name), 0, 16);
+        if ($name === '' || $id <= 0) return false;
+        $type = $type === 1 ? 1 : 0;
+        try {
+            $stmt = $pdo_world->prepare(
+                "UPDATE battle_pay_group SET name = :name, icon = :icon, type = :type WHERE id = :id"
+            );
+            return $stmt->execute(['name' => $name, 'icon' => max(0, $icon), 'type' => $type, 'id' => $id]);
+        } catch (PDOException $e) {
+            error_log('shop_category_update: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('shop_category_delete')) {
+    /**
+     * Delete a category. Transaction:
+     *   1. delete its battle_pay_entry rows
+     *   2. (if $cleanup_orphans) delete products that are now referenced by
+     *      ZERO entries anywhere — and their product_items. A product can be
+     *      shared by entries in other categories, so "orphan" = no remaining
+     *      referencing entry, never a blind delete.
+     *   3. delete the battle_pay_group row
+     */
+    function shop_category_delete(PDO $pdo_world, int $id, bool $cleanup_orphans = true): bool
+    {
+        if ($id <= 0) return false;
+        try {
+            $pdo_world->beginTransaction();
+
+            // products referenced by THIS category's entries (candidates for orphan check)
+            $cand = [];
+            if ($cleanup_orphans) {
+                $q = $pdo_world->prepare("SELECT DISTINCT productId FROM battle_pay_entry WHERE groupId = :id");
+                $q->execute(['id' => $id]);
+                $cand = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
+            }
+
+            $pdo_world->prepare("DELETE FROM battle_pay_entry WHERE groupId = :id")->execute(['id' => $id]);
+
+            if ($cleanup_orphans && $cand) {
+                $stillRef = $pdo_world->prepare(
+                    "SELECT COUNT(*) FROM battle_pay_entry WHERE productId = :pid"
+                );
+                $delPi = $pdo_world->prepare("DELETE FROM battle_pay_product_items WHERE productId = :pid");
+                $delP  = $pdo_world->prepare("DELETE FROM battle_pay_product WHERE id = :pid");
+                foreach ($cand as $pid) {
+                    $stillRef->execute(['pid' => $pid]);
+                    if ((int)$stillRef->fetchColumn() === 0) {
+                        $delPi->execute(['pid' => $pid]);
+                        $delP->execute(['pid' => $pid]);
+                    }
+                }
+            }
+
+            $pdo_world->prepare("DELETE FROM battle_pay_group WHERE id = :id")->execute(['id' => $id]);
+            $pdo_world->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_category_delete: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('shop_category_move')) {
+    /**
+     * Move a category one slot up/down in display order. Repack data has
+     * duplicate idx values (e.g. Featured & Balance both idx=1), so a naive
+     * idx-swap is unreliable. Instead: take the full list ordered by
+     * (idx, id) — the same order the viewer uses — swap the target with its
+     * neighbour, then rewrite idx = 1..N for ALL categories. Always takes
+     * effect and de-dupes idx as a bonus. $dir ∈ 'up' | 'down'.
+     */
+    function shop_category_move(PDO $pdo_world, int $id, string $dir): bool
+    {
+        if ($id <= 0 || !in_array($dir, ['up', 'down'], true)) return false;
+        try {
+            $ids = array_map('intval', $pdo_world->query(
+                "SELECT id FROM battle_pay_group ORDER BY idx ASC, id ASC"
+            )->fetchAll(PDO::FETCH_COLUMN));
+
+            $pos = array_search($id, $ids, true);
+            if ($pos === false) return false;
+            $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+            if ($swap < 0 || $swap >= count($ids)) return false; // already at edge
+
+            [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
+
+            $pdo_world->beginTransaction();
+            $upd = $pdo_world->prepare("UPDATE battle_pay_group SET idx = :idx WHERE id = :id");
+            foreach ($ids as $i => $cid) {
+                $upd->execute(['idx' => $i + 1, 'id' => $cid]);
+            }
+            $pdo_world->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_category_move: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
