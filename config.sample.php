@@ -133,13 +133,17 @@ return [
     //
     // One-time setup:
     //   1. Create a free Ko-fi account and set your page currency.
-    //   2. Ko-fi dashboard → Settings → Advanced → API/Webhooks:
-    //        - copy the Verification Token into kofi_verification_token below
-    //        - set the Webhook URL to:  https://<your-site>/kofi_webhook
+    //   2. Ko-fi dashboard -> left menu "More" (the ... three-dots item) ->
+    //      "API". In the Webhooks card:
+    //        - set the Webhook URL to https://<your-site>/kofi_webhook (Update)
+    //        - expand "Advanced" and copy the Verification token into
+    //          kofi_verification_token below
     //   3. Pick your rate + currency below, then set features.donations = true.
     //
     // How a donation reaches the right account: a logged-in player opens /shop,
-    // copies their personal code, and pastes it into the Ko-fi message field.
+    // copies their personal code, and MUST paste it into the Ko-fi message
+    // field. No code (or a wrong one) = "unattributed": logged but NOT
+    // auto-credited (a GM resolves it manually).
     // The webhook reads the real paid amount, so the donate button is fully
     // dynamic — the donor chooses any amount, DP = floor(amount × rate).
     'donation' => [

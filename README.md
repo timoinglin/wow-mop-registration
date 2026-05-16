@@ -712,9 +712,9 @@ Two **independent** feature flags drive the player-facing side — neither impli
 **Ko-fi setup (one-time):**
 
 1. Create a free [Ko-fi](https://ko-fi.com) account and set your page currency.
-2. Ko-fi dashboard → **Settings → Advanced → API/Webhooks**:
-   - copy the **Verification Token**;
-   - set the **Webhook URL** to `https://<your-site>/kofi_webhook`.
+2. Ko-fi dashboard → left menu **More** (the **•••** "three dots" item) → **API**. In the **Webhooks** card:
+   - set the **Webhook URL** to `https://<your-site>/kofi_webhook` and click **Update**;
+   - expand the **▾ Advanced** block and copy the **Verification token** (use **Refresh** if you want a new one — then re-copy).
 3. In `config.php`, fill the `donation` block:
    - `kofi_verification_token` — paste the token from step 2 (keep it secret);
    - `eur_to_dp_rate` — Battle Coins per 1.00 of your currency. This is only the **bootstrap default** — a GM can change the rate at any time in **/admin_shop → Battle Coins exchange rate**, which saves a DB override that wins over this value (default `1000`, tuned to typical in-game prices: a normal item ≈ 1–5k, a premium mount ≈ 25k; `floor()` applied);
@@ -728,6 +728,9 @@ Two **independent** feature flags drive the player-facing side — neither impli
 > The exchange rate is editable in-app: **/admin_shop → Battle Coins exchange rate**. It shows live `1€ / 5€ / 25€` examples and your median in-game item price as an anchor, and the saved value overrides `config.donation.eur_to_dp_rate` (the config line is then only the fallback for fresh installs).
 
 **How crediting works:** a logged-in player opens **/shop**, copies their personal `WL-XXXXXXXX` code, and pastes it into the Ko-fi message when donating. The webhook reads the real paid amount, so the donate button is fully dynamic — any amount works. Crediting happens **only** via the webhook (never the Ko-fi thank-you/redirect page).
+
+> [!CAUTION]
+> **The donor MUST paste their `WL-XXXXXXXX` code into the Ko-fi message field.** This is the only thing that links a payment to an account — Ko-fi does not share the payer's site identity. A donation with no (or a wrong) code is recorded as **unattributed**: it is logged in `donation_log` + `admin_audit_log` for the donor's protection, but **no Battle Coins are credited automatically** — a GM has to resolve it by hand. The `/shop` donate panel makes this requirement very prominent (red warning + a highlighted step), but you should also state it on your Ko-fi page description.
 
 > [!IMPORTANT]
 > The webhook is **idempotent**: every delivery is keyed by Ko-fi's `kofi_transaction_id` (UNIQUE), so a re-delivered webhook never double-credits. Donations whose message has no valid code are logged as **unattributed** (status in `donation_log`, plus an `admin_audit_log` entry) for manual GM resolution — they are *not* credited automatically. Refunds/chargebacks are an accepted small-server risk: a GM can claw back DP via the admin panel. Test with Ko-fi's free **webhook test button** first, then a single ~€1 self-donation as the live smoke test.

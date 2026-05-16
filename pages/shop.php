@@ -107,11 +107,24 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .shp-copy:hover { background:#A0522D; }
 .shp-copy.ok { background:#2e7d32; border-color:#388e3c; }
+.shp-warn {
+    display:flex; align-items:flex-start; gap:.6rem;
+    background:rgba(231,76,60,.12); border:1px solid rgba(231,76,60,.55);
+    border-left:4px solid #e74c3c; border-radius:8px;
+    padding:.7rem .9rem; margin:0 0 .95rem; color:#ffd9d4; font-size:.86rem; line-height:1.5;
+}
+.shp-warn i { color:#ff6b5b; font-size:1.05rem; margin-top:.05rem; flex-shrink:0; }
+.shp-warn b { color:#fff; }
+.shp-warn code {
+    color:#ffe08a; background:rgba(0,0,0,.35); padding:.03rem .4rem; border-radius:4px;
+    font-family:'Courier New',monospace; font-weight:700;
+}
 .shp-steps { margin:0; padding-left:1.2rem; color:#9aa7b4; font-size:.85rem; line-height:1.75; }
 .shp-steps code, .shp-code-cap code {
     color:#f0c040; background:rgba(240,192,64,.12); padding:.03rem .35rem; border-radius:4px;
     font-family:'Courier New',monospace;
 }
+.shp-steps li.key { color:#ffd9d4; font-weight:600; }
 .shp-recent {
     margin-top:.85rem; padding-top:.7rem; border-top:1px solid rgba(139,69,19,.3);
     font-size:.8rem; color:#8899aa;
@@ -247,10 +260,15 @@ require_once __DIR__ . '/../templates/header.php';
                     <span class="shp-code" id="donCode"><?= htmlspecialchars($don_code) ?></span>
                     <button type="button" class="shp-copy" data-code="<?= htmlspecialchars($don_code) ?>"><i class="bi bi-clipboard me-1"></i><?= htmlspecialchars($TEXT['shop_donate_copy'] ?? 'Copy') ?></button>
                 </div>
+                <div class="shp-warn">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span><?= str_replace('{code}', '<code>' . htmlspecialchars($don_code) . '</code>',
+                              htmlspecialchars($TEXT['shop_donate_warn'] ?? 'IMPORTANT: you MUST paste your code {code} into the Ko-fi message field when donating. Without it the payment cannot be matched to your account and Battle Coins will NOT be credited automatically.')) ?></span>
+                </div>
                 <ol class="shp-steps">
                     <li><?= htmlspecialchars($TEXT['shop_donate_step1'] ?? 'Click "Donate on Ko-fi" above and choose any amount.') ?></li>
-                    <li><?= str_replace('{code}', '<code>' . htmlspecialchars($don_code) . '</code>',
-                              htmlspecialchars($TEXT['shop_donate_step2'] ?? 'Paste your code {code} into the Ko-fi message field.')) ?></li>
+                    <li class="key"><?= str_replace('{code}', '<code>' . htmlspecialchars($don_code) . '</code>',
+                              htmlspecialchars($TEXT['shop_donate_step2'] ?? 'Paste your code {code} into the Ko-fi message field — this is what links the payment to your account.')) ?></li>
                     <li><?= htmlspecialchars($TEXT['shop_donate_step3'] ?? 'Battle Coins are credited automatically, usually within a minute of payment.') ?></li>
                 </ol>
                 <?php if (!empty($don_recent)): ?>
