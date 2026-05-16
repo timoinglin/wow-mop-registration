@@ -71,6 +71,30 @@ function class_role_label(int $classId): string {
 function wowhead_item_url(int $itemId): string {
     return 'https://www.wowhead.com/mop-classic/item=' . $itemId;
 }
+function wowhead_spell_url(int $spellId): string {
+    return 'https://www.wowhead.com/mop-classic/spell=' . $spellId;
+}
+
+// MoP 5.4.8 ChrSpecialization IDs → display name. Fixed, well-known set
+// (stored space-separated per talent group in characters.talentTree, e.g.
+// "70 0" = Retribution for group 0). English on purpose — same as the
+// Wowhead spell tooltips, which are locale-driven anyway.
+function mop_spec_name(int $id): ?string {
+    static $m = [
+        62=>'Arcane',63=>'Fire',64=>'Frost',                       // Mage
+        65=>'Holy',66=>'Protection',70=>'Retribution',             // Paladin
+        71=>'Arms',72=>'Fury',73=>'Protection',                    // Warrior
+        102=>'Balance',103=>'Feral',104=>'Guardian',105=>'Restoration', // Druid
+        250=>'Blood',251=>'Frost',252=>'Unholy',                   // Death Knight
+        253=>'Beast Mastery',254=>'Marksmanship',255=>'Survival',   // Hunter
+        256=>'Discipline',257=>'Holy',258=>'Shadow',               // Priest
+        259=>'Assassination',260=>'Combat',261=>'Subtlety',        // Rogue
+        262=>'Elemental',263=>'Enhancement',264=>'Restoration',    // Shaman
+        265=>'Affliction',266=>'Demonology',267=>'Destruction',    // Warlock
+        268=>'Brewmaster',269=>'Windwalker',270=>'Mistweaver',     // Monk
+    ];
+    return $m[$id] ?? null;
+}
 
 // ─── Mode dispatch ───────────────────────────────────────────────────────────
 $char_name = isset($_GET['char']) ? trim((string)$_GET['char']) : '';
@@ -96,6 +120,7 @@ if ($is_profile && $pdo_chars) {
                     c.level, c.xp, c.money, c.totaltime, c.leveltime,
                     c.zone, c.map, c.online, c.logout_time, c.health,
                     c.power1, c.power2, c.power3, c.power4,
+                    c.activespec, c.speccount, c.talentTree,
                     g.guildid, g.name AS guild_name
              FROM characters c
              LEFT JOIN guild_member gm ON gm.guid = c.guid
@@ -225,6 +250,25 @@ if ($is_profile) {
         $sib->execute(['a' => $char['account'], 'g' => $char['guid']]);
         $siblings = $sib->fetchAll();
     } catch (PDOException $e) {}
+
+    // Talents — MoP stores up to 6 chosen talent spells per talent group
+    // (one per tier: levels 15/30/45/60/75/90). spell → Wowhead spell tooltip.
+    $talent_groups = [];
+    try {
+        $tl = $pdo_chars->prepare(
+            "SELECT spec, spell FROM character_talent WHERE guid = :g ORDER BY spec, spell"
+        );
+        $tl->execute(['g' => $char['guid']]);
+        foreach ($tl->fetchAll() as $row) {
+            $talent_groups[(int)$row['spec']][] = (int)$row['spell'];
+        }
+    } catch (PDOException $e) {}
+    // Specialization id per group from characters.talentTree ("70 0").
+    $spec_ids = [];
+    foreach (preg_split('/\s+/', trim((string)($char['talentTree'] ?? ''))) as $i => $sid) {
+        if ($sid !== '') $spec_ids[$i] = (int)$sid;
+    }
+    $active_spec = (int)($char['activespec'] ?? 0);
 
     // Account info (join date) — read-only bit from auth DB
     $account_join = null;
@@ -656,6 +700,60 @@ if ($is_profile) {
             </div>
         </div>
     </div>
+
+    <!-- Talents & Specialization -->
+    <?php if (!empty($talent_groups)): ?>
+    <style>
+    .tal-spec { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin:.2rem 0 .9rem; }
+    .tal-spec .nm { color:#c8a96e; font-weight:700; font-size:1rem; }
+    .tal-spec .badge-act { background:rgba(105,204,240,.15); border:1px solid rgba(105,204,240,.45); color:#69ccf0; font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; padding:.12rem .55rem; border-radius:10px; }
+    .tal-spec .badge-alt { color:#4a5568; font-size:.74rem; }
+    .tal-grid { display:flex; flex-wrap:wrap; gap:.55rem; }
+    .tal-chip { background:linear-gradient(145deg,#1a1a26,#12121b); border:1px solid rgba(139,69,19,.35); border-radius:8px; padding:.5rem .75rem; font-size:.85rem; max-width:100%; }
+    .tal-chip a { color:#dee2e6; text-decoration:none; }
+    .tal-chip a:hover { color:#fff; }
+    .tal-group + .tal-group { margin-top:1.1rem; border-top:1px solid rgba(139,69,19,.2); padding-top:1rem; }
+    .tal-empty { color:#8899aa; font-size:.88rem; }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-diagram-3 me-2"></i><?= htmlspecialchars($TEXT['armory_panel_talents'] ?? 'Talents') ?></div>
+        <?php
+        // Active talent group first, then any other group that has talents.
+        $tal_order = array_keys($talent_groups);
+        usort($tal_order, fn($a, $b) => ($a === $active_spec ? -1 : ($b === $active_spec ? 1 : $a - $b)));
+        foreach ($tal_order as $g):
+            $spells = $talent_groups[$g];
+            $specNm = mop_spec_name($spec_ids[$g] ?? 0);
+        ?>
+        <div class="tal-group">
+            <div class="tal-spec">
+                <?php if ($specNm !== null): ?>
+                    <span class="nm"><?= htmlspecialchars($TEXT['armory_spec_label'] ?? 'Specialization') ?>: <?= htmlspecialchars($specNm) ?></span>
+                <?php else: ?>
+                    <span class="nm"><?= htmlspecialchars(($TEXT['armory_spec_group'] ?? 'Talent set') . ' ' . ($g + 1)) ?></span>
+                <?php endif; ?>
+                <?php if ($g === $active_spec): ?>
+                    <span class="badge-act"><?= htmlspecialchars($TEXT['armory_spec_active'] ?? 'Active') ?></span>
+                <?php else: ?>
+                    <span class="badge-alt"><?= htmlspecialchars($TEXT['armory_spec_offspec'] ?? 'Off-spec') ?></span>
+                <?php endif; ?>
+            </div>
+            <?php if (empty($spells)): ?>
+                <div class="tal-empty"><?= htmlspecialchars($TEXT['armory_no_talents'] ?? 'No talents chosen yet.') ?></div>
+            <?php else: ?>
+                <div class="tal-grid">
+                    <?php foreach ($spells as $sp): ?>
+                        <span class="tal-chip"><a href="<?= htmlspecialchars(wowhead_spell_url($sp)) ?>" target="_blank" rel="noopener noreferrer">spell=<?= (int)$sp ?></a></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        <div style="color:#4a5568;font-size:.76rem;margin-top:.8rem">
+            <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_talents_hint'] ?? 'Talent details come from Wowhead (Mists of Pandaria). Heavily customised server spells may not resolve.') ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Other characters on this account -->
     <?php if (!empty($siblings)): ?>

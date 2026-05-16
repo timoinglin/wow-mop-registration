@@ -36,5 +36,21 @@ try {
     // Optionally, add an error to display on the site if this connection is critical
 }
 
+// --- Connection for World Database (optional) ---
+// Only needed by the in-game Shop management feature. Absence of `name_world`
+// in config, or a failed connection, is NON-fatal — $pdo_world stays null and
+// the shop admin page degrades gracefully ("configure world DB").
+$pdo_world = null;
+if (!empty($config['db']['name_world'])) {
+    $dsn_world = "mysql:host=" . $config['db']['host'] . ";port=" . $config['db']['port']
+               . ";dbname=" . $config['db']['name_world'] . ";charset=utf8mb4";
+    try {
+        $pdo_world = new PDO($dsn_world, $config['db']['user'], $config['db']['password'], $options);
+    } catch (PDOException $e) {
+        error_log("Database Connection Error (World): " . $e->getMessage());
+        $pdo_world = null;
+    }
+}
+
 // Ensure Nightmare Characters Database connection is explicitly null as it's been removed
 $pdo_chars_nm = null;

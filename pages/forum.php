@@ -824,6 +824,46 @@ echo $forum_css;
         <p><?= htmlspecialchars($TEXT['forum_index_subtitle'] ?? 'Discuss, ask, share — and meet the rest of the realm.') ?></p>
     </div>
 
+    <?php $fo_recent = forum_recent_threads($pdo_auth, 6); ?>
+    <?php if (!empty($fo_recent)): ?>
+    <style>
+    .fo-recent { background:linear-gradient(145deg,#15151f,#0e0e17); border:1px solid rgba(139,69,19,.3); border-radius:10px; padding:1rem 1.2rem; margin-bottom:1.6rem; }
+    .fo-recent-h { color:#c8a96e; font-weight:700; font-size:1rem; margin-bottom:.5rem; }
+    .fo-recent-row { display:flex; align-items:center; gap:.85rem; padding:.55rem .35rem; border-top:1px solid rgba(139,69,19,.14); text-decoration:none; color:inherit; transition:background .12s ease; }
+    .fo-recent-row:first-of-type { border-top:none; }
+    .fo-recent-row:hover { background:rgba(200,169,110,.06); }
+    .fo-recent-ic { width:30px; height:30px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; background:linear-gradient(145deg,#1a1a2e,#12121f); border:1px solid rgba(139,69,19,.3); color:#c8a96e; font-size:.9rem; }
+    .fo-recent-main { flex:1; min-width:0; }
+    .fo-recent-title { display:block; color:#dee2e6; font-weight:600; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fo-recent-row:hover .fo-recent-title { color:#fff; }
+    .fo-recent-meta { display:block; color:#8899aa; font-size:.74rem; margin-top:.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fo-recent-when { text-align:right; flex-shrink:0; font-size:.72rem; line-height:1.35; }
+    .fo-recent-when .by { display:block; color:#c8a96e; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fo-recent-when .ago { display:block; color:#4a5568; }
+    @media (max-width:560px){ .fo-recent-when .by { max-width:90px; } .fo-recent-meta { max-width:52vw; } }
+    </style>
+    <div class="fo-recent">
+        <div class="fo-recent-h"><i class="bi bi-activity me-2"></i><?= htmlspecialchars($TEXT['forum_recent_title'] ?? 'Latest activity') ?></div>
+        <?php foreach ($fo_recent as $r):
+            $r_href = '/forum/' . rawurlencode($r['category_slug']) . '/' . rawurlencode($r['slug']);
+            $r_when = fp_relative_time($r['last_reply_at'] ?: $r['created_at'], $TEXT);
+            $r_who  = $r['last_reply_by'] ?: $r['author_name'];
+        ?>
+        <a class="fo-recent-row" href="<?= htmlspecialchars($r_href, ENT_QUOTES) ?>">
+            <span class="fo-recent-ic"><i class="bi <?= htmlspecialchars($r['category_icon'] ?: 'bi-chat-square-text') ?>"></i></span>
+            <span class="fo-recent-main">
+                <span class="fo-recent-title"><?= htmlspecialchars($r['title']) ?></span>
+                <span class="fo-recent-meta"><?= htmlspecialchars($TEXT['forum_recent_in'] ?? 'in') ?> <?= htmlspecialchars($r['category_name']) ?> &middot; <?= (int)$r['reply_count'] ?> <?= htmlspecialchars($TEXT['forum_replies'] ?? 'replies') ?></span>
+            </span>
+            <span class="fo-recent-when">
+                <span class="by"><?= htmlspecialchars($r_who) ?></span>
+                <span class="ago"><?= htmlspecialchars($r_when) ?></span>
+            </span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <?php if (empty($categories)): ?>
         <div class="text-center py-5" style="color:#4a5568">
             <i class="bi bi-inbox" style="font-size:3rem;display:block;margin-bottom:1rem;opacity:.4"></i>

@@ -13,6 +13,10 @@ return [
         'password'   => 'ascent',       // EmuCoach default: ascent
         'name_auth'  => 'auth',         // EmuCoach default auth DB
         'name_chars' => 'characters',   // EmuCoach default characters DB
+        'name_world' => 'world',        // World DB — only needed for the in-game
+                                        // Shop management feature. Some repacks
+                                        // name it 'mop_world'. Safe to leave as-is
+                                        // if you don't use shop management.
     ],
 
     // Realm Configuration
@@ -63,6 +67,18 @@ return [
         'recover_password' => true,  // Password recovery via email (requires SMTP)
         'tickets'          => true,  // Support ticket system
         'maintenance'      => false, // Maintenance mode (GMs can still log in)
+        'shop_admin'       => false, // In-game Battle Pay shop management.
+                                     // Requires a reachable world DB (name_world)
+                                     // with battle_pay_* tables. Off by default;
+                                     // the page degrades gracefully if enabled
+                                     // but the DB/tables aren't present.
+        'shop'             => false, // Public user-facing shop catalog (/shop):
+                                     // a read-only list of what's buyable in-game.
+                                     // Independent of shop_admin and donations.
+        'donations'        => false, // Ko-fi donate button + DP crediting.
+                                     // Independent of 'shop' — you can show the
+                                     // catalog with donations off, or vice versa.
+                                     // Needs Ko-fi config (see 'donation' block).
     ],
 
     // Login Security — brute-force protection
@@ -106,5 +122,52 @@ return [
         'enabled'      => true,
         'dp_per_hour'  => 10,   // DP awarded per hour played
         'daily_cap_dp' => 50,   // max DP earnable per server-day
+    ],
+
+    // Ko-fi Donations — automatic Battle Pay (DP) crediting from Ko-fi.
+    // Only used when features.donations = true. Ko-fi is the ONLY supported
+    // processor by design: it's free, offers a webhook on the free tier, and
+    // needs no merchant identity verification. (PayPal/Stripe are deliberately
+    // out of scope — once real money flows you inherit refunds, chargebacks,
+    // tax and fraud; one well-supported path beats four half-supported ones.)
+    //
+    // One-time setup:
+    //   1. Create a free Ko-fi account and set your page currency.
+    //   2. Ko-fi dashboard -> left menu "More" (the ... three-dots item) ->
+    //      "API". In the Webhooks card:
+    //        - set the Webhook URL to https://<your-site>/kofi_webhook (Update)
+    //        - expand "Advanced" and copy the Verification token into
+    //          kofi_verification_token below
+    //   3. Pick your rate + currency below, then set features.donations = true.
+    //
+    // How a donation reaches the right account: a logged-in player opens /shop,
+    // copies their personal code, and MUST paste it into the Ko-fi message
+    // field. No code (or a wrong one) = "unattributed": logged but NOT
+    // auto-credited (a GM resolves it manually).
+    // The webhook reads the real paid amount, so the donate button is fully
+    // dynamic — the donor chooses any amount, DP = floor(amount × rate).
+    'donation' => [
+        // Ko-fi → Settings → API → "Verification Token". The webhook rejects
+        // any delivery whose token doesn't match this exactly. KEEP SECRET.
+        'kofi_verification_token' => 'YOUR_KOFI_VERIFICATION_TOKEN_HERE',
+
+        // DP granted per 1.00 unit of your Ko-fi currency. This is just the
+        // bootstrap default — once a GM sets the rate in /admin_shop it is
+        // stored in the DB and that UI value wins (this line is then ignored).
+        // 1000 is tuned to typical in-game prices (a normal item ≈ 1–5k
+        // Battle Coins, a premium mount ≈ 25k): e.g. a 5.00 donation → 5,000
+        // DP (≈ a couple of items), 25.00 → a top-tier mount. floor() applied.
+        'eur_to_dp_rate' => 1000,
+
+        // Your Ko-fi page currency. Label/display only — Ko-fi sends the
+        // amount already in this currency; there is no conversion table.
+        'currency' => 'EUR',
+
+        // Donations below this amount (in currency units) are logged but
+        // credit 0 DP (status = ignored). Set to 0 to credit everything.
+        'min_amount' => 1,
+
+        // Your public Ko-fi page — the "Donate" button links here.
+        'kofi_url' => 'https://ko-fi.com/yourpage',
     ],
 ];

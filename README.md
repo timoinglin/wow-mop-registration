@@ -6,47 +6,20 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange) ![GitHub Release](https://img.shields.io/github/v/release/timoinglin/wow-mop-registration?label=release&color=8B4513) [![Live Demo](https://img.shields.io/badge/demo-wow--legends.eu-c8a96e?logo=globe)](https://wow-legends.eu/)
 
-> ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [How to Update](#how-to-update) section to stay current.
+> ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [Updating guide](docs/UPDATE.md) to stay current.
+
+> 💛 **Enjoying the portal?** It's free and open-source, built and maintained in spare time. If it saved you hours of setup or you'd like to see it keep growing, a coffee genuinely helps — see [Support the Project](#support-the-project).
+>
+> [![Support the project on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kneuma)
 
 ## Table of Contents
 
 - [Features](#features)
 - [Preview](#preview)
-  - [Home Page](#home-page)
-  - [User Dashboard](#user-dashboard)
-  - [Public Armory](#public-armory)
-  - [Leaderboards](#leaderboards)
-  - [Custom 404 Page](#custom-404-page)
-  - [Forum — Thread Page](#forum--thread-page)
-  - [Forum — Admin Configuration](#forum--admin-configuration)
-  - [Admin Dashboard - Overview](#admin-dashboard---overview)
-  - [Admin Dashboard - Accounts](#admin-dashboard---accounts)
-  - [Admin Dashboard - Tickets](#admin-dashboard---tickets)
 - [Quick Start](#quick-start)
 - [One-Click Installer](#one-click-installer)
-- [Release Packaging For The Installer](#release-packaging-for-the-installer)
-- [Requirements](#requirements)
-  - [Recommended: XAMPP](#recommended-xampp)
-  - [PHP Extensions](#php-extensions)
-- [Installation](#installation)
-  - [1. Download](#1-download)
-  - [2. Configure](#2-configure)
-  - [3. Database Setup](#3-database-setup)
-  - [4. Feature Flags](#4-feature-flags)
-  - [5. Social Links & Content](#5-social-links--content)
-  - [6. Dependencies](#6-dependencies)
-  - [7. Enable mod_rewrite](#7-enable-mod_rewrite)
-- [How to Update](#how-to-update)
-  - [Upgrading from v0.3.x → v0.4.0](#upgrading-from-v03x--v040)
-  - [Upgrading from v0.4.x → v0.5.0](#upgrading-from-v04x--v050)
-- [Admin Dashboard](#admin-dashboard)
-  - [Managing News](#managing-news)
-  - [Managing the Forum](#managing-the-forum)
-- [Customization](#customization)
-  - [Changing Text and Labels](#changing-text-and-labels)
-  - [Replacing Images and Logo](#replacing-images-and-logo)
-- [Security Notes](#security-notes)
-- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [Support the Project](#support-the-project)
 - [License](#license)
 
 ## Features
@@ -91,6 +64,11 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 ### Leaderboards
 ![Leaderboards](assets/img/screenshots/leaderboards.png)
 
+### Public Shop
+*The player-facing `/shop` — an in-game-shop-styled, read-only catalog of everything buyable with Battle Coins (left category rail, real item icons + hover tooltips via Wowhead), the logged-in user's balance, and the Ko-fi donate panel with a personal attribution code.*
+
+![Public Shop](assets/img/screenshots/shop_public.png)
+
 ### Custom 404 Page
 *"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
 
@@ -105,6 +83,11 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 *The full forum admin page at `/admin_forum` — Moderation Queue (pending threads + replies with Approve / Reject), Settings (enable toggle + auto-approve threshold), Categories CRUD, and Forum Bans.*
 
 ![Forum Admin Configuration](assets/img/screenshots/forum_admin.png)
+
+### In-Game Shop Management
+*The GM-only `/admin_shop` — full CRUD over the repack's Battle Pay store (categories, item tiles, prices, reorder, move, Wowhead previews) plus the Battle Coins exchange-rate setting, all feature-flagged and repack-portable.*
+
+![In-Game Shop Management](assets/img/screenshots/shop_management.png)
 
 ### Admin Dashboard - Overview
 ![Admin Overview](assets/img/screenshots/admin1.png)
@@ -129,7 +112,7 @@ copy config.sample.php config.php
 
 # 4. Edit config.php with your DB credentials, realm info, site base URL, reCAPTCHA keys, etc.
 
-# 5. Run the SQL setup (see Database Setup section below)
+# 5. Run the SQL setup (see docs/INSTALL.md -> Database Setup)
 
 # 6. Start Apache from the XAMPP Control Panel (your repack already runs its own MySQL)
 
@@ -183,632 +166,31 @@ After the installer finishes, open `config.php` and add your reCAPTCHA keys and 
 
 ---
 
-## Requirements
+## Documentation
 
-### Recommended: XAMPP
+Full guides live in the [`docs/`](docs/) folder so this README stays focused on what the project is and how to get it running:
 
-The easiest way to run this project is with [**XAMPP**](https://www.apachefriends.org/), which bundles **Apache** and **PHP** in a single installer. Your repack already provides its own MySQL database, so you only need XAMPP for the web server.
-
-| Requirement | Minimum | Recommended |
-|---|---|---|
-| **PHP** | 7.4 | 8.0+ |
-| **Apache** | with `mod_rewrite` enabled | Included in XAMPP |
-| **Composer** | 2.x | Latest stable |
-
-### PHP Extensions
-
-The following extensions must be enabled in `php.ini`. In XAMPP, open `C:\xampp\php\php.ini`, search for each extension, remove the leading `;` to uncomment it, then **restart Apache**.
-
-| Extension | Purpose |
+| Guide | What's inside |
 |---|---|
-| `pdo_mysql` | Database access |
-| `openssl` | SMTP TLS/SSL for emails |
-| `mbstring` | String handling |
-| `hash` | SHA-1 password hashing *(enabled by default in PHP 8)* |
-| `curl` | Recommended for reCAPTCHA and outbound HTTP requests |
-| `gmp` | Big number math *(optional, for SRP6)* |
-| `fileinfo` | MIME type checking for ticket attachments |
+| **[Installation](docs/INSTALL.md)** | Requirements, manual setup, database, the configuration steps, feature flags, `mod_rewrite` |
+| **[Updating](docs/UPDATE.md)** | The one-click updater, Git & manual paths, and every version-specific upgrade guide |
+| **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, changing text & images |
+| **[Security Notes](docs/SECURITY.md)** | What's protected out of the box and what you must configure |
+| **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and their fixes |
+
+> New here? Use the [One-Click Installer](#one-click-installer) above, or follow the [manual Installation guide](docs/INSTALL.md).
 
 ---
 
-## Installation
+## Support the Project
 
-### 1. Download
+This portal is **free and MIT-licensed**, and it always will be — no paywall, no locked features. But a lot of evenings and weekends go into building it, testing every release on a live realm, writing the docs, and helping people get their servers online.
 
-Clone the repo or download the ZIP, then serve it from your Apache site root:
+If this saved you real development time, helped you launch your community, or you simply like where it's heading, a small tip keeps the momentum going — new features, fixes, and support. Every coffee is hugely appreciated and genuinely motivating. 💛
 
-```
-C:\xampp\htdocs\
-```
+[![Support the project on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kneuma)
 
-> [!IMPORTANT]
-> This project currently uses root-relative URLs such as `/login`, `/register`, `/assets/...` and `.htaccess` rules that assume the app is mounted at the web root. If you keep the repo in a subfolder like `C:\xampp\htdocs\wow-legends`, configure an Apache `VirtualHost` or `Alias` so that folder is served as its own site root.
-
-### 2. Configure
-
-Copy `config.sample.php` to `config.php`:
-
-```
-config.sample.php  →  config.php
-```
-
-Open `config.php` and set:
-
-| Setting | Description |
-|---|---|
-| **Database** | MySQL host, user, password, auth DB name, characters DB name |
-| **Realm** | Realmlist address, realm name, expansion ID, server ports |
-| **Site** | Site title, base URL |
-| **reCAPTCHA** | Site key + secret from [Google reCAPTCHA](https://www.google.com/recaptcha) (v2 Checkbox) |
-| **SMTP** | Email host, port, credentials for password recovery and ticket notifications |
-| **Client** | External download link for the game client (Mega, MediaFire, etc.) |
-| **Social Links** | Discord, YouTube, X (Twitter), Instagram URLs — leave empty to hide |
-| **FAQ** | Array of question/answer pairs for the FAQ accordion |
-| **Vote Sites** | Array of vote site links shown on the user dashboard |
-
-> [!TIP]
-> Common local DB credentials are often `host=127.0.0.1`, `user=root`, `password=ascent`, but database names vary by repack. Some installs use `auth` / `characters`, while others use `mop_auth` / `mop_characters`.
-
-> [!IMPORTANT]
-> Set `site.base_url` to the exact URL where the app is reachable. Password recovery emails build reset links from this value.
-
-### 3. Database Setup
-
-> [!IMPORTANT]
-> **The ticket system, admin audit log, and password recovery require extra tables in your `auth` database.** Without these tables, those features will show database errors.
-
-Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, go to the **SQL** tab, and run the contents of `sql/setup.sql`:
-
-```sql
--- This creates 13 tables (plus idempotent column-add and charset migrations):
--- 1. password_resets       — password recovery tokens
--- 2. tickets               — support ticket headers (subject, category, status…)
--- 3. admin_audit_log       — chronological log of admin actions
--- 4. playtime_rewards      — per-account state for the Battle Pay reward feature
--- 5. playtime_reward_log   — audit trail for every Battle Pay claim
--- 6. ticket_messages       — per-message thread (user + admin replies, attachments)
--- 7. news_posts            — admin-authored blog/news (Markdown body, draft/published)
--- 8. user_avatars          — per-account uploaded avatars (one row when uploaded)
--- 9. forum_settings        — single-row forum config (enabled + auto-approve threshold)
--- 10. forum_categories     — one level (no sub-categories), slug + name + icon + sort
--- 11. forum_threads        — title + author + status + sticky/locked + view/reply counts
--- 12. forum_posts          — every message (OP + replies), status, edited_at/by
--- 13. forum_bans           — forum-only mutes (game login unaffected); expires_at NULL = permanent
-
--- Compatible with MySQL 5.5.9+
--- All CREATEs use IF NOT EXISTS. Idempotent migration blocks handle:
---   - ticket_messages.attachments column add (INFORMATION_SCHEMA-checked)
---   - utf8 → utf8mb4 conversion for the legacy tables (only fires when needed)
--- so re-running setup.sql is always safe.
--- See sql/setup.sql for the full script.
-```
-
-You can also run it from the command line:
-
-```bash
-mysql -u root -pascent auth < sql/setup.sql
-```
-
-The script uses `CREATE TABLE IF NOT EXISTS`, so it's safe to run multiple times.
-
-### 4. Feature Flags
-
-The `features` block in `config.php` lets you toggle features without touching code:
-
-```php
-'features' => [
-    'recaptcha'        => true,   // reCAPTCHA on all forms
-    'recover_password' => true,   // Password recovery via email
-    'tickets'          => true,   // Support ticket system
-    'maintenance'      => false,  // Maintenance mode (GMs can still log in)
-],
-
-// Brute-force lockout settings (file-based, no DB table needed)
-'security' => [
-    'max_login_attempts' => 5,   // Failed attempts before lockout
-    'lockout_minutes'    => 15,  // Duration of lockout in minutes
-],
-
-// Message shown during maintenance
-'maintenance_message' => 'The server is currently under maintenance.',
-```
-
-| Flag | When `false` |
-|---|---|
-| `recaptcha` | reCAPTCHA widget hidden, JS not loaded, server-side check bypassed |
-| `recover_password` | `/recover` and `/reset_password` redirect to `/login`; link hidden |
-| `tickets` | `/tickets` redirects to `/dashboard`; menu item hidden |
-| `maintenance` | All pages show a maintenance screen (GMs with level ≥ 9 are exempt) |
-
-### 5. Social Links & Content
-
-Social links appear in the hero section and footer. Set to empty string `''` to hide any link:
-
-```php
-'social' => [
-    'discord'   => 'https://discord.gg/your-invite',
-    'youtube'   => '',   // hidden when empty
-    'twitter'   => '',
-    'instagram' => '',
-],
-```
-
-FAQ items and vote sites are configured in `config.php`:
-
-```php
-'faq' => [
-    ['q' => 'Is it free to play?', 'a' => 'Yes, 100% free.'],
-],
-
-'vote_sites' => [
-    ['name' => 'TopG', 'url' => 'https://topg.org/...', 'cooldown_hours' => 12],
-],
-```
-
-> [!NOTE]
-> News is stored in the `news_posts` database table and managed from the admin panel at `/admin_news`. A starter "Welcome!" post is seeded by `sql/setup.sql` on a fresh install so the news section is never empty out of the gate — edit or delete it from the admin UI. There is no `config.news` entry; everything lives in the DB.
-
-### 6. Dependencies
-
-`vendor/` (PHPMailer + Parsedown) **is committed to the repo** so that fresh clones and the one-click installer work out of the box without requiring Composer locally. You should not need to run `composer install` for a normal install.
-
-If you ever want to refresh dependencies (e.g. after pulling an upstream upgrade) or your `vendor/` is missing for some reason:
-
-```bash
-composer install --no-dev
-```
-
-### 7. Enable mod_rewrite
-
-Pretty URLs (`/login`, `/register`) require Apache's `mod_rewrite`:
-
-1. Open `C:\xampp\apache\conf\httpd.conf`
-2. Find and uncomment: `LoadModule rewrite_module modules/mod_rewrite.so`
-3. Find your `<Directory>` block and set `AllowOverride All`
-4. Restart Apache
-
----
-
-## How to Update
-
-Already running and want the latest version? **Keep your existing `config.php`, `uploads/`, and `cache/`** — everything else can be replaced.
-
-> [!IMPORTANT]
-> Before updating, back up `config.php` and the `uploads/` folder. Both are gitignored, so `git pull` won't touch them — but a backup is cheap insurance in case you need to roll back.
-
-### Option A — Git (recommended)
-
-If you cloned with Git originally:
-
-```bash
-# 1. Stop Apache from the XAMPP Control Panel
-
-# 2. Pull the latest files (this brings in updated vendor/ too — it's tracked)
-git pull origin main
-
-# 3. Re-run the SQL setup — it's idempotent (CREATE TABLE IF NOT EXISTS)
-mysql -u root -pascent auth < sql/setup.sql
-
-# 4. Restart Apache and you're done
-```
-
-### Option B — Manual (release ZIP)
-
-If you installed by extracting a release ZIP:
-
-1. **Stop Apache.**
-2. **Back up** `config.php` and the `uploads/` folder.
-3. **Delete** the old project files **except** `config.php`, `uploads/`, and `cache/`.
-4. **Extract** the new release ZIP into the same folder, letting it overwrite everything else (the ZIP includes `vendor/`).
-5. **Re-run** `sql/setup.sql` on your `auth` database — safe to run multiple times.
-6. **Restart Apache.**
-
-### What carries over automatically
-
-| File / Folder | Why it's preserved |
-|---|---|
-| `config.php` | DB credentials, realm info, social links, news, FAQ, vote sites, feature flags |
-| `uploads/` | Ticket attachments uploaded by users |
-| `cache/` | Login history and rate-limit data |
-
-### Worth knowing
-
-- New features may add **new keys** to `lang/en.php` and `lang/es.php`. Missing keys fall back to English automatically — updating is non-breaking, but translations may show English until you copy in the new keys (or just update both `lang/` files from the new release).
-- New SQL columns or tables, when introduced, are added to `sql/setup.sql` with `IF NOT EXISTS` patterns, so re-running it is always safe.
-- Check the [release notes](https://github.com/timoinglin/wow-mop-registration/releases) for any version-specific upgrade steps.
-
----
-
-### Upgrading from v0.3.x → v0.4.0
-
-v0.4.0 introduces the **News / Blog system**, which replaces the legacy `config.news` array with a database-backed editor (EasyMDE), public `/news` pages, image uploads, and a windowed pager. None of the existing v0.3.x features were removed.
-
-Follow the three steps below in order. Total time: ~5 minutes.
-
-#### 1. Pull the new code
-
-```bash
-# stop Apache first (XAMPP Control Panel → Stop)
-git pull origin main
-# (or extract the v0.4.0 release ZIP, overwriting everything except
-#  config.php, uploads/, cache/)
-```
-
-#### 2. Run the SQL setup (required)
-
-The new `news_posts` table must be created in your `auth` database, and a starter "Welcome!" post is seeded on first run:
-
-```bash
-mysql -u root -pascent auth < sql/setup.sql
-```
-
-`sql/setup.sql` is idempotent:
-- The `CREATE TABLE news_posts (...)` uses `IF NOT EXISTS` so re-running on an existing install does nothing destructive.
-- The seed `INSERT` is guarded by `WHERE NOT EXISTS (SELECT 1 FROM news_posts LIMIT 1)`, so it only fires when the table is empty. If you delete the seed post from the admin UI later, re-running setup.sql won't resurrect it.
-
-#### 3. Make sure `uploads/news/` exists (required)
-
-The admin editor uploads post images to `uploads/news/`. The release ships a tracked `uploads/news/.htaccess` (override that makes the dir publicly readable while still blocking script execution) — if you used `git pull` or extracted the new ZIP, this is already in place. Verify with:
-
-```bash
-ls uploads/news/.htaccess
-```
-
-If it's missing for any reason, create the dir and add this `.htaccess`:
-
-```apache
-<RequireAll>
-    Require all granted
-</RequireAll>
-
-<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
-    Require all denied
-</FilesMatch>
-
-Options -Indexes -ExecCGI
-```
-
-#### 4. (Optional) Clean up `config.news`
-
-The `'news' => [...]` array in `config.php` is **no longer read** — v0.4.0 sources news exclusively from the `news_posts` table. You can:
-
-- **Leave it alone** — it's silently ignored. No harm done.
-- **Delete it** for a cleaner config file (recommended).
-- **Migrate existing entries** — if your `config.news` array had real news posts you want to keep, log in as a GM 9+ admin, go to `/admin_news`, and copy each entry into a new post (~10 seconds per entry).
-
-#### 5. Restart Apache + verify
-
-```bash
-# Start Apache from the XAMPP Control Panel
-```
-
-Then in a browser:
-
-1. Visit `/news` — you should see the seed "Welcome!" post (plus any you migrated).
-2. Visit the homepage — the "Latest Updates" section should pull from the DB now, with a "View All News" CTA underneath.
-3. Log in as a GM 9+ account, click **Admin Panel → News** tab — the new "Manage News" link takes you to `/admin_news`. Click "New Post" to open the EasyMDE editor.
-4. On any public news article you'll also see a small **Edit Post** button (admins only).
-
-#### What's new at a glance
-
-| Area | Change |
-|---|---|
-| Database | New table `news_posts` (+ idempotent seed) |
-| Filesystem | New dir `uploads/news/` (image uploads, tracked `.htaccess`) |
-| Routing | New `.htaccess` rule: `/news/{slug}` → `pages/news.php?slug={slug}` |
-| Pages | `pages/news.php`, `pages/admin_news.php`, `pages/news_image.php`, `pages/news_preview.php` |
-| Helpers | `includes/news.php` (slug, fetchers) |
-| Admin UI | New **News** tab in `/admin_dashboard` |
-| Public UI | New `/news` list (paginated, 9/page, windowed pager) + `/news/{slug}` detail |
-| Homepage | "Latest Updates" section reads 3 newest published posts from DB; new "View All News" CTA |
-| Config | `config.news` deprecated (still ignored gracefully if left) |
-| i18n | ~90 new keys in `lang/en.php` and `lang/es.php` |
-| External | EasyMDE editor loads from jsDelivr CDN (only on `/admin_news` edit form) |
-
-> [!NOTE]
-> The EasyMDE editor is loaded from a public CDN (`cdn.jsdelivr.net`). The admin form needs internet access to render it — the **public** news pages don't depend on the CDN at all (they're rendered server-side through Parsedown).
-
----
-
-### Upgrading from v0.4.x → v0.5.0
-
-v0.5.0 introduces the **Forum** system, **user avatars**, and an internal **charset migration** for the legacy tables. Forum stays disabled by default — flip one toggle when you're ready to expose it.
-
-Follow the steps in order. Total time: ~5 minutes (the charset conversion runs once on existing data and is sub-second for typical installs).
-
-#### 1. Pull the new code
-
-```bash
-# stop Apache first (XAMPP Control Panel → Stop)
-git pull origin main
-# (or extract the v0.5.0 release ZIP, overwriting everything except
-#  config.php, uploads/, cache/)
-```
-
-#### 2. Run the SQL setup (required)
-
-`sql/setup.sql` adds 6 new tables (`user_avatars` + the 5 `forum_*` tables) and runs a one-time charset migration on the original 6 legacy tables to upgrade them from `utf8` (alias for utf8mb3) to `utf8mb4`:
-
-```bash
-mysql -u root -pascent auth < sql/setup.sql
-```
-
-Idempotent — safe to re-run:
-- `CREATE TABLE IF NOT EXISTS` for every new table.
-- The settings + default-category + welcome-thread seeds are guarded by `WHERE NOT EXISTS`, so admins who delete them won't see them resurrected on a re-run.
-- The charset migration only fires on tables not already at utf8mb4 (INFORMATION_SCHEMA-checked). A second run of the entire script measures ~3 ms total.
-
-> [!NOTE]
-> The charset migration rewrites the legacy tables in place (`ALTER TABLE … CONVERT TO CHARACTER SET utf8mb4`). For a typical install with thousands of rows it finishes in under a second. The only edge case is **very old MySQL with InnoDB ANTELOPE row format** where the `password_resets.idx_email` index could exceed the 767-byte prefix limit at utf8mb4 — modern XAMPP / MariaDB 10.2+ / MySQL 5.7.7+ default to DYNAMIC row format, which supports 3072 bytes, so it just works. If your install hits the edge case, the ALTER errors cleanly with no data loss; fix is `ALTER TABLE password_resets DROP INDEX idx_email, ADD INDEX idx_email (email(191))` and re-run setup.sql.
-
-#### 3. Make sure `uploads/avatars/` and `uploads/forum/` exist (required)
-
-Both new directories have tracked override `.htaccess` files that allow public reads (so images render on the site) while still blocking script extensions. `git pull` / fresh ZIP extraction puts them in place automatically — verify with:
-
-```bash
-ls uploads/avatars/.htaccess uploads/forum/.htaccess
-```
-
-If either is missing, create the dir and add this `.htaccess`:
-
-```apache
-<RequireAll>
-    Require all granted
-</RequireAll>
-
-<FilesMatch "\.(php|phtml|phar|pl|py|cgi|sh|html?)$">
-    Require all denied
-</FilesMatch>
-
-Options -Indexes -ExecCGI
-```
-
-#### 4. (Optional) Decide if you want the forum exposed
-
-The forum table seeds with `enabled = 0`, so even after running the SQL the public `/forum` URL stays invisible. To turn it on:
-
-1. Log in as GM 9+
-2. Visit **Admin Panel → Forum tab → Configure Forum**
-3. Flip **Forum enabled** to on, set the **auto-approve threshold** (default 3; `0` = auto-publish everyone)
-4. The **Forum** link will appear in the main nav for everyone
-
-You can also leave it disabled, browse it yourself as an admin (`/forum` is admin-previewable when off), populate some categories, and only enable it when you're ready.
-
-#### 5. Restart Apache + verify
-
-Then in a browser:
-
-1. Visit `/dashboard` → click your avatar in the hero (or in the navbar dropdown) → upload an image. Refresh — your avatar appears across the site.
-2. Visit `/admin_forum` → the seeded "General Discussion" category + "Welcome to the forum!" thread are there. Edit the welcome thread or delete it.
-3. Toggle the forum on. The nav link appears. Visit `/forum` as a regular user → category index. Click in → thread list → thread detail. Reply, see the approval-queue flow if you're below the threshold.
-4. As a GM: open any thread → Mod tools row in the hero (Approve / Sticky / Lock / Delete) + Approve/Delete links on individual pending posts.
-
-#### What's new at a glance
-
-| Area | Change |
-|---|---|
-| Database | 6 new tables (`user_avatars`, `forum_settings`, `forum_categories`, `forum_threads`, `forum_posts`, `forum_bans`) + idempotent seeds (forum settings row, default category, welcome thread + OP post) |
-| Schema migrations | One-time `utf8` → `utf8mb4` charset upgrade on the 6 legacy tables, INFORMATION_SCHEMA-checked so re-runs are no-ops (~3 ms total) |
-| Filesystem | New dirs `uploads/avatars/` and `uploads/forum/` (each with tracked override `.htaccess`) |
-| Routing | `.htaccess` gains rules for `/forum`, `/forum/{cat}`, `/forum/{cat}/{thread}`, `/forum/new/{cat}`, `/forum/edit/{post}`, `/forum/reply`, `/forum/mod`, `/avatar_upload` |
-| Pages | `pages/forum.php`, `pages/forum_new_thread.php`, `pages/forum_reply.php`, `pages/forum_edit.php`, `pages/forum_mod.php`, `pages/forum_image.php`, `pages/admin_forum.php`, `pages/avatar_upload.php` |
-| Helpers | `includes/forum.php` (settings, slug, fetchers, write, approve/reject, moderation, view de-dupe, anti-spam), `includes/avatar.php` (render, fallback initials, batch lookup) |
-| Admin UI | New **Forum** tab in `/admin_dashboard` with stat tiles + moderation queue (deep-link from "Pending approvals"). Full config at `/admin_forum` (settings, categories CRUD, bans CRUD, queue) |
-| Public UI | `/forum` index, `/forum/{cat}` category, `/forum/{cat}/{thread}` detail. Windowed pager (20/page). Avatars next to every post. Author + admins see their own pending content with a yellow border + "Awaiting approval" pill |
-| Dashboard | Hero now has an avatar block (click to upload/remove). Navbar dropdown shows the same avatar |
-| i18n | ~200 new EN+ES keys covering the entire forum surface + avatar UI |
-| External | EasyMDE editor loads from jsDelivr CDN (only on `/admin_news`, `/admin_forum`, and the forum write pages — the public forum read pages don't depend on it) |
-| Config | Nothing to change. The forum's enable + threshold live in the DB, edited from the admin panel |
-
-#### Notable behavioural notes
-
-- **Forum bans are forum-only.** Banned users can still log in, play the game, and use tickets — they just can't post or reply. GM 9+ accounts cannot be banned (prevents admin-vs-admin lockout).
-- **GM 9+ bypasses everything**: auto-approval, anti-spam cooldown, locked threads (admins can reply through locked threads), and the public-disabled gate (admins get an "admin preview" banner instead of the friendly notice).
-- **Editing never resets approval status.** A pending post stays pending; a published post stays published. Admin edits stamp the editor name as `"{name} (admin)"`.
-- **Anti-spam cooldown is 30 seconds**, hardcoded. It reads `MAX(created_at)` from the user's posts at submit time — no new storage.
-- **Per-session view de-dupe** keeps refresh-spam out of the view counter. Tracked in `$_SESSION` (capped at 500 thread IDs FIFO, so long sessions can't bloat).
-
----
-
-## Admin Dashboard
-
-Accessible at `/admin_dashboard` for accounts with **GM level ≥ 9**.
-
-### GM ranks at a glance
-
-The portal reads `gmlevel` from TrinityCore's `account_access` table. Threshold for the Admin Panel link in the navbar:
-
-| GM level | Behaviour |
-|---|---|
-| **0** (regular player) | No GM badge anywhere; Admin Panel link not shown |
-| **1 – 8** | "GM N" badge on the dashboard hero; Admin Panel item appears in the user dropdown but is **disabled** with a tooltip explaining the threshold |
-| **9 +** | Admin Panel link is active and clickable; full access to `/admin_dashboard` |
-
-To grant or revoke access, edit the `account_access` table directly (or use any GM-rank command your core supports). To change the threshold, search for `>= 9` in `templates/header.php` and `pages/admin_dashboard.php`.
-
-### Admin Dashboard tabs
-
-| Tab | Features |
-|---|---|
-| **Overview** | Server status, registration chart (14 days), class distribution, recent bans, top characters |
-| **Accounts** | Full account list with search/filter, inline Ban/Unban buttons, account detail modal (view chars, reset password, edit email, set GM level) |
-| **Tickets** | View all support tickets, filter by status, reply to tickets, close/reopen |
-| **News** | Quick view of recent posts with deep-link to the full `/admin_news` editor (create/edit/publish/delete + live Markdown preview) |
-| **Forum** | Status + counters (enabled, categories, pending approvals, active bans). "Pending approvals" tile glows gold when non-zero and deep-links to the moderation queue at `/admin_forum#moderation-queue`. Full config (settings, categories, bans, queue) at `/admin_forum`. |
-| **Audit Log** | Chronological log of all admin actions (bans, unbans, edits, etc.) |
-| **Tools** | Character lookup, IP ban management, server stats, email broadcast to all users |
-
-All admin actions are logged to the `admin_audit_log` table automatically.
-
-### Managing News
-
-The News tab in `/admin_dashboard` shows the 10 most recent posts and a **Manage News** button that opens the full editor at `/admin_news`. From there you can:
-
-- **Write posts** in the EasyMDE editor with a familiar toolbar (bold, italic, headings, lists, links, tables, code, quote, image upload, fullscreen, side-by-side preview).
-- **Drag-and-drop images** directly into the editor — they upload to `uploads/news/` with server-generated filenames (`news-{timestamp}-{hash}.{ext}`), get audit-logged, and the `![alt](url)` reference is auto-inserted at your cursor. Max 5 MB per image; accepted formats: jpg, png, webp, gif.
-- **Save as draft** while you're still writing — drafts return 404 to anonymous visitors and don't appear in the homepage or `/news` list. Toggle a post to published when ready.
-- **Override the slug** if the auto-generated one (derived from the title) isn't what you want. Slugs are URL-safe and unique — duplicates get a `-2`, `-3`, … suffix.
-- **Override the publish time** if you want to backdate or schedule a post.
-- **Live preview** through the eye / side-by-side icons. The preview runs through the same Parsedown safe-mode renderer that the public page uses, so what you see is exactly what readers will get.
-- **Delete** posts — there's a confirmation dialog and the action is audit-logged.
-
-When viewing a published post on `/news/{slug}` while logged in as GM 9+, you'll see an **Edit Post** button in the top-right that jumps straight to the editor for that post — no need to go back to the admin list.
-
-### Managing the Forum
-
-The Forum tab in `/admin_dashboard` shows status tiles and a **Configure Forum** button that opens `/admin_forum`. From there you have four sections:
-
-**Settings** — one row in `forum_settings`:
-- **Forum enabled** — when off, `/forum` shows a "currently disabled" notice to regular users (admins still get an "admin preview" view so they can populate the forum before launch).
-- **Auto-approve threshold** — `0` means every post publishes instantly; otherwise a user's posts queue for admin approval until they've accumulated this many *approved* posts. GM 9+ always bypass.
-
-**Categories** — one level only (no sub-categories by design). Each has a slug, name, description, Bootstrap-Icons class, and sort order. Deleting a category cascades to its threads + posts (confirmation-gated).
-
-**Forum Bans** — forum-only mute. Banned users can still log in and play; they just can't post or reply. Add by username + reason + optional expiry datetime. GM 9+ accounts cannot be banned.
-
-**Moderation Queue** — pending threads + replies waiting for approval. Each shows the body (collapsed by default), author, category, time, and Approve / Reject buttons. Approve flips the row to published and bumps the right counters; Reject hard-deletes. Threads are also approvable inline from the thread page itself (see below).
-
-When viewing any thread as GM 9+, you also get a **Mod tools** row in the thread hero:
-- **Approve** (only when the thread itself is pending)
-- **Sticky** / **Unsticky** toggle
-- **Lock** / **Unlock** toggle
-- **Delete Thread** (cascades — thread + all posts gone)
-
-Plus per-post actions in each post's meta row:
-- **Approve** (only on pending replies)
-- **Edit** (any post — admin edits stamp the editor as `"{name} (admin)"`)
-- **Delete** (any post — deleting the OP is the same as deleting the thread)
-
-Every moderation action is recorded in `admin_audit_log` with the admin name, target, and IP.
-
----
-
-## Customization
-
-### Changing Text and Labels
-
-All user-facing text is in the `lang/` folder:
-
-```
-lang/
-├── en.php   ← English
-└── es.php   ← Spanish
-```
-
-Edit the key-value pairs to change any text on the site:
-
-```php
-// lang/en.php
-'welcome'    => 'Welcome to WoW Legends',
-'index_lead' => 'Join our MoP private server!',
-```
-
-**Adding a new language:**
-
-The portal accepts any ISO 639-1 language code (e.g. `de`, `fr`, `ro`, `ru`). To add one, **four** files need a small edit each:
-
-1. **Create the translation file.** Copy `lang/en.php` to `lang/{code}.php` (e.g. `lang/ro.php`) and translate the right-hand values. Keep the keys identical to the English file — any key you don't translate falls back to its English value automatically, so partial translations are fine.
-
-2. **Whitelist the code in `includes/lang.php`.** Find the line near the top:
-
-   ```php
-   $allowed_langs = ['en', 'es'];
-   ```
-
-   …and add your code:
-
-   ```php
-   $allowed_langs = ['en', 'es', 'ro'];
-   ```
-
-   This whitelist is a security guard — without it, the new code is silently rejected and the site falls back to English (a common cause of "I added the file but the dropdown doesn't switch").
-
-3. **Whitelist the code in `templates/header.php` (twice).** The same list appears in two JavaScript blocks in this file — both must include your new code. Search for:
-
-   ```js
-   const allowedLangs = ['en', 'es']; // Keep this in sync with PHP
-   ```
-
-   Update **both** occurrences to:
-
-   ```js
-   const allowedLangs = ['en', 'es', 'ro'];
-   ```
-
-4. **Add the option to the language dropdown** in `templates/header.php`. Find the dropdown block (search for `languageDropdown`) and add a new `<li>` for your code:
-
-   ```html
-   <li><a class="dropdown-item py-2 <?= ($lang === 'ro') ? 'active' : '' ?>" href="?lang=ro">RO <span class="text-white-50 ms-2">(Română)</span></a></li>
-   ```
-
-After those four edits: save, refresh the page, and the new language appears in the dropdown and the language cookie. No restart needed.
-
-### Replacing Images and Logo
-
-All images are stored in `assets/img/`:
-
-| File | Usage |
-|---|---|
-| `logo.webp` | Large hero logo on the homepage |
-| `top-logo.webp` | Small navbar logo |
-| Background images | `.webp` format recommended |
-
----
-
-## Security Notes
-
-- `config.php` is in `.gitignore` — **never commit it**
-- The `uploads/` folder denies **all** direct HTTP access by default. Ticket attachments are served only through `/ticket_attachment` after an ownership-or-GM check.
-- The `uploads/news/` subdir is the one **intentional exception**: it has its own `.htaccess` that allows public reads (so post images can load on the public news pages) **but blocks any executable extension** (`.php`, `.phtml`, `.phar`, `.pl`, `.py`, `.cgi`, `.sh`, `.html`) as defense-in-depth.
-- News image uploads (`/news_image`):
-  - Restricted to GM 9+ via session check
-  - CSRF-token validated
-  - Real MIME sniffed server-side with `mime_content_type()` (not the client's claimed `Content-Type`) — a `.exe` renamed `.png` is rejected with 415
-  - 5 MB size cap returns 413
-  - Filenames are **server-generated** (`news-{timestamp}-{8hex}.{ext}`); the client never controls the on-disk name, so path-traversal payloads in the original filename are moot
-  - Every successful upload is recorded in `admin_audit_log`
-- Forum image uploads (`/forum_image`) follow the same pipeline as news uploads (CSRF, server-side MIME sniff, 5 MB cap, server-generated filenames, audit-logged), but the auth gate is **"logged in AND not forum-banned"** instead of GM 9+. Forum bans propagate to the upload endpoint, so a muted user can't sneak attachments in.
-- Avatar uploads (`/avatar_upload`) are open to any logged-in user but capped at 2 MB, MIME-sniffed (jpg/png/webp/gif), server-renamed to `{account_id}.{ext}` so each user has exactly one slot — no path traversal, no slot collision.
-- The `uploads/avatars/` and `uploads/forum/` directories override the parent deny-all with tracked `.htaccess` files. Both still block script extensions (`.php`, `.phtml`, `.phar`, `.pl`, `.py`, `.cgi`, `.sh`, `.html`) as defense-in-depth.
-- Forum **approval queue** keeps new users from spamming the front page on day one. Threshold is admin-configurable per-install; bypass is GM-only.
-- Forum **anti-spam cooldown** (30 seconds, hardcoded) reads `MAX(created_at)` from the user's posts at submit time, fail-open on DB error so a hiccup can't lock out legitimate posters.
-- Forum **bans are forum-only** (separate `forum_bans` table). They don't touch `account_banned` and don't affect game login or the ticket system. GM 9+ accounts cannot be added to `forum_bans` — admin-vs-admin lockout is impossible by construction.
-- Markdown in tickets, news posts, and forum posts is rendered through Parsedown's safe mode (HTML stripped, no `javascript:` URLs). Even though only authenticated users write forum content, defense-in-depth keeps script tags from rendering even if an account were compromised.
-- Attachment endpoint also blocks path traversal (filenames must match `[A-Za-z0-9._-]{1,200}`) and resolves inside `uploads/tickets/` only
-- All forms use CSRF tokens
-- All DB queries use PDO prepared statements
-- Directory listing is disabled via `Options -Indexes`
-- Rate limiting protects login from brute-force attacks
-- Admin actions are logged to `admin_audit_log` with IP, timestamp, and details
-
----
-
-## Troubleshooting
-
-| Problem | Solution |
-|---|---|
-| **Links go to `/login` or `/assets/...` at the wrong location** | The app is being served from a subfolder. Serve it from the web root or map the repo folder to its own Apache VirtualHost/Alias. |
-| **404 on `/login`, `/register`** | Enable `mod_rewrite` — see step 7 above |
-| **"Database error" on tickets or password recovery** | Run `sql/setup.sql` on your `auth` database — see step 3 |
-| **"Invalid default value" when running SQL** | Your MySQL is very old. Use the latest `setup.sql` which is compatible with MySQL 5.5.9+ |
-| **reCAPTCHA not showing** | Check your site key/secret in `config.php`, or set `recaptcha => false` |
-| **`PHPMailer` class is missing** | `vendor/` is tracked in the repo, so this should not happen. If it does (e.g. an interrupted clone), run `composer install --no-dev` from the project root. |
-| **Emails not sending** | Verify SMTP credentials; for Gmail use an [App Password](https://support.google.com/accounts/answer/185833) |
-| **Blank page / 500 error** | Check `C:\xampp\php\logs\php_error_log` for details |
-| **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table, and the route is `/admin_dashboard` |
-| **`/news` shows "No news posts yet"** | The `news_posts` table is empty or missing. Re-run `sql/setup.sql` (idempotent), then refresh. The seed creates a starter "Welcome!" post. |
-| **EasyMDE editor doesn't load on `/admin_news?new=1`** | The editor is loaded from `cdn.jsdelivr.net`. Check that your browser can reach the CDN, that nothing is blocking the script (corporate proxy, ad-blocker rules), and that JavaScript is enabled. The public news pages don't depend on the CDN. |
-| **Image upload returns 415 "Unsupported"** | Server-side MIME sniff didn't recognize the file as one of jpg/png/webp/gif. Re-export from your image tool or convert with `magick input.bmp output.png`. The PHP `fileinfo` extension must be enabled (it is by default). |
-| **Image upload returns 413** | File is over the 5 MB cap. Resize or re-compress and try again. |
-| **Post images return 403 on the public page** | The `uploads/news/` directory is missing its override `.htaccess`. The parent `uploads/.htaccess` denies everything; the news subdir needs its own file to opt back in. See the "Upgrading from v0.3.x" section for the contents. |
-| **Edit Post button doesn't show on `/news/{slug}`** | Confirm you're logged in **and** that your `gm_level` is ≥ 9. The session check is `$_SESSION['gm_level']`, which is set fresh at every login — if you changed your `account_access` row, log out and log back in. |
-| **`/forum` shows "Forum is currently disabled"** | The forum's enable flag is off in the DB. Log in as GM 9+, go to `/admin_forum`, toggle **Forum enabled**. GMs always see the forum (with an admin-preview banner) regardless of the toggle. |
-| **My new thread shows "waiting for admin approval" but doesn't appear in the category** | Expected — the auto-approve threshold isn't met yet. The thread is visible *to you* (with a yellow border + "Awaiting approval" pill) and to GMs (in `/admin_forum`'s moderation queue). Other users can't see it until a GM approves. Set the threshold to `0` to auto-publish everyone. |
-| **"Please wait N seconds before posting again"** | Anti-spam cooldown — hardcoded 30 seconds between forum posts per user. GM 9+ bypasses. |
-| **404 after a moderation action (sticky / lock / approve)** | Fixed in v0.5.0 (`e3f1039`). If you're on an older `main` snapshot, pull the latest. |
-| **MySQL warning 1681 ("Integer display width is deprecated")** | Fixed in v0.5.0 — the original `TINYINT(1)` columns were narrowed to plain `TINYINT`. If you still see it, re-run `sql/setup.sql` against the newest schema. |
-| **MySQL warning 3719 ("utf8 is currently an alias for UTF8MB3")** | Fixed in v0.5.0 — `sql/setup.sql` now runs an idempotent `CONVERT TO CHARACTER SET utf8mb4` block on the legacy tables. One re-run silences the warning permanently. |
-| **EasyMDE fullscreen toolbar hidden behind navbar / second row clipped** | Fixed during Phase 5 polish. The site navbar auto-hides while EasyMDE is fullscreen, the toolbar is wrap-friendly, and floated icons are stripped. If you still see it, hard-refresh to bypass CSS cache. |
+> ℹ️ This supports development of the **open-source portal itself**. It is **separate** from the in-app [Ko-fi donations feature](docs/ADMIN.md#public-shop-catalog--ko-fi-donations), which is something *you* configure to credit Battle Coins to *your* players.
 
 ---
 

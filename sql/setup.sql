@@ -302,6 +302,55 @@ CREATE TABLE IF NOT EXISTS forum_bans (
   INDEX idx_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 14. Donation Codes — one reusable attribution code per account. The user
+-- pastes this code into the Ko-fi message; the webhook extracts it to know
+-- which account.dp to credit. One row per account (account_id is PK), code
+-- is globally unique. Codes never expire and are reused across donations.
+CREATE TABLE IF NOT EXISTS donation_codes (
+  account_id INT NOT NULL PRIMARY KEY,
+  code VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 15. Donation Log — audit trail + idempotency for Ko-fi webhook deliveries.
+-- `kofi_transaction_id` is UNIQUE: Ko-fi may re-deliver the same webhook, and
+-- the UNIQUE key is the replay-protection guarantee (a duplicate INSERT fails
+-- and the credit is skipped). `account_id` NULL = unattributed (donor didn't
+-- paste a valid code) — kept for manual GM resolution via the admin panel.
+-- `status`: credited = DP added; unattributed = logged, no DP; ignored =
+-- received but deliberately not credited (e.g. amount below minimum).
+CREATE TABLE IF NOT EXISTS donation_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  kofi_transaction_id VARCHAR(64) NOT NULL,
+  account_id INT DEFAULT NULL,
+  username VARCHAR(50) DEFAULT NULL,
+  amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  currency VARCHAR(8) DEFAULT NULL,
+  dp_credited INT NOT NULL DEFAULT 0,
+  kofi_type VARCHAR(32) DEFAULT NULL,
+  from_name VARCHAR(100) DEFAULT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  message TEXT DEFAULT NULL,
+  status ENUM('credited','unattributed','ignored') NOT NULL DEFAULT 'credited',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_kofi_txn (kofi_transaction_id),
+  INDEX idx_account (account_id),
+  INDEX idx_created (created_at),
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 16. Shop Settings — single-row (id is always 1) admin-managed shop settings.
+-- Currently holds the Battle Coins per 1.00 of Ko-fi currency exchange rate,
+-- editable from /admin_shop. NO seed row: when the row is absent the effective
+-- rate falls back to config.donation.eur_to_dp_rate, so config remains the
+-- documented bootstrap default and the DB row is the admin's UI override.
+CREATE TABLE IF NOT EXISTS shop_settings (
+  id TINYINT NOT NULL PRIMARY KEY,
+  eur_to_dp_rate INT NOT NULL DEFAULT 1000,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed a default "General Discussion" category on first install. Idempotent —
 -- the INSERT is guarded by NOT EXISTS so it only fires when the table is
 -- completely empty (admins who delete it won't see it reappear on re-run).
