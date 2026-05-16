@@ -116,7 +116,7 @@ require_once __DIR__ . '/../templates/header.php';
     display:flex; align-items:center; justify-content:center;
 }
 .shp-ico.icon-loaded { border-color:rgba(200,169,110,.6); }
-.shp-ico .qm { color:#3a4252; font-size:1.6rem; }
+.shp-ico .qm { color:rgba(200,169,110,.5); font-size:1.9rem; }
 .shp-ico.icon-loaded .qm { display:none; }
 .shp-tile .tt {
     color:#c8a96e; font-weight:700; font-size:.92rem; line-height:1.3; margin-bottom:.35rem;
@@ -159,7 +159,13 @@ require_once __DIR__ . '/../templates/header.php';
     <?php else: ?>
         <?php
         $shop = shop_get_full($pdo_world);
-        $shop = array_values(array_filter($shop, fn($c) => !empty($c['tiles'])));
+        // Public catalog: only non-empty categories, and never the in-game
+        // "Balance" pseudo-page (it shows the player's coin balance in-game —
+        // not a purchasable, so it has no place in a browse catalog).
+        $shop = array_values(array_filter(
+            $shop,
+            fn($c) => !empty($c['tiles']) && strcasecmp(trim($c['name']), 'Balance') !== 0
+        ));
         ?>
 
         <div class="shp-topbar">
@@ -215,7 +221,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     $iname     = $firstItem['item_name'] ?? null;
                                     ?>
                                     <div class="shp-tile">
-                                        <div class="shp-ico" <?= $iid > 0 ? 'data-wh-icon-id="' . $iid . '"' : '' ?>><span class="qm"><i class="bi bi-question-lg"></i></span></div>
+                                        <div class="shp-ico" <?= $iid > 0 ? 'data-wh-icon-id="' . $iid . '"' : '' ?>><span class="qm"><i class="bi bi-gift-fill"></i></span></div>
                                         <div class="tt"><?= htmlspecialchars($t['entry_title'] !== '' ? $t['entry_title'] : (string)($t['product_title'] ?? '—')) ?></div>
                                         <div class="gi">
                                             <?php if ($iname !== null): ?>
