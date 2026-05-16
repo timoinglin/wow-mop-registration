@@ -104,12 +104,106 @@ if ($shop_ok && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $redirect('err', 'save');
     }
 
+    // ── Tiles (product + product_items + entry) ──────────────────────────
+    elseif ($action === 'save_tile') {
+        $entry_id = (int)($_POST['entry_id'] ?? 0);          // 0 = create
+        $groupId  = (int)($_POST['groupId'] ?? 0);
+        // Build item rows from parallel arrays itemId[] / count[]
+        $rawItems = [];
+        $iids = $_POST['itemId'] ?? [];
+        $cnts = $_POST['count']  ?? [];
+        if (is_array($iids)) {
+            foreach ($iids as $k => $iid) {
+                $iid = (int)$iid;
+                if ($iid <= 0) continue;
+                $rawItems[] = ['itemId' => $iid, 'count' => (int)($cnts[$k] ?? 1)];
+            }
+        }
+        [$iok, $ires] = shop_validate_items($pdo_world, $rawItems);
+        if (!$iok) {
+            $redirect('err', $ires === 0 ? 'noitems' : ('baditem:' . $ires));
+        }
+        $d = [
+            'title'       => (string)($_POST['title'] ?? ''),
+            'description' => (string)($_POST['description'] ?? ''),
+            'price'       => (int)($_POST['price'] ?? 0),
+            'discount'    => (int)($_POST['discount'] ?? 0),
+            'icon'        => (int)($_POST['icon'] ?? 0),
+            'displayId'   => (int)($_POST['displayId'] ?? 0),
+            'groupId'     => $groupId,
+            'items'       => $ires,
+        ];
+        if (trim($d['title']) === '') $redirect('err', 'tile_title');
+
+        if ($entry_id > 0) {
+            if (shop_tile_update($pdo_world, $entry_id, $d)) {
+                shop_mark_dirty();
+                log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_tile_edit', "entry:$entry_id", "title=" . trim($d['title']) . ", price=" . $d['price'], null);
+                $redirect('saved', 'tile_saved');
+            }
+        } else {
+            if ($groupId <= 0) $redirect('err', 'save');
+            $newEid = shop_tile_add($pdo_world, $groupId, $d);
+            if ($newEid) {
+                shop_mark_dirty();
+                log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_tile_add', "entry:$newEid", "group:$groupId, title=" . trim($d['title']) . ", price=" . $d['price'], null);
+                $redirect('saved', 'tile_added');
+            }
+        }
+        $redirect('err', 'save');
+    }
+
+    elseif ($action === 'delete_tile') {
+        $entry_id = (int)($_POST['entry_id'] ?? 0);
+        if ($entry_id <= 0) $redirect('err', 'save');
+        if (shop_tile_delete($pdo_world, $entry_id)) {
+            shop_mark_dirty();
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_tile_delete', "entry:$entry_id", null, null);
+            $redirect('saved', 'tile_deleted');
+        }
+        $redirect('err', 'save');
+    }
+
+    elseif ($action === 'move_tile') {
+        $entry_id = (int)($_POST['entry_id'] ?? 0);
+        $dir      = (string)($_POST['dir'] ?? '');
+        if (shop_tile_move($pdo_world, $entry_id, $dir)) {
+            shop_mark_dirty();
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_tile_move', "entry:$entry_id", "dir=$dir", null);
+            $redirect('saved', 'tile_moved');
+        }
+        $redirect('err', 'save');
+    }
+
+    elseif ($action === 'update_price') {
+        $product_id = (int)($_POST['product_id'] ?? 0);
+        $price      = (int)($_POST['price'] ?? 0);
+        if (shop_price_update($pdo_world, $product_id, $price)) {
+            shop_mark_dirty();
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_price_update', "product:$product_id", "price=$price", null);
+            $redirect('saved', 'price_saved');
+        }
+        $redirect('err', 'save');
+    }
+
     $redirect();
 }
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 $edit_cat_id = (int)($_GET['edit_cat'] ?? 0);
 $edit_cat    = ($shop_ok && $edit_cat_id > 0) ? shop_category_get($pdo_world, $edit_cat_id) : null;
+
+// Tile editor mode: ?edit_tile=ENTRYID  or  ?new_tile=1&cat=GROUPID
+$mode      = 'overview';
+$tile      = null;
+$tile_cat  = 0;
+if ($shop_ok && isset($_GET['edit_tile'])) {
+    $tile = shop_tile_get($pdo_world, (int)$_GET['edit_tile']);
+    if ($tile) { $mode = 'tile'; $tile_cat = (int)$tile['groupId']; }
+} elseif ($shop_ok && isset($_GET['new_tile'])) {
+    $tile_cat = (int)($_GET['cat'] ?? 0);
+    if ($tile_cat > 0 && shop_category_get($pdo_world, $tile_cat)) $mode = 'tile';
+}
 
 $flash = '';
 if (isset($_GET['saved'])) {
@@ -119,16 +213,28 @@ if (isset($_GET['saved'])) {
         'cat_deleted' => $TEXT['shop_flash_cat_deleted'] ?? 'Category deleted.',
         'cat_moved'   => $TEXT['shop_flash_cat_moved']   ?? 'Category reordered.',
         'restart_ack' => $TEXT['shop_flash_restart_ack'] ?? 'Restart acknowledged — banner cleared.',
+        'tile_added'  => $TEXT['shop_flash_tile_added']  ?? 'Item added.',
+        'tile_saved'  => $TEXT['shop_flash_tile_saved']  ?? 'Item updated.',
+        'tile_deleted'=> $TEXT['shop_flash_tile_deleted']?? 'Item deleted.',
+        'tile_moved'  => $TEXT['shop_flash_tile_moved']  ?? 'Item reordered.',
+        'price_saved' => $TEXT['shop_flash_price_saved'] ?? 'Price updated.',
         default       => '',
     };
 }
 $flash_err = '';
 if (isset($_GET['err'])) {
-    $flash_err = match ($_GET['err']) {
-        'csrf' => $TEXT['shop_err_csrf'] ?? 'Session expired. Please try again.',
-        'name' => $TEXT['shop_err_name'] ?? 'Category name is required (max 16 chars).',
-        default => $TEXT['shop_err_save'] ?? 'Could not save the change.',
-    };
+    $e = (string)$_GET['err'];
+    if (str_starts_with($e, 'baditem:')) {
+        $flash_err = sprintf($TEXT['shop_err_baditem'] ?? 'Item #%s was not found in item_template — nothing was saved.', substr($e, 8));
+    } else {
+        $flash_err = match ($e) {
+            'csrf'       => $TEXT['shop_err_csrf']       ?? 'Session expired. Please try again.',
+            'name'       => $TEXT['shop_err_name']       ?? 'Category name is required (max 16 chars).',
+            'tile_title' => $TEXT['shop_err_tile_title'] ?? 'Item title is required (max 50 chars).',
+            'noitems'    => $TEXT['shop_err_noitems']    ?? 'Add at least one valid item.',
+            default      => $TEXT['shop_err_save']       ?? 'Could not save the change.',
+        };
+    }
 }
 
 $dirty_ts   = shop_is_dirty();
@@ -231,6 +337,144 @@ $csrf = generate_csrf_token();
                 <?php endif; ?>
             </div>
         </div>
+
+    <?php elseif ($mode === 'tile'): ?>
+        <?php
+        $isEdit  = ($tile !== null);
+        $cats    = shop_categories_simple($pdo_world);
+        $curGrp  = $isEdit ? (int)$tile['groupId'] : $tile_cat;
+        $itemRows = $isEdit ? $tile['items'] : [];
+        $backUrl = '/admin_shop#cat-' . $curGrp;
+        ?>
+        <div style="margin-bottom:1rem">
+            <a href="<?= htmlspecialchars($backUrl) ?>" class="sh-btn sh-btn-ghost"><i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['shop_back_overview'] ?? 'Back to shop') ?></a>
+        </div>
+        <div class="sh-card">
+            <h2>
+                <i class="bi bi-<?= $isEdit ? 'pencil-square' : 'plus-square' ?>"></i>
+                <?= htmlspecialchars($isEdit ? ($TEXT['shop_tile_edit_title'] ?? 'Edit item') : ($TEXT['shop_tile_new_title'] ?? 'New item')) ?>
+            </h2>
+            <form method="post" action="/admin_shop" id="tileForm">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action" value="save_tile">
+                <input type="hidden" name="entry_id" value="<?= $isEdit ? (int)$tile['entry_id'] : 0 ?>">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_title'] ?? 'Title (max 50)') ?></label>
+                        <input class="sh-input w-100" name="title" maxlength="50" required
+                               value="<?= htmlspecialchars($isEdit ? (string)$tile['entry_title'] : '') ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_cat'] ?? 'Category') ?></label>
+                        <select class="sh-select w-100" name="groupId">
+                            <?php foreach ($cats as $gid => $gname): ?>
+                                <option value="<?= (int)$gid ?>" <?= $gid === $curGrp ? 'selected' : '' ?>><?= htmlspecialchars($gname) ?> (#<?= (int)$gid ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_desc'] ?? 'Description (max 500)') ?></label>
+                        <textarea class="sh-input w-100" name="description" maxlength="500" rows="2"><?= htmlspecialchars($isEdit ? (string)$tile['entry_desc'] : '') ?></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_price'] ?? 'Price (Battle Coins)') ?></label>
+                        <input class="sh-input w-100" name="price" type="number" min="0" value="<?= $isEdit ? (int)$tile['price'] : 0 ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_discount'] ?? 'Discount') ?></label>
+                        <input class="sh-input w-100" name="discount" type="number" min="0" value="<?= $isEdit ? (int)$tile['discount'] : 0 ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_icon'] ?? 'Icon (FileDataID)') ?></label>
+                        <input class="sh-input w-100" name="icon" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_icon'] : 0 ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_display'] ?? 'displayId (3D, 0=icon)') ?></label>
+                        <input class="sh-input w-100" name="displayId" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_displayId'] : 0 ?>">
+                    </div>
+                </div>
+
+                <div style="margin-top:1.5rem;border-top:1px solid rgba(139,69,19,.2);padding-top:1rem">
+                    <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_items'] ?? 'Granted item(s)') ?></label>
+                    <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap">
+                        <input id="itemSearch" class="sh-input" style="flex:1;min-width:220px" placeholder="<?= htmlspecialchars($TEXT['shop_item_search_ph'] ?? 'Search item by name or id…') ?>" autocomplete="off">
+                    </div>
+                    <div id="itemSearchResults" style="margin-bottom:.6rem"></div>
+                    <table class="sh-tbl" id="itemRows">
+                        <thead><tr>
+                            <th><?= htmlspecialchars($TEXT['shop_item_col_id'] ?? 'Item ID') ?></th>
+                            <th><?= htmlspecialchars($TEXT['shop_item_col_name'] ?? 'Name') ?></th>
+                            <th style="width:90px"><?= htmlspecialchars($TEXT['shop_item_col_qty'] ?? 'Qty') ?></th>
+                            <th style="width:60px"></th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                    <div style="color:#4a5568;font-size:.78rem;margin-top:.5rem">
+                        <?= htmlspecialchars($TEXT['shop_items_hint'] ?? 'One item = a normal mount/pet tile (the verified case). Multiple rows create a bundle — advanced; in-game behaviour depends on the repack.') ?>
+                    </div>
+                </div>
+
+                <div style="margin-top:1.5rem;display:flex;gap:.5rem">
+                    <button type="submit" class="sh-btn sh-btn-primary"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['shop_save'] ?? 'Save') ?></button>
+                    <a href="<?= htmlspecialchars($backUrl) ?>" class="sh-btn sh-btn-ghost"><?= htmlspecialchars($TEXT['common_cancel'] ?? 'Cancel') ?></a>
+                </div>
+            </form>
+        </div>
+
+        <script>
+        (function () {
+            var tbody = document.querySelector('#itemRows tbody');
+            var search = document.getElementById('itemSearch');
+            var results = document.getElementById('itemSearchResults');
+            var seed = <?= json_encode(array_map(function ($r) {
+                return ['itemId' => (int)$r['itemId'], 'count' => (int)$r['count'], 'name' => $r['item_name'] !== null ? $r['item_name'] : ''];
+            }, $itemRows), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+
+            function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+            function addRow(itemId, name, count) {
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><input class="sh-input" style="width:110px" type="number" min="1" name="itemId[]" value="' + (itemId|0) + '" required></td>' +
+                    '<td class="rowname" style="color:#dee2e6">' + esc(name || '') + '</td>' +
+                    '<td><input class="sh-input" style="width:70px" type="number" min="1" name="count[]" value="' + (count > 0 ? count : 1) + '"></td>' +
+                    '<td><button type="button" class="sh-btn sh-btn-danger sh-btn-sm rowdel"><i class="bi bi-x-lg"></i></button></td>';
+                tbody.appendChild(tr);
+                tr.querySelector('.rowdel').addEventListener('click', function(){ tr.remove(); });
+            }
+
+            (seed.length ? seed : [{itemId:0,name:'',count:1}]).forEach(function(r){ addRow(r.itemId, r.name, r.count); });
+            // drop the placeholder empty row's required if it's the only blank one for "new"
+            if (!seed.length) { var f = tbody.querySelector('input[name="itemId[]"]'); if (f) f.value = ''; }
+
+            var t;
+            search.addEventListener('input', function () {
+                clearTimeout(t);
+                var q = search.value.trim();
+                if (q.length < 2) { results.innerHTML = ''; return; }
+                t = setTimeout(function () {
+                    fetch('/shop_item_search?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                        .then(function(r){ return r.json(); })
+                        .then(function(j){
+                            var its = (j && j.items) || [];
+                            if (!its.length) { results.innerHTML = '<div style="color:#4a5568;font-size:.82rem;padding:.3rem 0">' + <?= json_encode($TEXT['shop_item_no_results'] ?? 'No matching items.') ?> + '</div>'; return; }
+                            results.innerHTML = its.map(function(it){
+                                return '<button type="button" class="sh-btn sh-btn-ghost sh-btn-sm pick" data-id="' + it.entry + '" data-name="' + esc(it.name) + '" style="margin:.15rem .25rem .15rem 0">' + esc(it.name) + ' <span class="sh-mono">#' + it.entry + '</span></button>';
+                            }).join('');
+                            results.querySelectorAll('.pick').forEach(function(b){
+                                b.addEventListener('click', function(){
+                                    addRow(parseInt(b.dataset.id,10), b.dataset.name, 1);
+                                    results.innerHTML = ''; search.value = '';
+                                });
+                            });
+                        })
+                        .catch(function(){ results.innerHTML = ''; });
+                }, 250);
+            });
+        })();
+        </script>
+
     <?php else: ?>
         <?php if ($dirty_ts !== null): ?>
             <div class="sh-restart">
@@ -365,6 +609,10 @@ $csrf = generate_csrf_token();
                         </form>
                     <?php endif; ?>
 
+                    <div style="margin-bottom:.8rem">
+                        <a href="/admin_shop?new_tile=1&cat=<?= (int)$cat['id'] ?>" class="sh-btn sh-btn-primary sh-btn-sm"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['shop_add_item'] ?? 'Add item') ?></a>
+                    </div>
+
                     <?php if (empty($cat['tiles'])): ?>
                         <div class="sh-empty"><?= htmlspecialchars($TEXT['shop_cat_empty'] ?? 'No items in this category.') ?></div>
                     <?php else: ?>
@@ -374,12 +622,13 @@ $csrf = generate_csrf_token();
                                     <tr>
                                         <th><?= htmlspecialchars($TEXT['shop_col_tile'] ?? 'Tile') ?></th>
                                         <th><?= htmlspecialchars($TEXT['shop_col_grants'] ?? 'Grants item(s)') ?></th>
-                                        <th><?= htmlspecialchars($TEXT['shop_col_price'] ?? 'Price') ?></th>
+                                        <th style="width:170px"><?= htmlspecialchars($TEXT['shop_col_price'] ?? 'Price') ?></th>
                                         <th><?= htmlspecialchars($TEXT['shop_col_ids'] ?? 'IDs') ?></th>
+                                        <th style="width:170px" class="text-end"><?= htmlspecialchars($TEXT['shop_col_actions'] ?? 'Actions') ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                <?php foreach ($cat['tiles'] as $t): ?>
+                                <?php $tn = count($cat['tiles']); foreach ($cat['tiles'] as $ti => $t): ?>
                                     <tr>
                                         <td><strong style="color:#c8a96e"><?= htmlspecialchars($t['entry_title'] !== '' ? $t['entry_title'] : (string)($t['product_title'] ?? '—')) ?></strong></td>
                                         <td>
@@ -396,8 +645,44 @@ $csrf = generate_csrf_token();
                                                 </div>
                                             <?php endforeach; endif; ?>
                                         </td>
-                                        <td><span class="sh-price"><?= $t['price'] !== null ? number_format((int)$t['price']) : '—' ?></span></td>
+                                        <td>
+                                            <?php if ($t['product_id'] !== null): ?>
+                                                <form method="post" action="/admin_shop" style="display:flex;gap:.3rem;align-items:center">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                    <input type="hidden" name="action" value="update_price">
+                                                    <input type="hidden" name="product_id" value="<?= (int)$t['product_id'] ?>">
+                                                    <input class="sh-input" style="width:95px;padding:.25rem .4rem" type="number" min="0" name="price" value="<?= (int)$t['price'] ?>">
+                                                    <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm" title="<?= htmlspecialchars($TEXT['shop_save_price'] ?? 'Save price') ?>"><i class="bi bi-check2"></i></button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="sh-price">—</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="sh-mono">e<?= (int)$t['entry_id'] ?> · p<?= $t['product_id'] !== null ? (int)$t['product_id'] : '—' ?></td>
+                                        <td class="text-end" style="white-space:nowrap">
+                                            <form method="post" action="/admin_shop" style="display:inline">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                <input type="hidden" name="action" value="move_tile">
+                                                <input type="hidden" name="entry_id" value="<?= (int)$t['entry_id'] ?>">
+                                                <input type="hidden" name="dir" value="up">
+                                                <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm" title="<?= htmlspecialchars($TEXT['shop_move_up'] ?? 'Move up') ?>" <?= $ti === 0 ? 'disabled style="opacity:.3"' : '' ?>><i class="bi bi-arrow-up"></i></button>
+                                            </form>
+                                            <form method="post" action="/admin_shop" style="display:inline">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                <input type="hidden" name="action" value="move_tile">
+                                                <input type="hidden" name="entry_id" value="<?= (int)$t['entry_id'] ?>">
+                                                <input type="hidden" name="dir" value="down">
+                                                <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm" title="<?= htmlspecialchars($TEXT['shop_move_down'] ?? 'Move down') ?>" <?= $ti === $tn - 1 ? 'disabled style="opacity:.3"' : '' ?>><i class="bi bi-arrow-down"></i></button>
+                                            </form>
+                                            <a href="/admin_shop?edit_tile=<?= (int)$t['entry_id'] ?>" class="sh-btn sh-btn-ghost sh-btn-sm"><i class="bi bi-pencil"></i></a>
+                                            <form method="post" action="/admin_shop" style="display:inline"
+                                                  onsubmit="return confirm('<?= htmlspecialchars($TEXT['shop_tile_del_confirm'] ?? 'Delete this item tile? If its product is used nowhere else it is removed too. This cannot be undone.', ENT_QUOTES) ?>')">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                                                <input type="hidden" name="action" value="delete_tile">
+                                                <input type="hidden" name="entry_id" value="<?= (int)$t['entry_id'] ?>">
+                                                <button type="submit" class="sh-btn sh-btn-danger sh-btn-sm"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                                 </tbody>

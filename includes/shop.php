@@ -382,3 +382,380 @@ if (!function_exists('shop_category_move')) {
         }
     }
 }
+
+// ─── Item search / validation (Phase A3) ────────────────────────────────────
+
+if (!function_exists('shop_item_search')) {
+    /**
+     * Search item_template by name (or exact entry id if the term is numeric).
+     * Only the two columns verified to exist are touched: `entry`, `name`.
+     * Returns [ ['entry'=>int,'name'=>string], ... ] (max $limit).
+     */
+    function shop_item_search(PDO $pdo_world, string $term, int $limit = 25): array
+    {
+        $term = trim($term);
+        if (mb_strlen($term) < 2) return [];
+        $limit = max(1, min(50, $limit));
+        try {
+            if (ctype_digit($term)) {
+                $stmt = $pdo_world->prepare(
+                    "SELECT entry, name FROM item_template
+                     WHERE entry = :id OR name LIKE :q
+                     ORDER BY (entry = :id2) DESC, name ASC LIMIT $limit"
+                );
+                $stmt->execute(['id' => (int)$term, 'id2' => (int)$term, 'q' => '%' . $term . '%']);
+            } else {
+                $stmt = $pdo_world->prepare(
+                    "SELECT entry, name FROM item_template
+                     WHERE name LIKE :q ORDER BY name ASC LIMIT $limit"
+                );
+                $stmt->execute(['q' => '%' . $term . '%']);
+            }
+            $out = [];
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $out[] = ['entry' => (int)$r['entry'], 'name' => (string)$r['name']];
+            }
+            return $out;
+        } catch (PDOException $e) {
+            error_log('shop_item_search: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('shop_item_name')) {
+    /** Item name for an entry id, or null if it's not in item_template. */
+    function shop_item_name(PDO $pdo_world, int $entry): ?string
+    {
+        if ($entry <= 0) return null;
+        try {
+            $stmt = $pdo_world->prepare("SELECT name FROM item_template WHERE entry = :e LIMIT 1");
+            $stmt->execute(['e' => $entry]);
+            $n = $stmt->fetchColumn();
+            return $n === false ? null : (string)$n;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('shop_categories_simple')) {
+    /** id => name list in display order, for the move/category dropdown. */
+    function shop_categories_simple(PDO $pdo_world): array
+    {
+        try {
+            $rows = $pdo_world->query(
+                "SELECT id, name FROM battle_pay_group ORDER BY idx ASC, id ASC"
+            )->fetchAll(PDO::FETCH_ASSOC);
+            $out = [];
+            foreach ($rows as $r) $out[(int)$r['id']] = (string)$r['name'];
+            return $out;
+        } catch (PDOException $e) {
+            error_log('shop_categories_simple: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+// ─── Tile (product + product_items + entry) CRUD (Phase A3) ──────────────────
+
+if (!function_exists('shop_tile_get')) {
+    /**
+     * Full tile for the editor: the entry row + its product + every
+     * product_items row (with resolved item name). null if not found.
+     */
+    function shop_tile_get(PDO $pdo_world, int $entry_id): ?array
+    {
+        if ($entry_id <= 0) return null;
+        try {
+            $stmt = $pdo_world->prepare(
+                "SELECT e.id AS entry_id, e.groupId, e.productId, e.idx AS entry_idx,
+                        e.title AS entry_title, e.description AS entry_desc,
+                        e.icon AS entry_icon, e.displayId AS entry_displayId,
+                        e.banner, e.flags AS entry_flags,
+                        p.title AS p_title, p.description AS p_desc, p.icon AS p_icon,
+                        p.price, p.discount, p.displayId AS p_displayId,
+                        p.type AS p_type, p.choiceType, p.flags AS p_flags, p.flagsInfo
+                 FROM battle_pay_entry e
+                 JOIN battle_pay_product p ON p.id = e.productId
+                 WHERE e.id = :id LIMIT 1"
+            );
+            $stmt->execute(['id' => $entry_id]);
+            $tile = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$tile) return null;
+
+            $pi = $pdo_world->prepare(
+                "SELECT pi.id, pi.itemId, pi.count, it.name AS item_name
+                 FROM battle_pay_product_items pi
+                 LEFT JOIN item_template it ON it.entry = pi.itemId
+                 WHERE pi.productId = :pid ORDER BY pi.id ASC"
+            );
+            $pi->execute(['pid' => (int)$tile['productId']]);
+            $tile['items'] = $pi->fetchAll(PDO::FETCH_ASSOC);
+            return $tile;
+        } catch (PDOException $e) {
+            error_log('shop_tile_get: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('shop_validate_items')) {
+    /**
+     * Validate a submitted item set. Returns [bool $ok, $cleanRows|$badId].
+     * On success: array of ['itemId'=>int,'count'=>int] (count clamped ≥1).
+     * On failure: the first itemId not present in item_template.
+     */
+    function shop_validate_items(PDO $pdo_world, array $items): array
+    {
+        $clean = [];
+        foreach ($items as $row) {
+            $iid = (int)($row['itemId'] ?? 0);
+            $cnt = max(1, (int)($row['count'] ?? 1));
+            if ($iid <= 0) continue;
+            if (shop_item_name($pdo_world, $iid) === null) {
+                return [false, $iid];
+            }
+            $clean[] = ['itemId' => $iid, 'count' => $cnt];
+        }
+        if (empty($clean)) return [false, 0]; // need at least one valid item
+        return [true, $clean];
+    }
+}
+
+if (!function_exists('shop_tile_add')) {
+    /**
+     * Create a tile = product + product_items + entry, transactionally.
+     * New products get the verified known-good single-item defaults
+     * (type=0, choiceType=1, flags=47, flagsInfo=0). entry.icon mirrors
+     * product.icon, banner=2 (mount-tile value). Returns new entry id.
+     *
+     * $d: title, description, price, discount, icon, displayId, items[]
+     */
+    function shop_tile_add(PDO $pdo_world, int $groupId, array $d): ?int
+    {
+        if ($groupId <= 0) return null;
+        $title = mb_substr(trim((string)($d['title'] ?? '')), 0, 50);
+        $desc  = mb_substr((string)($d['description'] ?? ''), 0, 500);
+        if ($title === '') return null;
+        $price    = max(0, (int)($d['price'] ?? 0));
+        $discount = max(0, (int)($d['discount'] ?? 0));
+        $icon     = max(0, (int)($d['icon'] ?? 0));
+        $displayId = max(0, (int)($d['displayId'] ?? 0));
+        $items    = $d['items'] ?? [];
+        if (empty($items)) return null;
+
+        try {
+            $pdo_world->beginTransaction();
+            $pid = shop_next_id($pdo_world, 'battle_pay_product');
+            $pdo_world->prepare(
+                "INSERT INTO battle_pay_product
+                   (id, title, description, icon, price, discount, displayId, type, choiceType, flags, flagsInfo)
+                 VALUES (:id,:t,:d,:i,:pr,:disc,:disp,0,1,47,0)"
+            )->execute(['id'=>$pid,'t'=>$title,'d'=>$desc,'i'=>$icon,'pr'=>$price,'disc'=>$discount,'disp'=>$displayId]);
+
+            $insPi = $pdo_world->prepare(
+                "INSERT INTO battle_pay_product_items (id, itemId, count, productId)
+                 VALUES (:id,:iid,:c,:pid)"
+            );
+            foreach ($items as $it) {
+                $insPi->execute([
+                    'id'  => shop_next_id($pdo_world, 'battle_pay_product_items'),
+                    'iid' => (int)$it['itemId'],
+                    'c'   => max(1, (int)$it['count']),
+                    'pid' => $pid,
+                ]);
+            }
+
+            $eid = shop_next_id($pdo_world, 'battle_pay_entry');
+            $idx = (int)$pdo_world->query(
+                "SELECT COALESCE(MAX(idx),0)+1 FROM battle_pay_entry WHERE groupId = " . (int)$groupId
+            )->fetchColumn();
+            $pdo_world->prepare(
+                "INSERT INTO battle_pay_entry
+                   (id, groupId, productId, idx, title, description, icon, displayId, banner, flags)
+                 VALUES (:id,:g,:p,:idx,:t,:d,:i,:disp,2,0)"
+            )->execute(['id'=>$eid,'g'=>$groupId,'p'=>$pid,'idx'=>$idx,'t'=>$title,'d'=>$desc,'i'=>$icon,'disp'=>$displayId]);
+
+            $pdo_world->commit();
+            return $eid;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_tile_add: ' . $e->getMessage());
+            return null;
+        }
+    }
+}
+
+if (!function_exists('shop_tile_update')) {
+    /**
+     * Update a tile's user-facing fields. Arcane product columns
+     * (type/choiceType/flags/flagsInfo) and entry banner/flags are
+     * PRESERVED — never clobbered (some existing products legitimately
+     * differ, e.g. boost/balance). Moving to another category appends the
+     * tile to the end of the new category's order. product_items are
+     * fully replaced from the submitted (pre-validated) set.
+     */
+    function shop_tile_update(PDO $pdo_world, int $entry_id, array $d): bool
+    {
+        if ($entry_id <= 0) return false;
+        $title = mb_substr(trim((string)($d['title'] ?? '')), 0, 50);
+        $desc  = mb_substr((string)($d['description'] ?? ''), 0, 500);
+        if ($title === '') return false;
+        $price    = max(0, (int)($d['price'] ?? 0));
+        $discount = max(0, (int)($d['discount'] ?? 0));
+        $icon     = max(0, (int)($d['icon'] ?? 0));
+        $displayId = max(0, (int)($d['displayId'] ?? 0));
+        $newGroup = (int)($d['groupId'] ?? 0);
+        $items    = $d['items'] ?? [];
+        if (empty($items)) return false;
+
+        try {
+            $cur = $pdo_world->prepare("SELECT productId, groupId FROM battle_pay_entry WHERE id = :id");
+            $cur->execute(['id' => $entry_id]);
+            $row = $cur->fetch(PDO::FETCH_ASSOC);
+            if (!$row) return false;
+            $pid = (int)$row['productId'];
+            $oldGroup = (int)$row['groupId'];
+
+            $pdo_world->beginTransaction();
+
+            $pdo_world->prepare(
+                "UPDATE battle_pay_product
+                 SET title=:t, description=:d, icon=:i, price=:pr, discount=:disc, displayId=:disp
+                 WHERE id=:pid"
+            )->execute(['t'=>$title,'d'=>$desc,'i'=>$icon,'pr'=>$price,'disc'=>$discount,'disp'=>$displayId,'pid'=>$pid]);
+
+            // Move category? append to new group's order.
+            if ($newGroup > 0 && $newGroup !== $oldGroup) {
+                $nidx = (int)$pdo_world->query(
+                    "SELECT COALESCE(MAX(idx),0)+1 FROM battle_pay_entry WHERE groupId = " . $newGroup
+                )->fetchColumn();
+                $pdo_world->prepare(
+                    "UPDATE battle_pay_entry
+                     SET groupId=:g, idx=:idx, title=:t, description=:d, icon=:i, displayId=:disp
+                     WHERE id=:eid"
+                )->execute(['g'=>$newGroup,'idx'=>$nidx,'t'=>$title,'d'=>$desc,'i'=>$icon,'disp'=>$displayId,'eid'=>$entry_id]);
+            } else {
+                $pdo_world->prepare(
+                    "UPDATE battle_pay_entry
+                     SET title=:t, description=:d, icon=:i, displayId=:disp
+                     WHERE id=:eid"
+                )->execute(['t'=>$title,'d'=>$desc,'i'=>$icon,'disp'=>$displayId,'eid'=>$entry_id]);
+            }
+
+            // Replace the product_items set
+            $pdo_world->prepare("DELETE FROM battle_pay_product_items WHERE productId = :pid")
+                      ->execute(['pid' => $pid]);
+            $insPi = $pdo_world->prepare(
+                "INSERT INTO battle_pay_product_items (id, itemId, count, productId)
+                 VALUES (:id,:iid,:c,:pid)"
+            );
+            foreach ($items as $it) {
+                $insPi->execute([
+                    'id'  => shop_next_id($pdo_world, 'battle_pay_product_items'),
+                    'iid' => (int)$it['itemId'],
+                    'c'   => max(1, (int)$it['count']),
+                    'pid' => $pid,
+                ]);
+            }
+
+            $pdo_world->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_tile_update: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('shop_tile_delete')) {
+    /**
+     * Delete a tile (entry). If its product is then referenced by ZERO
+     * entries anywhere, the product + its product_items are removed too
+     * (a product can be shared across entries — never a blind delete).
+     */
+    function shop_tile_delete(PDO $pdo_world, int $entry_id): bool
+    {
+        if ($entry_id <= 0) return false;
+        try {
+            $q = $pdo_world->prepare("SELECT productId FROM battle_pay_entry WHERE id = :id");
+            $q->execute(['id' => $entry_id]);
+            $pid = $q->fetchColumn();
+            if ($pid === false) return false;
+            $pid = (int)$pid;
+
+            $pdo_world->beginTransaction();
+            $pdo_world->prepare("DELETE FROM battle_pay_entry WHERE id = :id")->execute(['id' => $entry_id]);
+
+            $still = $pdo_world->prepare("SELECT COUNT(*) FROM battle_pay_entry WHERE productId = :pid");
+            $still->execute(['pid' => $pid]);
+            if ((int)$still->fetchColumn() === 0) {
+                $pdo_world->prepare("DELETE FROM battle_pay_product_items WHERE productId = :pid")->execute(['pid' => $pid]);
+                $pdo_world->prepare("DELETE FROM battle_pay_product WHERE id = :pid")->execute(['pid' => $pid]);
+            }
+            $pdo_world->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_tile_delete: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('shop_tile_move')) {
+    /**
+     * Reorder a tile within its OWN category (entry.idx). Reindexes 1..N
+     * over that group's tiles in (idx,id) order — robust against duplicate
+     * idx, same approach as shop_category_move. $dir ∈ 'up' | 'down'.
+     */
+    function shop_tile_move(PDO $pdo_world, int $entry_id, string $dir): bool
+    {
+        if ($entry_id <= 0 || !in_array($dir, ['up', 'down'], true)) return false;
+        try {
+            $g = $pdo_world->prepare("SELECT groupId FROM battle_pay_entry WHERE id = :id");
+            $g->execute(['id' => $entry_id]);
+            $gid = $g->fetchColumn();
+            if ($gid === false) return false;
+            $gid = (int)$gid;
+
+            $ids = array_map('intval', $pdo_world->query(
+                "SELECT id FROM battle_pay_entry WHERE groupId = $gid ORDER BY idx ASC, id ASC"
+            )->fetchAll(PDO::FETCH_COLUMN));
+
+            $pos = array_search($entry_id, $ids, true);
+            if ($pos === false) return false;
+            $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+            if ($swap < 0 || $swap >= count($ids)) return false;
+            [$ids[$pos], $ids[$swap]] = [$ids[$swap], $ids[$pos]];
+
+            $pdo_world->beginTransaction();
+            $upd = $pdo_world->prepare("UPDATE battle_pay_entry SET idx = :idx WHERE id = :id");
+            foreach ($ids as $i => $eid) $upd->execute(['idx' => $i + 1, 'id' => $eid]);
+            $pdo_world->commit();
+            return true;
+        } catch (PDOException $e) {
+            if ($pdo_world->inTransaction()) $pdo_world->rollBack();
+            error_log('shop_tile_move: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
+
+if (!function_exists('shop_price_update')) {
+    /** Quick price edit on a product. Price clamped to unsigned int. */
+    function shop_price_update(PDO $pdo_world, int $product_id, int $price): bool
+    {
+        if ($product_id <= 0) return false;
+        $price = max(0, $price);
+        try {
+            $stmt = $pdo_world->prepare("UPDATE battle_pay_product SET price = :p WHERE id = :id");
+            return $stmt->execute(['p' => $price, 'id' => $product_id]);
+        } catch (PDOException $e) {
+            error_log('shop_price_update: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
