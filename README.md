@@ -34,7 +34,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, and maintenance mode from config
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
 - 🔍 **Public Armory** — Search any character on the realm; profile pages with equipped gear (Wowhead tooltips), stats, achievements, and account-mate links
-- 🏆 **Leaderboards** — Top players by level, playtime, gold, PvP kills, and achievements, plus top guilds — with faction filters and gold/silver/bronze top-3 styling
+- 🏆 **Leaderboards** — Top players by level, playtime, gold, PvP kills, **Arena rating** (2v2 / 3v3 / Rated BG, current season), and achievements, plus top guilds — with faction filters and gold/silver/bronze top-3 styling
 - 💎 **Playtime Reward** — Auto-grants Battle Pay (DP) for time spent in-game; configurable hourly rate + daily cap. AFK still counts, login/logout farming doesn't.
 - 💀 **Custom 404 Page** — Themed "You died." page with floating Spirit Healer art and a hidden murloc easter egg
 - 🔗 **OG / Twitter Cards** — Rich previews when sharing armory and leaderboard links on Discord, Twitter, etc.
