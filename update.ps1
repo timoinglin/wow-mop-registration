@@ -344,6 +344,20 @@ echo json_encode(['missing' => $miss]);
     Set-Content -LiteralPath $Path -Value $php -Encoding ASCII
 }
 
+function New-BaseUrlRunner {
+    param([string]$Path)
+    $php = @'
+<?php
+// Arg: <config.php>. Echoes the configured site.base_url so verification
+// hits the host the site is actually served on (vhosts are often NOT
+// localhost), not a hardcoded http://localhost/.
+$c = @require ($argv[1] ?? '');
+$u = is_array($c) && !empty($c['site']['base_url']) ? trim($c['site']['base_url']) : '';
+echo json_encode(['url' => $u]);
+'@
+    Set-Content -LiteralPath $Path -Value $php -Encoding ASCII
+}
+
 function Invoke-PhpJson {
     param([string]$PhpExe, [string]$Script, [string[]]$PhpArgs)
     $raw = & $PhpExe $Script @PhpArgs 2>&1 | ForEach-Object { $_.ToString() }
@@ -503,21 +517,35 @@ try {
         Write-WarnMessage 'Could not find an Apache start script - start Apache from the XAMPP Control Panel.'
     } else {
         Write-Info "Apache start triggered via $startMethod."
-        Start-Sleep -Seconds 4
     }
 
-    $verifyOk = $false
-    try {
-        $resp = Invoke-WebRequest -Uri 'http://localhost/' -UseBasicParsing -TimeoutSec 12
-        $verifyOk = ($resp.StatusCode -eq 200) -and ($resp.Content -notmatch 'Fatal error|Parse error')
-    } catch { $verifyOk = $false }
+    # Verify the URL the site is ACTUALLY served on (config site.base_url) -
+    # vhosts are commonly not localhost (localhost may even 403). Poll while
+    # Apache cold-starts. A 2xx/3xx with no PHP fatal = good; only a 5xx or a
+    # Fatal/Parse error in the body counts as "broken".
+    $urlRunner = Join-Path $tempRoot 'base-url.php'
+    New-BaseUrlRunner -Path $urlRunner
+    $urlRes = Invoke-PhpJson -PhpExe $phpExe -Script $urlRunner -PhpArgs @((Join-Path $InstallRoot 'config.php'))
+    $verifyUrl = if ($urlRes.Json -and $urlRes.Json.url) { $urlRes.Json.url.TrimEnd('/') + '/' } else { 'http://localhost/' }
 
-    if (-not $SkipBrowser) { Start-Process 'http://localhost/' | Out-Null }
+    $verifyState = 'unknown'   # ok | broken | unknown
+    for ($i = 0; $i -lt 10; $i++) {
+        Start-Sleep -Seconds 3
+        try {
+            $resp = Invoke-WebRequest -Uri $verifyUrl -UseBasicParsing -TimeoutSec 8
+            $sc   = [int]$resp.StatusCode
+            if ($resp.Content -match 'Fatal error|Parse error' -or $sc -ge 500) { $verifyState = 'broken'; break }
+            if ($sc -ge 200 -and $sc -lt 400) { $verifyState = 'ok'; break }
+            # 401/403/404 etc: not broken, just not a clean read here - keep trying
+        } catch { }   # connection refused / still starting - retry
+    }
 
-    if ($verifyOk) {
+    if (-not $SkipBrowser) { try { Start-Process $verifyUrl | Out-Null } catch { } }
+
+    if ($verifyState -eq 'ok') {
         Write-Box -Title 'Update Complete' -Lines @(
             "Updated:  $currentVersion  ->  $newVersion",
-            'Site responded 200 OK at http://localhost/.',
+            "Site responded OK at $verifyUrl",
             '',
             "Full backup : $backupZip",
             "Data aside  : $copyAside",
@@ -525,14 +553,24 @@ try {
             '',
             'You can delete the backup/aside once the site looks good.'
         ) -BorderColor Green -TextColor White
-    } else {
-        Write-Box -Title 'Update Applied - VERIFY MANUALLY' -Lines @(
+    } elseif ($verifyState -eq 'broken') {
+        Write-Box -Title 'Update Applied - SITE RETURNED AN ERROR' -Lines @(
             "Version:  $currentVersion  ->  $newVersion",
-            'Files updated but http://localhost/ did not return a clean 200.',
-            'Open the site and check. If it is broken, restore from:',
+            "$verifyUrl returned a server error / PHP fatal.",
+            'Check the site. To roll back, unzip this over the folder:',
             $backupZip,
-            '(unzip it back over the website folder).',
             "Log file: $script:LogPath"
+        ) -BorderColor Red -TextColor White
+    } else {
+        Write-Box -Title 'Update Complete - confirm in a browser' -Lines @(
+            "Updated:  $currentVersion  ->  $newVersion",
+            'Files updated cleanly. Could not auto-confirm the page,',
+            'which is normal if Apache is still warming up or the site',
+            'is not served at this host. Just open it and check:',
+            "  $verifyUrl",
+            '',
+            "Full backup : $backupZip",
+            "Log file    : $script:LogPath"
         ) -BorderColor Yellow -TextColor White
     }
 
