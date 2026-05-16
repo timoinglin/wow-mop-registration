@@ -323,6 +323,8 @@ return [
   'home_counter_online'      => 'Jugadores en Línea',
   'home_faq_title'           => 'Preguntas Frecuentes',
   'home_view_all_news'       => 'Ver Todas las Noticias',
+  'home_forum_title'         => 'De la Comunidad',
+  'home_view_forum'          => 'Visitar el Foro',
 
   // News (público)
   'news_nav'                 => 'Noticias',

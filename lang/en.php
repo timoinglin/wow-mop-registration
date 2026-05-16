@@ -323,6 +323,8 @@ return [
   'home_counter_online'      => 'Players Online',
   'home_faq_title'           => 'Frequently Asked Questions',
   'home_view_all_news'       => 'View All News',
+  'home_forum_title'         => 'From the Community',
+  'home_view_forum'          => 'Visit the Forum',
 
   // News (public)
   'news_nav'                 => 'News',

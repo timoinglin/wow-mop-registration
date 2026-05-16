@@ -63,6 +63,28 @@ try {
     error_log('Home news fetch failed: ' . $e->getMessage());
 }
 
+// Forum — latest active threads, shown only when the forum is enabled.
+// forum.php + $nav_forum_enabled are already loaded by templates/header.php.
+$forum_items = [];
+if (!empty($nav_forum_enabled) && function_exists('forum_recent_threads')) {
+    try {
+        foreach (forum_recent_threads($pdo_auth, 4) as $t) {
+            $ts = $t['last_reply_at'] ?: $t['created_at'];
+            $forum_items[] = [
+                'title'   => $t['title'],
+                'cat'     => $t['category_name'],
+                'icon'    => $t['category_icon'] ?: 'bi-chat-square-text',
+                'by'      => $t['last_reply_by'] ?: $t['author_name'],
+                'replies' => (int)$t['reply_count'],
+                'date'    => $ts ? date('M j, Y', strtotime((string)$ts)) : '',
+                'href'    => '/forum/' . rawurlencode($t['category_slug']) . '/' . rawurlencode($t['slug']),
+            ];
+        }
+    } catch (Throwable $e) {
+        error_log('Home forum fetch failed: ' . $e->getMessage());
+    }
+}
+
 // FAQ
 $faq_items = $config['faq'] ?? [];
 ?>
@@ -146,6 +168,42 @@ $faq_items = $config['faq'] ?? [];
                 <a href="/news" class="btn btn-outline-gold"><?= htmlspecialchars($TEXT['home_view_all_news'] ?? 'View All News') ?> <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
             <?php endif; ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- ═══════════════ FROM THE COMMUNITY (FORUM) ═══════════════ -->
+    <?php if (!empty($forum_items)): ?>
+    <section id="forum-latest" class="content-section py-5 my-4 rounded">
+        <div class="container">
+            <div class="section-title text-center mb-5">
+                <h2><i class="bi bi-chat-square-text me-2"></i><?= htmlspecialchars($TEXT['home_forum_title'] ?? 'From the Community') ?></h2>
+            </div>
+            <div class="row justify-content-center g-4">
+                <?php foreach ($forum_items as $fi): ?>
+                <div class="col-lg-3 col-md-6">
+                    <a href="<?= htmlspecialchars($fi['href']) ?>" style="text-decoration:none;color:inherit">
+                        <div class="game-card h-100 news-card" style="cursor:pointer">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center gap-3 mb-3">
+                                    <div class="news-icon-circle"><i class="bi <?= htmlspecialchars($fi['icon']) ?>"></i></div>
+                                    <div style="min-width:0">
+                                        <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fi['title']) ?></h5>
+                                        <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($fi['cat']) ?> &middot; <?= (int)$fi['replies'] ?> <?= htmlspecialchars($TEXT['forum_replies'] ?? 'replies') ?></span>
+                                    </div>
+                                </div>
+                                <p style="color:rgba(255,255,255,.55);font-size:.84rem;margin:0">
+                                    <i class="bi bi-person-fill me-1"></i><?= htmlspecialchars($fi['by']) ?> &middot; <?= htmlspecialchars($fi['date']) ?>
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <div class="text-center mt-4">
+                <a href="/forum" class="btn btn-outline-gold"><?= htmlspecialchars($TEXT['home_view_forum'] ?? 'Visit the Forum') ?> <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
         </div>
     </section>
     <?php endif; ?>
