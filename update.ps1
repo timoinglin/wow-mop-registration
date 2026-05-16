@@ -124,21 +124,26 @@ function Test-ApacheRunning {
 
 function Stop-Apache {
     param([string]$Root)
-    $stopBat = Join-Path $Root 'apache_stop.bat'
-    if (Test-Path -LiteralPath $stopBat) {
-        Write-Info 'Stopping Apache via apache_stop.bat ...'
-        Start-Process -FilePath $stopBat -WindowStyle Hidden -Wait
-    } else {
-        $proc = @(Get-Process -Name 'httpd' -ErrorAction SilentlyContinue)
-        if ($proc.Count -gt 0) {
-            Write-Info 'apache_stop.bat not found; terminating httpd processes ...'
-            $proc | Stop-Process -Force -ErrorAction SilentlyContinue
+    # Kill httpd.exe directly: fast, reliable, fully non-interactive. We do NOT
+    # call apache_stop.bat -- some XAMPP variants keep that window open, so a
+    # hidden Start-Process -Wait would hang forever. All we need is httpd not
+    # holding file locks while we overwrite; terminating the process does that.
+    $proc = @(Get-Process -Name 'httpd' -ErrorAction SilentlyContinue)
+    if ($proc.Count -gt 0) {
+        Write-Info ("Stopping Apache (terminating {0} httpd process(es))..." -f $proc.Count)
+        try {
+            $proc | Stop-Process -Force -ErrorAction Stop
+        } catch {
+            # Last resort if Stop-Process is blocked (permissions/AV).
+            & cmd /c 'taskkill /F /IM httpd.exe >nul 2>&1'
         }
     }
     for ($i = 0; $i -lt 20; $i++) {
         if (-not (Test-ApacheRunning)) { return $true }
         Start-Sleep -Milliseconds 500
     }
+    # Still up after ~10s -> almost certainly Apache installed as a Windows
+    # service that the SCM keeps respawning. Tell the caller to stop it by hand.
     return (-not (Test-ApacheRunning))
 }
 

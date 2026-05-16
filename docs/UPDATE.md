@@ -15,13 +15,17 @@ Already running and want the latest version? **Keep your existing `config.php`, 
 
 ### Option A — One-Click Updater (recommended, Windows)
 
-Run this from **inside your website folder** in PowerShell (no admin needed):
+No admin rights needed. Works from **Command Prompt _or_ PowerShell**.
 
-```powershell
-cd C:\xampp\htdocs\wow-legends   # your install folder
-irm "https://raw.githubusercontent.com/timoinglin/wow-mop-registration/main/update.ps1" -OutFile update.ps1
-.\update.ps1
+1. Open your **website folder** in File Explorer — the folder that contains `index.php` and `config.php` (for example `C:\xampp\htdocs` or `C:\xampp\htdocs\wow-legends`).
+2. Click the address bar, type **`cmd`**, press **Enter** — a terminal opens already in that folder.
+3. Paste this **one line** and press Enter:
+
 ```
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/timoinglin/wow-mop-registration/main/update.ps1 -OutFile update.ps1; .\update.ps1"
+```
+
+> It downloads the updater into the current folder and runs it with the correct execution policy — so there's no `irm is not recognized` (that happens if you paste the bare `irm …` into Command Prompt) and no *“running scripts is disabled”* error. The updater operates on whatever folder you launched it from.
 
 The updater is fully guided and safe-by-default. It will:
 
