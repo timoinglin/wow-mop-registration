@@ -8,6 +8,10 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 > ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [How to Update](#how-to-update) section to stay current.
 
+> 💛 **Enjoying the portal?** It's free and open-source, built and maintained in spare time. If it saved you hours of setup or you'd like to see it keep growing, a coffee genuinely helps — see [Support the Project](#support-the-project).
+>
+> [![Support the project on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kneuma)
+
 ## Table of Contents
 
 - [Features](#features)
@@ -47,6 +51,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
   - [Replacing Images and Logo](#replacing-images-and-logo)
 - [Security Notes](#security-notes)
 - [Troubleshooting](#troubleshooting)
+- [Support the Project](#support-the-project)
 - [License](#license)
 
 ## Features
@@ -887,6 +892,18 @@ All images are stored in `assets/img/`:
 | **MySQL warning 1681 ("Integer display width is deprecated")** | Fixed in v0.5.0 — the original `TINYINT(1)` columns were narrowed to plain `TINYINT`. If you still see it, re-run `sql/setup.sql` against the newest schema. |
 | **MySQL warning 3719 ("utf8 is currently an alias for UTF8MB3")** | Fixed in v0.5.0 — `sql/setup.sql` now runs an idempotent `CONVERT TO CHARACTER SET utf8mb4` block on the legacy tables. One re-run silences the warning permanently. |
 | **EasyMDE fullscreen toolbar hidden behind navbar / second row clipped** | Fixed during Phase 5 polish. The site navbar auto-hides while EasyMDE is fullscreen, the toolbar is wrap-friendly, and floated icons are stripped. If you still see it, hard-refresh to bypass CSS cache. |
+
+---
+
+## Support the Project
+
+This portal is **free and MIT-licensed**, and it always will be — no paywall, no locked features. But a lot of evenings and weekends go into building it, testing every release on a live realm, writing the docs, and helping people get their servers online.
+
+If this saved you real development time, helped you launch your community, or you simply like where it's heading, a small tip keeps the momentum going — new features, fixes, and support. Every coffee is hugely appreciated and genuinely motivating. 💛
+
+[![Support the project on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/kneuma)
+
+> ℹ️ This supports development of the **open-source portal itself**. It is **separate** from the in-app [Ko-fi donations feature](#public-shop-catalog--ko-fi-donations), which is something *you* configure to credit Battle Coins to *your* players.
 
 ---
 
