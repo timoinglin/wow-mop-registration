@@ -157,44 +157,62 @@ function Start-Apache {
 }
 
 # -- Full backup zip (the safety net) ----------------------------------------
-# Zips the ENTIRE install folder to a sibling of $InstallRoot so it is outside
-# the overwrite target. Excludes prior backup zips (no nesting/ballooning),
-# .git, node_modules and *.log. Admins often customise shipped assets in place
-# (logo, background images/videos, theme CSS, lang) - this zip is their
-# guaranteed recovery point if they kept no copy.
+# Mirrors the install into a temp staging dir with robocopy (robust excludes:
+# .git, node_modules, *.log, prior backup zips), then zips that staging dir.
+# Uses the ZipFile.CreateFromDirectory(string,string) overload, which lives in
+# System.IO.Compression.FileSystem ALONE and needs no enum -- the earlier
+# ZipArchiveMode/CompressionLevel enums live in a *different* assembly
+# (System.IO.Compression) that isn't always auto-loaded in Windows PowerShell.
+# Falls back to Compress-Archive if the .NET API is unavailable. The zip lands
+# beside the install folder so it is outside the overwrite target.
 function New-FullBackupZip {
     param([string]$Path)
-    Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
 
     $stamp   = Get-Date -Format 'yyyyMMdd-HHmmss'
     $zipName = "wow-legends-backup-$stamp.zip"
     $zipPath = Join-Path (Split-Path -Parent $Path) $zipName
+    $staging = Join-Path ([IO.Path]::GetTempPath()) ("wlbk-{0}" -f [Guid]::NewGuid().ToString('N'))
 
-    $rootFull = [IO.Path]::GetFullPath($Path).TrimEnd('\')
-    $excludeDirs = @('.git', 'node_modules')
-
-    $files = Get-ChildItem -LiteralPath $Path -Recurse -File -Force | Where-Object {
-        $rel = $_.FullName.Substring($rootFull.Length).TrimStart('\')
-        $top = ($rel -split '\\')[0]
-        ($excludeDirs -notcontains $top) -and
-        ($_.Extension -ne '.log') -and
-        ($_.Name -notlike 'wow-legends-backup-*.zip')
+    Write-Info 'Collecting files to back up (this can take a while with background videos)...'
+    $rc = @(
+        $Path, $staging, '/E',
+        '/XD', (Join-Path $Path '.git'), (Join-Path $Path 'node_modules'),
+        '/XF', '*.log', 'wow-legends-backup-*.zip',
+        '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NP'
+    )
+    & robocopy @rc | Out-Null
+    $rcCode = $LASTEXITCODE
+    $global:LASTEXITCODE = 0
+    if ($rcCode -ge 8) {
+        if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue }
+        throw "robocopy failed building the backup staging copy (exit $rcCode)."
     }
 
-    $count = @($files).Count
-    if ($count -eq 0) { throw "Nothing to back up in '$Path'." }
-    Write-Info ("Compressing {0} files (this can take a while if you have background videos)..." -f $count)
+    $count = @(Get-ChildItem -LiteralPath $staging -Recurse -File -Force -ErrorAction SilentlyContinue).Count
+    if ($count -eq 0) {
+        Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+        throw "Nothing to back up in '$Path'."
+    }
+    Write-Info ("Compressing {0} files..." -f $count)
 
-    $zip = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
     try {
-        foreach ($f in $files) {
-            $entry = $f.FullName.Substring($rootFull.Length).TrimStart('\').Replace('\', '/')
-            [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $f.FullName, $entry) | Out-Null
+        $made = $false
+        try {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($staging, $zipPath)
+            $made = $true
+        } catch {
+            Write-WarnMessage 'System.IO.Compression unavailable; using Compress-Archive instead...'
+        }
+        if (-not $made) {
+            if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue }
+            Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $zipPath -Force
         }
     } finally {
-        $zip.Dispose()
+        Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
     }
 
+    if (-not (Test-Path -LiteralPath $zipPath)) { throw 'Backup zip was not created.' }
     $sizeMB = [Math]::Round((Get-Item -LiteralPath $zipPath).Length / 1MB, 1)
     Write-Ok ("Full backup written: {0} ({1} MB)" -f $zipPath, $sizeMB)
     return $zipPath
