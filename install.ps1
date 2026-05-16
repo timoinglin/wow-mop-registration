@@ -364,6 +364,7 @@ function New-InstallerConfig {
         @{ Pattern = "'password'\s*=>\s*'ascent'"; Replacement = "'password'   => '$($DbSettings.Password)'" },
         @{ Pattern = "'name_auth'\s*=>\s*'auth'"; Replacement = "'name_auth'  => '$($DbSettings.AuthDatabase)'" },
         @{ Pattern = "'name_chars'\s*=>\s*'characters'"; Replacement = "'name_chars' => '$($DbSettings.CharactersDatabase)'" },
+        @{ Pattern = "'name_world'\s*=>\s*'world'"; Replacement = "'name_world' => '$($DbSettings.WorldDatabase)'" },
         @{ Pattern = "'name'\s*=>\s*'Your Server Name'"; Replacement = "'name' => 'WoW Server'" },
         @{ Pattern = "'description'\s*=>\s*'Your Server Description \(e\.g\. x2 XP, Progressive Release\)'"; Replacement = "'description' => 'Local installation created by the one-click installer'" },
         @{ Pattern = "'realmlist'\s*=>\s*'logon\.yourserver\.com'"; Replacement = "'realmlist' => '127.0.0.1'" },
@@ -722,6 +723,7 @@ try {
         $passwordDefault = if ($dbSettings) { $dbSettings.Password } else { 'ascent' }
         $authDatabaseDefault = if ($dbSettings) { $dbSettings.AuthDatabase } else { 'auth' }
         $charactersDatabaseDefault = if ($dbSettings) { $dbSettings.CharactersDatabase } else { 'characters' }
+        $worldDatabaseDefault = if ($dbSettings) { $dbSettings.WorldDatabase } else { 'world' }
 
         $dbSettings = @{
             Host = Read-ValueWithDefault -Prompt 'Database host' -Default $hostDefault
@@ -730,6 +732,7 @@ try {
             Password = Read-ValueWithDefault -Prompt 'Database password' -Default $passwordDefault -Secret
             AuthDatabase = Read-ValueWithDefault -Prompt 'Auth database name (for example: auth or mop_auth)' -Default $authDatabaseDefault
             CharactersDatabase = Read-ValueWithDefault -Prompt 'Characters database name (for example: characters or mop_characters)' -Default $charactersDatabaseDefault
+            WorldDatabase = Read-ValueWithDefault -Prompt 'World database name (for the in-game shop; commonly world or mop_world)' -Default $worldDatabaseDefault
         }
 
         $helperSettings = @{
@@ -785,6 +788,15 @@ try {
             }
             Write-WarnMessage 'Re-enter the database names and try again. The installer will not continue until both databases are valid.'
             continue
+        }
+
+        # World DB is optional — the in-game shop is feature-flagged OFF by
+        # default. Don't gate the install on it; just report using the
+        # database list we already fetched.
+        if (@($dbCheck.Result.server.databases) -contains $dbSettings.WorldDatabase) {
+            Write-Info ("World database '{0}' found (in-game shop can be enabled later)." -f $dbSettings.WorldDatabase)
+        } else {
+            Write-WarnMessage ("World database '{0}' not found - that's fine, the in-game shop is OFF by default. It is saved to config.php; set features.shop_admin/shop later if you add it." -f $dbSettings.WorldDatabase)
         }
 
         break
