@@ -1,0 +1,29 @@
+# Normalize line endings. The repo (and working tree) use LF everywhere —
+# this matches what the GitHub source archive and update.ps1 deliver, so a
+# Windows checkout / one-click update no longer shows every file as
+# "modified" and Git stops emitting "LF will be replaced by CRLF" warnings.
+# eol=lf overrides a global core.autocrlf=true for this repo.
+* text=auto eol=lf
+
+# Windows batch files must stay CRLF to run reliably (none tracked today,
+# but keep this correct for the future).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — Git must never touch their bytes / line endings.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.svg   binary
+*.mp4   binary
+*.webm  binary
+*.zip   binary
+*.phar  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.otf   binary

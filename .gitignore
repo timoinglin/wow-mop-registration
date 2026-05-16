@@ -1,6 +1,9 @@
 # ── Local server config ──────────────────────────────────────────────────────
 /config.php
 /roadmap.md
+# Version stamp written by update.ps1 on the local install (the updater treats
+# its absence as "first run"). Install-local only — never tracked or shipped.
+/VERSION
 
 # ── Runtime data ─────────────────────────────────────────────────────────────
 # Cache JSON files (login history, rate-limit counters). The folder .htaccess
