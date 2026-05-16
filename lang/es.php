@@ -637,6 +637,13 @@ return [
   'armory_info_gender'              => 'Género',
   'armory_info_account_created'     => 'Cuenta Creada',
   'armory_panel_siblings'           => 'Más Personajes de Esta Cuenta',
+  'armory_panel_talents'            => 'Talentos',
+  'armory_spec_label'               => 'Especialización',
+  'armory_spec_group'               => 'Conjunto de talentos',
+  'armory_spec_active'              => 'Activa',
+  'armory_spec_offspec'             => 'Secundaria',
+  'armory_no_talents'               => 'Aún no ha elegido talentos.',
+  'armory_talents_hint'             => 'Los detalles de talentos provienen de Wowhead (Mists of Pandaria). Los hechizos muy personalizados del servidor pueden no aparecer.',
 
   // OG / Texto para compartir en redes
   'armory_og_profile_title'         => 'Nivel %d %s %s',
