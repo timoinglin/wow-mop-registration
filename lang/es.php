@@ -91,6 +91,8 @@ return [
   'forum_cat_empty'            => 'Aún no hay hilos. ¡Sé el primero en empezar uno!',
   'forum_threads'              => 'hilos',
   'forum_replies'              => 'respuestas',
+  'forum_recent_title'         => 'Actividad reciente',
+  'forum_recent_in'            => 'en',
   'forum_views'                => 'visualizaciones',
   'forum_sticky'               => 'Fijado',
   'forum_locked'               => 'Cerrado',

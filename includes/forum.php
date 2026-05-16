@@ -377,6 +377,37 @@ if (!function_exists('forum_categories_with_stats')) {
     }
 }
 
+if (!function_exists('forum_recent_threads')) {
+    /**
+     * Cross-category "latest activity": the most-recently-active published
+     * threads, newest first. A thread bumped by a reply rises to the top
+     * (orders by last_reply_at, falling back to created_at for reply-less
+     * threads). Only `published` threads in existing categories — pending /
+     * hidden never surface here, so it's safe on a public page for anyone.
+     */
+    function forum_recent_threads(PDO $pdo, int $limit = 6): array
+    {
+        $limit = max(1, min(20, $limit));
+        try {
+            return $pdo->query(
+                "SELECT t.id, t.slug, t.title, t.author_name,
+                        t.reply_count, t.view_count, t.created_at,
+                        t.last_reply_at, t.last_reply_by,
+                        c.slug AS category_slug, c.name AS category_name,
+                        c.icon AS category_icon
+                 FROM forum_threads t
+                 JOIN forum_categories c ON c.id = t.category_id
+                 WHERE t.status = 'published'
+                 ORDER BY COALESCE(t.last_reply_at, t.created_at) DESC, t.id DESC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('forum_recent_threads: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
 if (!function_exists('forum_category_get_by_slug')) {
     function forum_category_get_by_slug(PDO $pdo, string $slug): ?array
     {

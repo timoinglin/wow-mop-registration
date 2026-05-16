@@ -91,6 +91,8 @@ return [
   'forum_cat_empty'            => 'No threads yet. Be the first to start one!',
   'forum_threads'              => 'threads',
   'forum_replies'              => 'replies',
+  'forum_recent_title'         => 'Latest activity',
+  'forum_recent_in'            => 'in',
   'forum_views'                => 'views',
   'forum_sticky'               => 'Sticky',
   'forum_locked'               => 'Locked',
