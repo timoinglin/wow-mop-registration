@@ -72,6 +72,13 @@ return [
                                      // with battle_pay_* tables. Off by default;
                                      // the page degrades gracefully if enabled
                                      // but the DB/tables aren't present.
+        'shop'             => false, // Public user-facing shop catalog (/shop):
+                                     // a read-only list of what's buyable in-game.
+                                     // Independent of shop_admin and donations.
+        'donations'        => false, // Ko-fi donate button + DP crediting.
+                                     // Independent of 'shop' — you can show the
+                                     // catalog with donations off, or vice versa.
+                                     // Needs Ko-fi config (see 'donation' block).
     ],
 
     // Login Security — brute-force protection

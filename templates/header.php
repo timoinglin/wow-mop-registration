@@ -35,6 +35,22 @@ try {
     error_log('header forum-enabled check failed: ' . $e->getMessage());
 }
 
+// Public shop nav-link visibility — gated by its own features.shop flag AND
+// a reachable world DB with battle_pay_* tables (don't link to a broken page).
+// shop_public_availability() short-circuits on the flag, so zero DB cost when off.
+$nav_shop_enabled = false;
+try {
+    if (!isset($pdo_world)) {
+        @require_once __DIR__ . '/../includes/db.php';
+    }
+    @require_once __DIR__ . '/../includes/shop.php';
+    if (function_exists('shop_public_availability')) {
+        [$nav_shop_enabled] = shop_public_availability($pdo_world ?? null, $config);
+    }
+} catch (Throwable $e) {
+    error_log('header shop-enabled check failed: ' . $e->getMessage());
+}
+
 // --- Maintenance Mode ---
 if (!empty($config['features']['maintenance'])) {
     $gm_level = $_SESSION['gm_level'] ?? 0;
@@ -186,6 +202,13 @@ if (!empty($config['features']['maintenance'])) {
                 <li class="nav-item">
                     <a class="nav-link <?= (in_array($current_page, ['forum.php','forum_category.php','forum_thread.php'])) ? 'active' : '' ?>" href="/forum">
                         <i class="bi bi-chat-square-text me-1"></i> <?= $TEXT['forum_nav'] ?? 'Forum' ?>
+                    </a>
+                </li>
+                <?php endif; ?>
+                <?php if ($nav_shop_enabled): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page === 'shop.php') ? 'active' : '' ?>" href="/shop">
+                        <i class="bi bi-shop me-1"></i> <?= $TEXT['shop_nav'] ?? 'Shop' ?>
                     </a>
                 </li>
                 <?php endif; ?>

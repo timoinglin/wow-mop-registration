@@ -63,6 +63,33 @@ if (!function_exists('shop_availability')) {
     }
 }
 
+if (!function_exists('shop_public_availability')) {
+    /**
+     * Whether the PUBLIC user-facing shop catalog is usable. Independent of
+     * shop_admin and of donations — gated by its own `features.shop` flag.
+     * reason ∈ 'ok' | 'disabled' | 'no_world_db' | 'no_tables'
+     */
+    function shop_public_availability(?PDO $pdo_world, array $config): array
+    {
+        if (empty($config['features']['shop']))   return [false, 'disabled'];
+        if (!$pdo_world)                          return [false, 'no_world_db'];
+        if (!shop_tables_present($pdo_world))     return [false, 'no_tables'];
+        return [true, 'ok'];
+    }
+}
+
+if (!function_exists('shop_donations_enabled')) {
+    /**
+     * The donate button + DP crediting are an INDEPENDENT toggle. Admin can
+     * run the catalog with donations off, or vice versa — neither implies the
+     * other. The actual Ko-fi flow lands in Track B2; this is the gate.
+     */
+    function shop_donations_enabled(array $config): bool
+    {
+        return !empty($config['features']['donations']);
+    }
+}
+
 if (!function_exists('shop_counts')) {
     /**
      * Quick stats for the dashboard tile: category + tile (entry) counts.
