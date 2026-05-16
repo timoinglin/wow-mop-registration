@@ -145,7 +145,12 @@ $csrf = generate_csrf_token();
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    /* When the Edit link jumps to #cat-<id>, keep the card clear of the
+       fixed navbar instead of landing flush under it. */
+    scroll-margin-top: 100px;
 }
+/* Briefly glow the category being edited so it's obvious where the jump landed. */
+.sh-card.sh-editing { border-color: rgba(200,169,110,.7); box-shadow: 0 0 0 1px rgba(200,169,110,.35); }
 .sh-card h2 {
     color:#c8a96e; font-size:1.05rem; text-transform:uppercase; letter-spacing:1px;
     font-weight:700; margin:0 0 1rem; padding-bottom:.6rem;
@@ -295,8 +300,9 @@ $csrf = generate_csrf_token();
         <?php if (empty($shop)): ?>
             <div class="sh-card"><div class="sh-empty"><?= htmlspecialchars($TEXT['shop_no_categories'] ?? 'No shop categories found in the world DB.') ?></div></div>
         <?php else: ?>
-            <?php $catCount = count($shop); foreach ($shop as $ci => $cat): ?>
-                <div class="sh-card">
+            <?php $catCount = count($shop); foreach ($shop as $ci => $cat):
+                $is_editing = $edit_cat && (int)$edit_cat['id'] === (int)$cat['id']; ?>
+                <div class="sh-card<?= $is_editing ? ' sh-editing' : '' ?>" id="cat-<?= (int)$cat['id'] ?>">
                     <div class="sh-cat-head">
                         <i class="bi bi-folder2-open"></i>
                         <span><?= htmlspecialchars($cat['name']) ?></span>
@@ -318,7 +324,7 @@ $csrf = generate_csrf_token();
                                 <input type="hidden" name="dir" value="down">
                                 <button type="submit" class="sh-btn sh-btn-ghost sh-btn-sm" title="<?= htmlspecialchars($TEXT['shop_move_down'] ?? 'Move down') ?>" <?= $ci === $catCount - 1 ? 'disabled style="opacity:.3"' : '' ?>><i class="bi bi-arrow-down"></i></button>
                             </form>
-                            <a href="/admin_shop?edit_cat=<?= (int)$cat['id'] ?>" class="sh-btn sh-btn-ghost sh-btn-sm"><i class="bi bi-pencil me-1"></i><?= htmlspecialchars($TEXT['shop_edit'] ?? 'Edit') ?></a>
+                            <a href="/admin_shop?edit_cat=<?= (int)$cat['id'] ?>#cat-<?= (int)$cat['id'] ?>" class="sh-btn sh-btn-ghost sh-btn-sm"><i class="bi bi-pencil me-1"></i><?= htmlspecialchars($TEXT['shop_edit'] ?? 'Edit') ?></a>
                             <form method="post" action="/admin_shop" style="display:inline"
                                   onsubmit="return confirm('<?= htmlspecialchars($TEXT['shop_cat_del_confirm'] ?? 'Delete this category and all its tiles? Orphaned products are cleaned up. This cannot be undone.', ENT_QUOTES) ?>')">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
