@@ -681,6 +681,23 @@ Plus per-post actions in each post's meta row:
 
 Every moderation action is recorded in `admin_audit_log` with the admin name, target, and IP.
 
+### Managing the In-Game Shop
+
+> Manages the repack's **Battle Pay store** directly in the `world` DB (`battle_pay_*` tables). Off by default — set `features.shop_admin = true` and a reachable `db.name_world` (commonly `world`, some repacks use `mop_world`). If the tables aren't present the page degrades with a clear notice, so it's safe on any repack.
+
+The Shop tab in `/admin_dashboard` shows status + counts and links to `/admin_shop`, where you can:
+
+- **Categories**: add / edit (name ≤16, icon, type) / delete (cascades tiles, cleans truly-orphaned products) / reorder (▲▼).
+- **Items (tiles)**: add / edit / delete / reorder / move between categories / inline price quick-edit. Adding an item writes the verified product + product_items + entry triple in one transaction with known-good single-item defaults; editing preserves arcane flags so boost/balance products aren't broken.
+- **Item picker**: type a name (or paste an item id) → live `item_template` search. Every saved itemId is validated against `item_template` — an unknown id rejects the whole save (nothing half-written). Picked items get a **Wowhead (mop-classic) tooltip/link** (same widget the armory uses) so you see the real icon/model/tooltip of what you're selling.
+- **Appearance fields** (`icon` FileDataID, `displayId`) are collapsed into an optional section with plain-language help. The website **cannot** thumbnail a raw FileDataID (no game client files) — instead the tile icon is **auto-filled** from a matching shop entry when you pick an item, or you can **copy an icon from any existing tile** via a dropdown.
+
+> [!IMPORTANT]
+> **Shop changes need a worldserver restart.** The `battle_pay_*` tables are read into worldserver memory at startup only — there is no in-game reload. After any change the page shows a persistent "restart required" banner (with an *I've restarted it* dismiss). Restarting disconnects online players for ~1–2 min.
+
+> [!NOTE]
+> Custom rows are assigned ids ≥ **9000** (a reserved range) so a repack update that re-imports `battle_pay_*` is unlikely to collide with them. A repack update *can* still overwrite custom shop data — keep a DB backup before applying repack updates. Every shop write is recorded in `admin_audit_log`.
+
 ---
 
 ## Customization

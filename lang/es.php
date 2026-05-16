@@ -218,7 +218,7 @@ return [
   'shop_tile_f_price'          => 'Precio (Battle Coins)',
   'shop_tile_f_discount'       => 'Descuento',
   'shop_tile_f_icon'           => 'Icono (FileDataID)',
-  'shop_tile_f_display'        => 'displayId (3D, 0=icono)',
+  'shop_tile_f_display'        => 'displayId (modelo 3D, 0 = solo icono)',
   'shop_tile_f_items'          => 'Objeto(s) otorgado(s)',
   'shop_item_search_ph'        => 'Buscar objeto por nombre o id…',
   'shop_item_col_id'           => 'ID objeto',
@@ -235,6 +235,12 @@ return [
   'shop_err_tile_title'        => 'El título del objeto es obligatorio (máx. 50 caracteres).',
   'shop_err_noitems'           => 'Añade al menos un objeto válido.',
   'shop_err_baditem'           => 'El objeto #%s no se encontró en item_template — no se guardó nada.',
+
+  // Gestión de tienda — Fase A4 (pulido: sección apariencia, ayuda de icono, Wowhead)
+  'shop_tile_appearance'       => 'Apariencia y extras (opcional)',
+  'shop_appearance_help'       => 'Son IDs de recursos del cliente de WoW. La web no puede previsualizarlos (no hay archivos del juego). Lo más fácil: déjalos — al elegir un objeto, el icono se rellena automáticamente desde una entrada de tienda coincidente cuando es posible. O copia un icono de una casilla existente abajo.',
+  'shop_icon_copy'             => 'Copiar icono de una casilla existente',
+  'shop_icon_copy_ph'          => '— elige una casilla para reusar su icono —',
   'shop_add_cat'               => 'Añadir categoría',
   'shop_cat_name'              => 'Nombre (máx. 16)',
   'shop_cat_icon'              => 'Icono (FileDataID)',

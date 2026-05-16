@@ -218,7 +218,7 @@ return [
   'shop_tile_f_price'          => 'Price (Battle Coins)',
   'shop_tile_f_discount'       => 'Discount',
   'shop_tile_f_icon'           => 'Icon (FileDataID)',
-  'shop_tile_f_display'        => 'displayId (3D, 0=icon)',
+  'shop_tile_f_display'        => 'displayId (3D model, 0 = icon only)',
   'shop_tile_f_items'          => 'Granted item(s)',
   'shop_item_search_ph'        => 'Search item by name or id…',
   'shop_item_col_id'           => 'Item ID',
@@ -235,6 +235,12 @@ return [
   'shop_err_tile_title'        => 'Item title is required (max 50 chars).',
   'shop_err_noitems'           => 'Add at least one valid item.',
   'shop_err_baditem'           => 'Item #%s was not found in item_template — nothing was saved.',
+
+  // Shop management — Phase A4 (polish: appearance section, icon helper, Wowhead)
+  'shop_tile_appearance'       => 'Appearance & extras (optional)',
+  'shop_appearance_help'       => 'These are WoW client asset IDs. The website cannot preview them (no game files). Easiest: leave them — when you pick an item, the tile icon is auto-filled from a matching shop entry where possible. Or copy an icon from an existing tile below.',
+  'shop_icon_copy'             => 'Copy icon from an existing tile',
+  'shop_icon_copy_ph'          => '— pick a tile to reuse its icon —',
   'shop_add_cat'               => 'Add category',
   'shop_cat_name'              => 'Name (max 16)',
   'shop_cat_icon'              => 'Icon (FileDataID)',

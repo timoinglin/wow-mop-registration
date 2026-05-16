@@ -385,39 +385,89 @@ if (!function_exists('shop_category_move')) {
 
 // ─── Item search / validation (Phase A3) ────────────────────────────────────
 
+if (!function_exists('shop_wowhead_item_url')) {
+    /**
+     * MoP-Classic Wowhead URL for an item — same domain the armory uses, so
+     * the existing power.js widget iconises + tooltips these links.
+     */
+    function shop_wowhead_item_url(int $itemId): string
+    {
+        return 'https://www.wowhead.com/mop-classic/item=' . $itemId;
+    }
+}
+
 if (!function_exists('shop_item_search')) {
     /**
      * Search item_template by name (or exact entry id if the term is numeric).
-     * Only the two columns verified to exist are touched: `entry`, `name`.
-     * Returns [ ['entry'=>int,'name'=>string], ... ] (max $limit).
+     * Only the verified columns are touched (entry, name). Each result also
+     * carries `suggest_icon`: the FileDataID of an existing battle_pay_product
+     * that already grants this item (if any) — used to auto-prefill the tile
+     * icon so admins rarely have to hunt a FileDataID by hand.
+     * Returns [ ['entry'=>int,'name'=>string,'suggest_icon'=>int], ... ].
      */
     function shop_item_search(PDO $pdo_world, string $term, int $limit = 25): array
     {
         $term = trim($term);
         if (mb_strlen($term) < 2) return [];
         $limit = max(1, min(50, $limit));
+        $iconSub = "(SELECT p.icon FROM battle_pay_product_items spi
+                      JOIN battle_pay_product p ON p.id = spi.productId
+                      WHERE spi.itemId = it.entry AND p.icon > 0 LIMIT 1)";
         try {
             if (ctype_digit($term)) {
                 $stmt = $pdo_world->prepare(
-                    "SELECT entry, name FROM item_template
-                     WHERE entry = :id OR name LIKE :q
-                     ORDER BY (entry = :id2) DESC, name ASC LIMIT $limit"
+                    "SELECT it.entry, it.name, $iconSub AS suggest_icon
+                     FROM item_template it
+                     WHERE it.entry = :id OR it.name LIKE :q
+                     ORDER BY (it.entry = :id2) DESC, it.name ASC LIMIT $limit"
                 );
                 $stmt->execute(['id' => (int)$term, 'id2' => (int)$term, 'q' => '%' . $term . '%']);
             } else {
                 $stmt = $pdo_world->prepare(
-                    "SELECT entry, name FROM item_template
-                     WHERE name LIKE :q ORDER BY name ASC LIMIT $limit"
+                    "SELECT it.entry, it.name, $iconSub AS suggest_icon
+                     FROM item_template it
+                     WHERE it.name LIKE :q ORDER BY it.name ASC LIMIT $limit"
                 );
                 $stmt->execute(['q' => '%' . $term . '%']);
             }
             $out = [];
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
-                $out[] = ['entry' => (int)$r['entry'], 'name' => (string)$r['name']];
+                $out[] = [
+                    'entry'        => (int)$r['entry'],
+                    'name'         => (string)$r['name'],
+                    'suggest_icon' => (int)($r['suggest_icon'] ?? 0),
+                ];
             }
             return $out;
         } catch (PDOException $e) {
             error_log('shop_item_search: ' . $e->getMessage());
+            return [];
+        }
+    }
+}
+
+if (!function_exists('shop_icon_catalog')) {
+    /**
+     * Distinct icons already in use by products, with a representative title,
+     * for the "copy icon from an existing tile" picker. Ordered by title.
+     * Returns [ ['icon'=>int,'label'=>string], ... ].
+     */
+    function shop_icon_catalog(PDO $pdo_world): array
+    {
+        try {
+            $rows = $pdo_world->query(
+                "SELECT icon, MIN(title) AS label
+                 FROM battle_pay_product
+                 WHERE icon > 0 AND title <> ''
+                 GROUP BY icon ORDER BY label ASC"
+            )->fetchAll(PDO::FETCH_ASSOC);
+            $out = [];
+            foreach ($rows as $r) {
+                $out[] = ['icon' => (int)$r['icon'], 'label' => (string)$r['label']];
+            }
+            return $out;
+        } catch (PDOException $e) {
+            error_log('shop_icon_catalog: ' . $e->getMessage());
             return [];
         }
     }

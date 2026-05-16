@@ -381,19 +381,41 @@ $csrf = generate_csrf_token();
                         <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_price'] ?? 'Price (Battle Coins)') ?></label>
                         <input class="sh-input w-100" name="price" type="number" min="0" value="<?= $isEdit ? (int)$tile['price'] : 0 ?>">
                     </div>
-                    <div class="col-md-3">
-                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_discount'] ?? 'Discount') ?></label>
-                        <input class="sh-input w-100" name="discount" type="number" min="0" value="<?= $isEdit ? (int)$tile['discount'] : 0 ?>">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_icon'] ?? 'Icon (FileDataID)') ?></label>
-                        <input class="sh-input w-100" name="icon" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_icon'] : 0 ?>">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_display'] ?? 'displayId (3D, 0=icon)') ?></label>
-                        <input class="sh-input w-100" name="displayId" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_displayId'] : 0 ?>">
-                    </div>
                 </div>
+
+                <details style="margin-top:1.25rem;border:1px solid rgba(139,69,19,.25);border-radius:6px" <?= ($isEdit && ((int)$tile['discount'] > 0 || (int)$tile['p_displayId'] > 0)) ? 'open' : '' ?>>
+                    <summary style="cursor:pointer;padding:.7rem 1rem;color:#c8a96e;font-weight:600;font-size:.9rem">
+                        <i class="bi bi-sliders me-1"></i><?= htmlspecialchars($TEXT['shop_tile_appearance'] ?? 'Appearance & extras (optional)') ?>
+                    </summary>
+                    <div style="padding:0 1rem 1rem">
+                        <p style="color:#8899aa;font-size:.8rem;line-height:1.5;margin:.2rem 0 1rem">
+                            <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['shop_appearance_help'] ?? 'These are WoW client asset IDs. The website cannot preview them (no game files). Easiest: leave them — when you pick an item, the tile icon is auto-filled from a matching shop entry where possible. Or copy an icon from an existing tile below.') ?>
+                        </p>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_icon'] ?? 'Icon (FileDataID)') ?></label>
+                                <input id="iconField" class="sh-input w-100" name="icon" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_icon'] : 0 ?>">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="sh-label"><?= htmlspecialchars($TEXT['shop_icon_copy'] ?? 'Copy icon from an existing tile') ?></label>
+                                <select id="iconCopy" class="sh-select w-100">
+                                    <option value=""><?= htmlspecialchars($TEXT['shop_icon_copy_ph'] ?? '— pick a tile to reuse its icon —') ?></option>
+                                    <?php foreach (shop_icon_catalog($pdo_world) as $ic): ?>
+                                        <option value="<?= (int)$ic['icon'] ?>"><?= htmlspecialchars($ic['label']) ?> (#<?= (int)$ic['icon'] ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_discount'] ?? 'Discount') ?></label>
+                                <input class="sh-input w-100" name="discount" type="number" min="0" value="<?= $isEdit ? (int)$tile['discount'] : 0 ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_display'] ?? 'displayId (3D model, 0 = icon only)') ?></label>
+                                <input class="sh-input w-100" name="displayId" type="number" min="0" value="<?= $isEdit ? (int)$tile['p_displayId'] : 0 ?>">
+                            </div>
+                        </div>
+                    </div>
+                </details>
 
                 <div style="margin-top:1.5rem;border-top:1px solid rgba(139,69,19,.2);padding-top:1rem">
                     <label class="sh-label"><?= htmlspecialchars($TEXT['shop_tile_f_items'] ?? 'Granted item(s)') ?></label>
@@ -433,20 +455,36 @@ $csrf = generate_csrf_token();
 
             function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
 
+            var WH = 'https://www.wowhead.com/mop-classic/item=';
+            function refreshWowhead(){ try { if (window.$WowheadPower) $WowheadPower.refreshLinks(); } catch(e){} }
+
             function addRow(itemId, name, count) {
                 var tr = document.createElement('tr');
+                var nameCell = (itemId|0) > 0 && name
+                    ? '<a href="' + WH + (itemId|0) + '" target="_blank" rel="noopener noreferrer">' + esc(name) + '</a>'
+                    : esc(name || '');
                 tr.innerHTML =
                     '<td><input class="sh-input" style="width:110px" type="number" min="1" name="itemId[]" value="' + (itemId|0) + '" required></td>' +
-                    '<td class="rowname" style="color:#dee2e6">' + esc(name || '') + '</td>' +
+                    '<td class="rowname" style="color:#dee2e6">' + nameCell + '</td>' +
                     '<td><input class="sh-input" style="width:70px" type="number" min="1" name="count[]" value="' + (count > 0 ? count : 1) + '"></td>' +
                     '<td><button type="button" class="sh-btn sh-btn-danger sh-btn-sm rowdel"><i class="bi bi-x-lg"></i></button></td>';
                 tbody.appendChild(tr);
                 tr.querySelector('.rowdel').addEventListener('click', function(){ tr.remove(); });
+                refreshWowhead();
             }
 
             (seed.length ? seed : [{itemId:0,name:'',count:1}]).forEach(function(r){ addRow(r.itemId, r.name, r.count); });
             // drop the placeholder empty row's required if it's the only blank one for "new"
             if (!seed.length) { var f = tbody.querySelector('input[name="itemId[]"]'); if (f) f.value = ''; }
+
+            // "Copy icon from an existing tile" → fill the icon field
+            var iconCopy = document.getElementById('iconCopy');
+            var iconField = document.getElementById('iconField');
+            if (iconCopy && iconField) {
+                iconCopy.addEventListener('change', function(){
+                    if (this.value) iconField.value = this.value;
+                });
+            }
 
             var t;
             search.addEventListener('input', function () {
@@ -460,11 +498,17 @@ $csrf = generate_csrf_token();
                             var its = (j && j.items) || [];
                             if (!its.length) { results.innerHTML = '<div style="color:#4a5568;font-size:.82rem;padding:.3rem 0">' + <?= json_encode($TEXT['shop_item_no_results'] ?? 'No matching items.') ?> + '</div>'; return; }
                             results.innerHTML = its.map(function(it){
-                                return '<button type="button" class="sh-btn sh-btn-ghost sh-btn-sm pick" data-id="' + it.entry + '" data-name="' + esc(it.name) + '" style="margin:.15rem .25rem .15rem 0">' + esc(it.name) + ' <span class="sh-mono">#' + it.entry + '</span></button>';
+                                return '<button type="button" class="sh-btn sh-btn-ghost sh-btn-sm pick" data-id="' + it.entry + '" data-name="' + esc(it.name) + '" data-icon="' + (it.suggest_icon|0) + '" style="margin:.15rem .25rem .15rem 0">' + esc(it.name) + ' <span class="sh-mono">#' + it.entry + '</span></button>';
                             }).join('');
                             results.querySelectorAll('.pick').forEach(function(b){
                                 b.addEventListener('click', function(){
                                     addRow(parseInt(b.dataset.id,10), b.dataset.name, 1);
+                                    // Auto-prefill the tile icon from a matching shop entry,
+                                    // but never overwrite an icon the admin already set.
+                                    var sug = parseInt(b.dataset.icon,10) || 0;
+                                    if (sug > 0 && iconField && (!iconField.value || iconField.value === '0')) {
+                                        iconField.value = sug;
+                                    }
                                     results.innerHTML = ''; search.value = '';
                                 });
                             });
@@ -637,7 +681,7 @@ $csrf = generate_csrf_token();
                                             <?php else: foreach ($t['items'] as $it): ?>
                                                 <div>
                                                     <?php if ($it['item_name'] !== null): ?>
-                                                        <?= htmlspecialchars($it['item_name']) ?>
+                                                        <a href="<?= htmlspecialchars(shop_wowhead_item_url((int)$it['itemId'])) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars($it['item_name']) ?></a>
                                                     <?php else: ?>
                                                         <span class="sh-item-missing"><?= htmlspecialchars($TEXT['shop_item_missing'] ?? 'item not in item_template') ?></span>
                                                     <?php endif; ?>
@@ -694,5 +738,13 @@ $csrf = generate_csrf_token();
         <?php endif; ?>
     <?php endif; ?>
 </div>
+
+<?php if ($shop_ok): ?>
+<!-- Wowhead: turns mop-classic item links into colored, icon'd, hover-tooltip names -->
+<script>
+const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: true };
+</script>
+<script src="https://wow.zamimg.com/widgets/power.js"></script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
