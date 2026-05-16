@@ -33,11 +33,63 @@ function donation_config(array $config): array
     $d = $config['donation'] ?? [];
     return [
         'token'      => (string)($d['kofi_verification_token'] ?? ''),
-        'rate'       => (int)($d['eur_to_dp_rate'] ?? 100),
+        'rate'       => (int)($d['eur_to_dp_rate'] ?? 1000),
         'currency'   => (string)($d['currency'] ?? 'EUR'),
         'min_amount' => (float)($d['min_amount'] ?? 0),
         'kofi_url'   => (string)($d['kofi_url'] ?? ''),
     ];
+}
+
+/**
+ * The admin-overridable Battle Coins per 1.00 currency-unit rate.
+ *
+ * Source of truth: the single `shop_settings` row (id=1), set from
+ * /admin_shop. When that row is absent (fresh install, admin never touched
+ * the UI) the config default (`donation.eur_to_dp_rate`) applies — so config
+ * stays the documented bootstrap and the DB row is purely the UI override.
+ * Always returns a sane int ≥ 1.
+ */
+function donation_rate(PDO $pdo_auth, array $config): int
+{
+    $stored = donation_stored_rate($pdo_auth);
+    $rate   = $stored ?? donation_config($config)['rate'];
+    return max(1, (int)$rate);
+}
+
+/**
+ * The raw stored override rate, or null when no `shop_settings` row exists
+ * (or the table isn't there yet). Lets callers distinguish "admin set this"
+ * from "falling back to config".
+ */
+function donation_stored_rate(PDO $pdo_auth): ?int
+{
+    try {
+        $v = $pdo_auth->query("SELECT eur_to_dp_rate FROM shop_settings WHERE id = 1 LIMIT 1")
+                      ->fetchColumn();
+        return $v === false ? null : (int)$v;
+    } catch (PDOException $e) {
+        // Table not migrated yet — treat as "no override".
+        return null;
+    }
+}
+
+/**
+ * Persist the admin's exchange rate into the single shop_settings row.
+ * Clamped to a sane band (1 .. 100,000,000 DP per unit).
+ */
+function donation_set_rate(PDO $pdo_auth, int $rate): bool
+{
+    $rate = max(1, min(100000000, $rate));
+    try {
+        $stmt = $pdo_auth->prepare(
+            "INSERT INTO shop_settings (id, eur_to_dp_rate) VALUES (1, :r)
+             ON DUPLICATE KEY UPDATE eur_to_dp_rate = VALUES(eur_to_dp_rate)"
+        );
+        return $stmt->execute(['r' => $rate]);
+    } catch (PDOException $e) {
+        error_log('donation_set_rate: ' . $e->getMessage());
+        return false;
+    }
 }
 
 /**
@@ -192,7 +244,9 @@ function donation_process_webhook(PDO $pdo_auth, array $config, array $data, ?st
     $email     = substr((string)($data['email'] ?? ''), 0, 255);
     $msg       = (string)($data['message'] ?? '');
 
-    // 3. Attribution + amount → status/DP.
+    // 3. Attribution + amount → status/DP. Rate is the admin-overridable
+    //    shop_settings value (falls back to config when never set in the UI).
+    $rate    = donation_rate($pdo_auth, $config);
     $code    = donation_extract_code($msg);
     $account = $code ? donation_account_for_code($pdo_auth, $code) : null;
 
@@ -203,7 +257,7 @@ function donation_process_webhook(PDO $pdo_auth, array $config, array $data, ?st
         $status = 'unattributed';
         $dp     = 0;
     } else {
-        $dp = (int)floor($amount * $cfg['rate']);
+        $dp = (int)floor($amount * $rate);
         if ($dp <= 0) {
             $status = 'ignored';
         } else {

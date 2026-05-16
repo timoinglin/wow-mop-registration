@@ -717,12 +717,15 @@ Two **independent** feature flags drive the player-facing side — neither impli
    - set the **Webhook URL** to `https://<your-site>/kofi_webhook`.
 3. In `config.php`, fill the `donation` block:
    - `kofi_verification_token` — paste the token from step 2 (keep it secret);
-   - `eur_to_dp_rate` — Battle Coins per 1.00 of your currency (e.g. `100` → a €5 donation credits 500 DP, `floor()` applied);
+   - `eur_to_dp_rate` — Battle Coins per 1.00 of your currency. This is only the **bootstrap default** — a GM can change the rate at any time in **/admin_shop → Battle Coins exchange rate**, which saves a DB override that wins over this value (default `1000`, tuned to typical in-game prices: a normal item ≈ 1–5k, a premium mount ≈ 25k; `floor()` applied);
    - `currency` — your Ko-fi page currency (display label only);
    - `min_amount` — donations below this are logged but credit 0 DP;
    - `kofi_url` — your public Ko-fi page (the Donate button links here).
 4. Set `features.donations = true`.
-5. Apply `sql/setup.sql` (idempotent) so the `donation_codes` / `donation_log` tables exist.
+5. Apply `sql/setup.sql` (idempotent) so the `donation_codes` / `donation_log` / `shop_settings` tables exist.
+
+> [!TIP]
+> The exchange rate is editable in-app: **/admin_shop → Battle Coins exchange rate**. It shows live `1€ / 5€ / 25€` examples and your median in-game item price as an anchor, and the saved value overrides `config.donation.eur_to_dp_rate` (the config line is then only the fallback for fresh installs).
 
 **How crediting works:** a logged-in player opens **/shop**, copies their personal `WL-XXXXXXXX` code, and pastes it into the Ko-fi message when donating. The webhook reads the real paid amount, so the donate button is fully dynamic — any amount works. Crediting happens **only** via the webhook (never the Ko-fi thank-you/redirect page).
 

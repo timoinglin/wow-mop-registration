@@ -147,9 +147,13 @@ return [
         // any delivery whose token doesn't match this exactly. KEEP SECRET.
         'kofi_verification_token' => 'YOUR_KOFI_VERIFICATION_TOKEN_HERE',
 
-        // DP granted per 1.00 unit of your Ko-fi currency.
-        // e.g. 100 → a 5.00 donation credits 500 DP. (floor() is applied.)
-        'eur_to_dp_rate' => 100,
+        // DP granted per 1.00 unit of your Ko-fi currency. This is just the
+        // bootstrap default — once a GM sets the rate in /admin_shop it is
+        // stored in the DB and that UI value wins (this line is then ignored).
+        // 1000 is tuned to typical in-game prices (a normal item ≈ 1–5k
+        // Battle Coins, a premium mount ≈ 25k): e.g. a 5.00 donation → 5,000
+        // DP (≈ a couple of items), 25.00 → a top-tier mount. floor() applied.
+        'eur_to_dp_rate' => 1000,
 
         // Your Ko-fi page currency. Label/display only — Ko-fi sends the
         // amount already in this currency; there is no conversion table.

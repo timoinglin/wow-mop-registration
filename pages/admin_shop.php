@@ -18,6 +18,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../includes/shop.php';
+require_once __DIR__ . '/../includes/donation.php';
 
 // GM 9+ guard (same pattern as /admin_forum, /admin_news)
 if (!isset($_SESSION['user_id'])) { header('Location: /login'); exit; }
@@ -38,6 +39,22 @@ $redirect = function (string $key = '', string $val = '1') {
     header('Location: ' . $u);
     exit;
 };
+
+// ─── Donation rate (auth DB only — works even if the world DB is down) ──────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_donation_rate') {
+    if (!validate_csrf_token($_POST['csrf_token'] ?? null)) {
+        $redirect('err', 'csrf');
+    }
+    $rate = (int)($_POST['eur_to_dp_rate'] ?? 0);
+    if ($rate < 1 || $rate > 100000000) {
+        $redirect('err', 'rate');
+    }
+    if (donation_set_rate($pdo_auth, $rate)) {
+        log_admin_action($pdo_auth, $admin_id, $admin_name, 'shop_donation_rate', null, "eur_to_dp_rate=$rate", null);
+        $redirect('saved', 'rate_saved');
+    }
+    $redirect('err', 'save');
+}
 
 // ─── POST handlers (PRG) ────────────────────────────────────────────────────
 if ($shop_ok && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -218,6 +235,7 @@ if (isset($_GET['saved'])) {
         'tile_deleted'=> $TEXT['shop_flash_tile_deleted']?? 'Item deleted.',
         'tile_moved'  => $TEXT['shop_flash_tile_moved']  ?? 'Item reordered.',
         'price_saved' => $TEXT['shop_flash_price_saved'] ?? 'Price updated.',
+        'rate_saved'  => $TEXT['shop_flash_rate_saved']  ?? 'Exchange rate updated.',
         default       => '',
     };
 }
@@ -232,12 +250,35 @@ if (isset($_GET['err'])) {
             'name'       => $TEXT['shop_err_name']       ?? 'Category name is required (max 16 chars).',
             'tile_title' => $TEXT['shop_err_tile_title'] ?? 'Item title is required (max 50 chars).',
             'noitems'    => $TEXT['shop_err_noitems']    ?? 'Add at least one valid item.',
+            'rate'       => $TEXT['shop_err_rate']       ?? 'Enter a whole number of Battle Coins per €1 (1 or more).',
             default      => $TEXT['shop_err_save']       ?? 'Could not save the change.',
         };
     }
 }
 
 $dirty_ts   = shop_is_dirty();
+
+// ─── Donation exchange-rate settings (auth DB; independent of world DB) ──────
+$don_flag_on   = !empty($config['features']['donations']);
+$don_stored    = donation_stored_rate($pdo_auth);          // null = no override
+$don_rate_eff  = donation_rate($pdo_auth, $config);        // effective value
+$don_cur_code  = strtoupper(donation_config($config)['currency']);
+$don_cur_sym   = ['EUR' => '€', 'USD' => '$', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$'][$don_cur_code]
+                 ?? ($don_cur_code . ' ');
+// Real median in-game price → a concrete "for reference" anchor for the admin.
+$don_median = 0;
+if ($shop_ok && $pdo_world) {
+    try {
+        $prices = $pdo_world->query("SELECT price FROM battle_pay_product WHERE price > 0 ORDER BY price")
+                            ->fetchAll(PDO::FETCH_COLUMN);
+        if ($prices) {
+            $don_median = (int)$prices[intdiv(count($prices), 2)];
+        }
+    } catch (PDOException $e) {
+        error_log('shop median price: ' . $e->getMessage());
+    }
+}
+
 $page_title = ($TEXT['shop_admin_title'] ?? 'Shop Management') . ' — ' . ($config['site']['title'] ?? 'WoW');
 require_once __DIR__ . '/../templates/header.php';
 $csrf = generate_csrf_token();
@@ -323,6 +364,70 @@ $csrf = generate_csrf_token();
 
     <?php if ($flash !== ''): ?><div class="sh-flash-ok"><i class="bi bi-check-circle me-2"></i><?= htmlspecialchars($flash) ?></div><?php endif; ?>
     <?php if ($flash_err !== ''): ?><div class="sh-flash-err"><i class="bi bi-exclamation-triangle me-2"></i><?= htmlspecialchars($flash_err) ?></div><?php endif; ?>
+
+    <!-- ── Battle Coins exchange rate (Ko-fi €→DP) ──────────────────────── -->
+    <div class="sh-card">
+        <h2><i class="bi bi-coin"></i><?= htmlspecialchars($TEXT['shop_rate_title'] ?? 'Battle Coins exchange rate') ?></h2>
+        <p style="color:#8899aa;font-size:.86rem;margin:.1rem 0 1rem;line-height:1.6">
+            <?= htmlspecialchars(sprintf($TEXT['shop_rate_intro'] ?? 'How many Battle Coins a player receives for each %s1 donated via Ko-fi. Saved in the database — this overrides the eur_to_dp_rate in config.php.', $don_cur_sym)) ?>
+        </p>
+        <form method="post" action="/admin_shop">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+            <input type="hidden" name="action" value="save_donation_rate">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-6">
+                    <label class="sh-label"><?= htmlspecialchars(sprintf($TEXT['shop_rate_label'] ?? 'Battle Coins per %s1', $don_cur_sym)) ?></label>
+                    <div style="display:flex;align-items:center;gap:.5rem">
+                        <span style="color:#c8a96e;font-weight:700;white-space:nowrap"><?= htmlspecialchars('1' . $don_cur_sym) ?>=</span>
+                        <input id="rateInput" class="sh-input" name="eur_to_dp_rate" type="number" min="1" max="100000000" step="1" required
+                               value="<?= (int)$don_rate_eff ?>" style="max-width:180px">
+                        <span style="color:#8899aa;font-size:.85rem;white-space:nowrap"><?= htmlspecialchars($TEXT['shop_coins'] ?? 'Battle Coins') ?></span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="sh-btn sh-btn-primary w-100"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['shop_rate_save'] ?? 'Save rate') ?></button>
+                </div>
+            </div>
+        </form>
+        <div style="margin-top:.9rem;font-size:.82rem;color:#4a5568">
+            <?php if ($don_stored !== null): ?>
+                <span style="color:#5dd87c"><i class="bi bi-check-circle me-1"></i><?= htmlspecialchars($TEXT['shop_rate_override'] ?? 'Saved database override is active.') ?></span>
+            <?php else: ?>
+                <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars(sprintf($TEXT['shop_rate_default'] ?? 'Currently using the config default (%s). Saving here stores a database override.', number_format((int)$don_rate_eff))) ?>
+            <?php endif; ?>
+            <?php if (!$don_flag_on): ?>
+                <div style="color:#f0c040;margin-top:.4rem"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($TEXT['shop_rate_disabled'] ?? 'Donations are disabled (features.donations = false). You can still set the rate now — it applies once you enable donations.') ?></div>
+            <?php endif; ?>
+            <div id="rateExamples" style="margin-top:.55rem;color:#8899aa"></div>
+            <?php if ($don_median > 0): ?>
+                <div style="margin-top:.4rem">
+                    <i class="bi bi-bag me-1"></i><?= htmlspecialchars(sprintf($TEXT['shop_rate_median'] ?? 'For reference, your median in-game item costs ~%s Battle Coins', number_format($don_median))) ?><span id="rateMedianEur"></span>.
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var inp = document.getElementById('rateInput');
+        var ex  = document.getElementById('rateExamples');
+        var med = <?= (int)$don_median ?>;
+        var medEl = document.getElementById('rateMedianEur');
+        var sym = <?= json_encode($don_cur_sym) ?>;
+        var coins = <?= json_encode($TEXT['shop_coins'] ?? 'Battle Coins') ?>;
+        if (!inp) return;
+        function fmt(n) { return Math.round(n).toLocaleString(); }
+        function upd() {
+            var r = parseInt(inp.value, 10) || 0;
+            if (r < 1) { ex.textContent = ''; if (medEl) medEl.textContent = ''; return; }
+            ex.innerHTML = '<i class="bi bi-calculator me-1"></i>1' + sym + ' → ' + fmt(r) +
+                '  ·  5' + sym + ' → ' + fmt(r * 5) +
+                '  ·  25' + sym + ' → ' + fmt(r * 25) + ' ' + coins;
+            if (med > 0 && medEl) { medEl.textContent = ' (≈ ' + sym + (med / r).toFixed(2) + ')'; }
+        }
+        inp.addEventListener('input', upd);
+        upd();
+    })();
+    </script>
 
     <?php if (!$shop_ok): ?>
         <div class="sh-card">

@@ -25,6 +25,8 @@ require_once __DIR__ . '/../includes/donation.php';
 // is down. Gated solely by features.donations + a configured Ko-fi token.
 $donate_ready = donation_enabled($config);
 $don_cfg      = $donate_ready ? donation_config($config) : null;
+// Effective rate = admin's /admin_shop override, else config default.
+$don_rate     = $donate_ready ? donation_rate($pdo_auth, $config) : 0;
 
 $uid        = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 $balance    = null;
@@ -225,7 +227,7 @@ require_once __DIR__ . '/../templates/header.php';
         // (a "log in" prompt). Only a bare donate bar (".solo") shows in the
         // rare logged-in-but-code-mint-failed case.
         $show_code_box = ($uid > 0 && $don_code !== null) || $uid === 0;
-        $rate_hint = '1' . $cur_sym . ' = ' . number_format((int)$don_cfg['rate'])
+        $rate_hint = '1' . $cur_sym . ' = ' . number_format($don_rate)
                    . ' ' . ($TEXT['shop_coins'] ?? 'Battle Coins');
         ?>
         <div class="shp-donate<?= $show_code_box ? '' : ' solo' ?>">

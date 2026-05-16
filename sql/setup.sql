@@ -340,6 +340,17 @@ CREATE TABLE IF NOT EXISTS donation_log (
   INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 16. Shop Settings — single-row (id is always 1) admin-managed shop settings.
+-- Currently holds the Battle Coins per 1.00 of Ko-fi currency exchange rate,
+-- editable from /admin_shop. NO seed row: when the row is absent the effective
+-- rate falls back to config.donation.eur_to_dp_rate, so config remains the
+-- documented bootstrap default and the DB row is the admin's UI override.
+CREATE TABLE IF NOT EXISTS shop_settings (
+  id TINYINT NOT NULL PRIMARY KEY,
+  eur_to_dp_rate INT NOT NULL DEFAULT 1000,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed a default "General Discussion" category on first install. Idempotent —
 -- the INSERT is guarded by NOT EXISTS so it only fires when the table is
 -- completely empty (admins who delete it won't see it reappear on re-run).
