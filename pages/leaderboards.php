@@ -33,6 +33,7 @@ $tabs = [
     'playtime'     => ['icon' => 'bi-clock-history',    'key' => 'lb_tab_playtime'],
     'gold'         => ['icon' => 'bi-coin',             'key' => 'lb_tab_gold'],
     'pvp'          => ['icon' => 'bi-shield-fill',      'key' => 'lb_tab_pvp'],
+    'arena'        => ['icon' => 'bi-award-fill',       'key' => 'lb_tab_arena'],
     'achievements' => ['icon' => 'bi-trophy-fill',      'key' => 'lb_tab_achievements'],
     'guilds'       => ['icon' => 'bi-people-fill',      'key' => 'lb_tab_guilds'],
 ];
@@ -42,6 +43,13 @@ if (!isset($tabs[$type])) $type = 'level';
 
 $f_faction = $_GET['faction'] ?? '';
 if (!in_array($f_faction, ['alliance', 'horde'], true)) $f_faction = '';
+
+// Arena bracket (only meaningful for the 'arena' tab). MoP rated_pvp_info.slot:
+// 0 = 2v2, 1 = 3v3, 3 = Rated BG (5v5 is dead in MoP, intentionally omitted).
+$arena_brackets = ['2v2' => 0, '3v3' => 1, 'rbg' => 3];
+$f_bracket = (string)($_GET['bracket'] ?? '2v2');
+if (!isset($arena_brackets[$f_bracket])) $f_bracket = '2v2';
+$arena_slot = (int)$arena_brackets[$f_bracket];
 
 $page_title = ($TEXT['leaderboards'] ?? 'Leaderboards')
     . ' — ' . ($TEXT[$tabs[$type]['key']] ?? ucfirst($type));
@@ -137,6 +145,26 @@ if ($pdo_chars) {
                 $rows = $pdo_chars->query($sql)->fetchAll();
                 break;
 
+            case 'arena':
+                // Rated PvP ladder for the selected bracket, current season.
+                // rating > 0 keeps it a real ladder (placement/unplayed rows
+                // sit at 0). Sparse/empty until players actually play rated
+                // PvP — handled by the existing "no data" empty state.
+                $sql = "SELECT c.guid, c.name, c.race, c.class, c.gender, c.level,
+                               rpi.rating AS metric
+                        FROM rated_pvp_info rpi
+                        JOIN characters c ON c.guid = rpi.guid
+                        JOIN `{$auth_db}`.account a ON a.id = c.account
+                        WHERE a.username NOT LIKE 'BOT%'
+                              AND rpi.slot = {$arena_slot}
+                              AND rpi.season = (SELECT MAX(season) FROM rated_pvp_info)
+                              AND rpi.rating > 0
+                              {$faction_sql}
+                        ORDER BY rpi.rating DESC, rpi.season_wins DESC, c.name ASC
+                        LIMIT 100";
+                $rows = $pdo_chars->query($sql)->fetchAll();
+                break;
+
             case 'level':
             default:
                 $sql = "SELECT c.guid, c.name, c.race, c.class, c.gender, c.level, c.totaltime AS metric
@@ -166,6 +194,7 @@ function lb_metric_label(string $type, array $TEXT): string {
         'playtime'     => $TEXT['lb_col_playtime']     ?? 'Playtime',
         'gold'         => $TEXT['lb_col_gold']         ?? 'Gold',
         'pvp'          => $TEXT['lb_col_kills']        ?? 'Honorable Kills',
+        'arena'        => $TEXT['lb_col_rating']       ?? 'Rating',
         'achievements' => $TEXT['lb_col_achievements'] ?? 'Achievements',
     ];
     return $map[$type] ?? '';
@@ -386,18 +415,39 @@ function lb_rank_badge(int $rank): string {
     <!-- FACTION FILTER (hidden for some tabs that don't make sense) -->
     <div class="lb-faction-bar">
         <?php
+        // Preserve the chosen arena bracket when switching faction.
+        $kept = ($type === 'arena') ? '&bracket=' . $f_bracket : '';
         $base = '/leaderboards?type=' . $type;
         ?>
-        <a class="lb-faction-pill <?= $f_faction === ''         ? 'active' : '' ?>" href="<?= htmlspecialchars($base) ?>">
+        <a class="lb-faction-pill <?= $f_faction === ''         ? 'active' : '' ?>" href="<?= htmlspecialchars($base . $kept) ?>">
             <i class="bi bi-globe me-1"></i><?= htmlspecialchars($TEXT['common_all'] ?? 'All') ?>
         </a>
-        <a class="lb-faction-pill alliance <?= $f_faction === 'alliance' ? 'active' : '' ?>" href="<?= htmlspecialchars($base . '&faction=alliance') ?>">
+        <a class="lb-faction-pill alliance <?= $f_faction === 'alliance' ? 'active' : '' ?>" href="<?= htmlspecialchars($base . $kept . '&faction=alliance') ?>">
             <i class="bi bi-shield-shaded me-1"></i><?= htmlspecialchars($TEXT['armory_label_alliance'] ?? 'Alliance') ?>
         </a>
-        <a class="lb-faction-pill horde <?= $f_faction === 'horde' ? 'active' : '' ?>" href="<?= htmlspecialchars($base . '&faction=horde') ?>">
+        <a class="lb-faction-pill horde <?= $f_faction === 'horde' ? 'active' : '' ?>" href="<?= htmlspecialchars($base . $kept . '&faction=horde') ?>">
             <i class="bi bi-fire me-1"></i><?= htmlspecialchars($TEXT['armory_label_horde'] ?? 'Horde') ?>
         </a>
     </div>
+
+    <?php if ($type === 'arena'): ?>
+    <!-- ARENA BRACKET SELECTOR -->
+    <div class="lb-faction-bar">
+        <?php
+        $bfac = $f_faction ? '&faction=' . $f_faction : '';
+        $bracket_labels = [
+            '2v2' => $TEXT['lb_bracket_2v2'] ?? '2v2',
+            '3v3' => $TEXT['lb_bracket_3v3'] ?? '3v3',
+            'rbg' => $TEXT['lb_bracket_rbg'] ?? 'Rated BG',
+        ];
+        foreach ($bracket_labels as $bk => $blabel):
+        ?>
+            <a class="lb-faction-pill <?= $f_bracket === $bk ? 'active' : '' ?>" href="<?= htmlspecialchars('/leaderboards?type=arena&bracket=' . $bk . $bfac) ?>">
+                <i class="bi bi-people-fill me-1"></i><?= htmlspecialchars($blabel) ?>
+            </a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- TABLE -->
     <?php if ($error): ?>
