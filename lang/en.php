@@ -175,6 +175,33 @@ return [
 
   // Forum — anti-spam cooldown (Phase 6)
   'forum_err_cooldown'               => 'Please wait %d more second(s) before posting again.',
+
+  // Shop management (admin) — Phase A1 (read-only)
+  'admin_tab_shop'             => 'Shop',
+  'admin_shop_title'           => 'In-Game Shop',
+  'admin_shop_manage'          => 'Manage Shop',
+  'admin_shop_connected'       => 'Connected',
+  'admin_shop_disabled'        => 'Disabled',
+  'admin_shop_no_db'           => 'No world DB',
+  'admin_shop_no_tables'       => 'No battle_pay tables',
+  'admin_shop_hint'            => 'Manage the in-game Battle Pay store (categories, items, prices) from the world DB. Changes require a worldserver restart to show in-game.',
+  'shop_admin_title'           => 'Shop Management',
+  'shop_readonly'              => 'Read-only',
+  'shop_readonly_hint'         => 'Phase 1 — read-only overview. Category & item editing arrives in the next phases.',
+  'shop_categories'            => 'categories',
+  'shop_tiles'                 => 'item tiles',
+  'shop_no_categories'         => 'No shop categories found in the world DB.',
+  'shop_cat_empty'             => 'No items in this category.',
+  'shop_no_items'              => 'no item rows',
+  'shop_item_missing'          => 'item not in item_template',
+  'shop_col_tile'              => 'Tile',
+  'shop_col_grants'            => 'Grants item(s)',
+  'shop_col_price'             => 'Price',
+  'shop_col_ids'               => 'IDs',
+  'shop_unavail_disabled'      => 'Shop management is disabled. Set features.shop_admin = true in config.php to enable it.',
+  'shop_unavail_no_db'         => 'Cannot reach the world database. Add a correct db.name_world to config.php (commonly "world" or "mop_world").',
+  'shop_unavail_no_tables'     => 'The world database is reachable but has no battle_pay_* tables. Your repack may not support shop management.',
+
   'username' => 'Username',
   'password' => 'Password',
   'email' => 'Email',

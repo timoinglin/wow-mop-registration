@@ -175,6 +175,33 @@ return [
 
   // Foro — temporizador anti-spam (Fase 6)
   'forum_err_cooldown'               => 'Espera %d segundo(s) más antes de volver a publicar.',
+
+  // Gestión de tienda (admin) — Fase A1 (solo lectura)
+  'admin_tab_shop'             => 'Tienda',
+  'admin_shop_title'           => 'Tienda del Juego',
+  'admin_shop_manage'          => 'Gestionar Tienda',
+  'admin_shop_connected'       => 'Conectada',
+  'admin_shop_disabled'        => 'Desactivada',
+  'admin_shop_no_db'           => 'Sin BD world',
+  'admin_shop_no_tables'       => 'Sin tablas battle_pay',
+  'admin_shop_hint'            => 'Gestiona la tienda Battle Pay del juego (categorías, objetos, precios) desde la BD world. Los cambios requieren reiniciar el worldserver para verse en el juego.',
+  'shop_admin_title'           => 'Gestión de la Tienda',
+  'shop_readonly'              => 'Solo lectura',
+  'shop_readonly_hint'         => 'Fase 1 — vista de solo lectura. La edición de categorías y objetos llega en las siguientes fases.',
+  'shop_categories'            => 'categorías',
+  'shop_tiles'                 => 'objetos',
+  'shop_no_categories'         => 'No se encontraron categorías de tienda en la BD world.',
+  'shop_cat_empty'             => 'No hay objetos en esta categoría.',
+  'shop_no_items'              => 'sin filas de objeto',
+  'shop_item_missing'          => 'objeto no está en item_template',
+  'shop_col_tile'              => 'Casilla',
+  'shop_col_grants'            => 'Otorga objeto(s)',
+  'shop_col_price'             => 'Precio',
+  'shop_col_ids'               => 'IDs',
+  'shop_unavail_disabled'      => 'La gestión de la tienda está desactivada. Pon features.shop_admin = true en config.php para activarla.',
+  'shop_unavail_no_db'         => 'No se puede conectar a la BD world. Añade un db.name_world correcto en config.php (normalmente "world" o "mop_world").',
+  'shop_unavail_no_tables'     => 'La BD world es accesible pero no tiene tablas battle_pay_*. Tu repack puede no admitir la gestión de la tienda.',
+
   'username' => 'Nombre de usuario',
   'password' => 'Contraseña',
   'email' => 'Correo electrónico',

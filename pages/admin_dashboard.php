@@ -369,6 +369,9 @@ $s_world    = check_port_status($db_host, $world_port);
     <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tickets'] ?? 'Tickets') ?></button>
     <button class="adm-tab" onclick="switchTab('news',this)"><i class="bi bi-newspaper me-1"></i><?= htmlspecialchars($TEXT['admin_tab_news'] ?? 'News') ?></button>
     <button class="adm-tab" onclick="switchTab('forum',this)"><i class="bi bi-chat-square-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_forum'] ?? 'Forum') ?></button>
+    <?php if (!empty($config['features']['shop_admin'])): ?>
+    <button class="adm-tab" onclick="switchTab('shop',this)"><i class="bi bi-shop me-1"></i><?= htmlspecialchars($TEXT['admin_tab_shop'] ?? 'Shop') ?></button>
+    <?php endif; ?>
     <button class="adm-tab" onclick="switchTab('audit',this)"><i class="bi bi-journal-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_audit'] ?? 'Audit Log') ?></button>
     <button class="adm-tab" onclick="switchTab('tools',this)"><i class="bi bi-tools me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tools'] ?? 'Tools') ?></button>
 
@@ -750,6 +753,61 @@ $s_world    = check_port_status($db_host, $world_port);
         </p>
     </div>
 </div>
+
+<?php if (!empty($config['features']['shop_admin'])): ?>
+<!-- ══════════════════════════════════════════════════════ TAB: SHOP -->
+<div class="adm-tab-content" id="tab-shop">
+    <div class="admin-panel" style="height:auto">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="panel-title mb-0"><i class="bi bi-shop me-2"></i><?= htmlspecialchars($TEXT['admin_shop_title'] ?? 'In-Game Shop') ?></div>
+            <a href="/admin_shop" class="tool-btn tool-btn-primary" style="text-decoration:none">
+                <i class="bi bi-box-seam me-1"></i><?= htmlspecialchars($TEXT['admin_shop_manage'] ?? 'Manage Shop') ?>
+            </a>
+        </div>
+        <?php
+        require_once __DIR__ . '/../includes/shop.php';
+        [$adm_shop_ok, $adm_shop_reason] = shop_availability($pdo_world ?? null, $config);
+        $adm_shop_cnt = $adm_shop_ok ? shop_counts($pdo_world) : ['categories' => 0, 'tiles' => 0];
+        ?>
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_status'] ?? 'Status') ?></div>
+                    <div style="margin-top:.2rem">
+                        <?php if ($adm_shop_ok): ?>
+                            <span style="color:#5dd87c;font-weight:700"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($TEXT['admin_shop_connected'] ?? 'Connected') ?></span>
+                        <?php else: ?>
+                            <span style="color:#f0c040;font-weight:700"><i class="bi bi-exclamation-triangle"></i>
+                                <?= htmlspecialchars(match ($adm_shop_reason) {
+                                    'disabled'    => $TEXT['admin_shop_disabled']  ?? 'Disabled',
+                                    'no_world_db' => $TEXT['admin_shop_no_db']     ?? 'No world DB',
+                                    default       => $TEXT['admin_shop_no_tables'] ?? 'No battle_pay tables',
+                                }) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['shop_categories'] ?? 'Categories') ?></div>
+                    <div style="color:#c8a96e;font-weight:700;font-size:1.4rem;line-height:1.2"><?= (int)$adm_shop_cnt['categories'] ?></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div style="background:#0e0e17;border:1px solid rgba(139,69,19,.2);border-radius:6px;padding:.9rem 1rem">
+                    <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['shop_tiles'] ?? 'Item tiles') ?></div>
+                    <div style="color:#c8a96e;font-weight:700;font-size:1.4rem;line-height:1.2"><?= (int)$adm_shop_cnt['tiles'] ?></div>
+                </div>
+            </div>
+        </div>
+        <p style="color:#8899aa;font-size:.85rem;margin:0">
+            <i class="bi bi-info-circle me-1"></i>
+            <?= htmlspecialchars($TEXT['admin_shop_hint'] ?? 'Manage the in-game Battle Pay store (categories, items, prices) from the world DB. Changes require a worldserver restart to show in-game.') ?>
+        </p>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ══════════════════════════════════════════════════════ TAB: AUDIT LOG -->
 <div class="adm-tab-content" id="tab-audit">

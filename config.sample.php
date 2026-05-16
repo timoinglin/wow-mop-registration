@@ -13,6 +13,10 @@ return [
         'password'   => 'ascent',       // EmuCoach default: ascent
         'name_auth'  => 'auth',         // EmuCoach default auth DB
         'name_chars' => 'characters',   // EmuCoach default characters DB
+        'name_world' => 'world',        // World DB — only needed for the in-game
+                                        // Shop management feature. Some repacks
+                                        // name it 'mop_world'. Safe to leave as-is
+                                        // if you don't use shop management.
     ],
 
     // Realm Configuration
@@ -63,6 +67,11 @@ return [
         'recover_password' => true,  // Password recovery via email (requires SMTP)
         'tickets'          => true,  // Support ticket system
         'maintenance'      => false, // Maintenance mode (GMs can still log in)
+        'shop_admin'       => false, // In-game Battle Pay shop management.
+                                     // Requires a reachable world DB (name_world)
+                                     // with battle_pay_* tables. Off by default;
+                                     // the page degrades gracefully if enabled
+                                     // but the DB/tables aren't present.
     ],
 
     // Login Security — brute-force protection

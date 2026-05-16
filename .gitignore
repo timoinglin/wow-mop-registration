@@ -1,5 +1,6 @@
 # ── Local server config ──────────────────────────────────────────────────────
 /config.php
+/roadmap.md
 
 # ── Runtime data ─────────────────────────────────────────────────────────────
 # Cache JSON files (login history, rate-limit counters). The folder .htaccess
