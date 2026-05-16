@@ -259,6 +259,7 @@ return [
   'shop_pub_disabled'          => 'The shop is currently unavailable.',
   'shop_pub_unavailable'       => 'The shop is temporarily unavailable. Please check back later.',
   'shop_pub_empty'             => 'The shop has no items yet. Check back soon!',
+  'shop_pub_hover'             => 'Hover an item for its in-game tooltip',
   'shop_your_balance'          => 'Your Battle Coins',
   'shop_coins'                 => 'Battle Coins',
   'shop_donate_title'          => 'Support the server — get Battle Coins',

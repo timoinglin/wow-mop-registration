@@ -191,12 +191,18 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-ico.icon-loaded { border-color:rgba(200,169,110,.6); }
 .shp-ico .qm { color:rgba(200,169,110,.5); font-size:1.9rem; }
 .shp-ico.icon-loaded .qm { display:none; }
+/* Icon doubles as the item-preview target (Wowhead tooltip on hover). */
+.shp-ico[data-wowhead] { cursor:help; }
+.shp-tile:hover .shp-ico[data-wowhead] { box-shadow:0 0 0 2px rgba(105,204,240,.45); }
 .shp-tile .tt {
     color:#c8a96e; font-weight:700; font-size:.92rem; line-height:1.3; margin-bottom:.35rem;
     min-height:2.4em; display:flex; align-items:center; justify-content:center;
 }
 .shp-tile .gi { font-size:.78rem; color:#8899aa; margin-bottom:.55rem; min-height:1.1em; }
 .shp-tile .gi a { color:#69ccf0; text-decoration:none; }
+.shp-tile .gi a:hover { text-decoration:underline; }
+.shp-tile .gi .sep { color:#4a5568; }
+.shp-tile .gi .miss { color:#f87e8a; font-style:italic; }
 .shp-tile .pr {
     color:#f0c040; font-weight:700; font-size:1rem;
     border-top:1px solid rgba(139,69,19,.2); padding-top:.55rem; margin-top:.3rem;
@@ -326,6 +332,7 @@ require_once __DIR__ . '/../templates/header.php';
                         </button>
                     <?php endforeach; ?>
                     <div class="shp-rail-note">*<?= htmlspecialchars($TEXT['shop_coins'] ?? 'Battle Coins') ?></div>
+                    <div class="shp-rail-note"><i class="bi bi-search me-1"></i><?= htmlspecialchars($TEXT['shop_pub_hover'] ?? 'Hover an item for its in-game tooltip') ?></div>
                 </div>
 
                 <div class="shp-main">
@@ -340,12 +347,28 @@ require_once __DIR__ . '/../templates/header.php';
                                     $iname     = $firstItem['item_name'] ?? null;
                                     ?>
                                     <div class="shp-tile">
-                                        <div class="shp-ico" <?= $iid > 0 ? 'data-wh-icon-id="' . $iid . '"' : '' ?>><span class="qm"><i class="bi bi-gift-fill"></i></span></div>
+                                        <div class="shp-ico"<?php if ($iid > 0): ?> data-wh-icon-id="<?= $iid ?>" data-wowhead="item=<?= $iid ?>&amp;domain=mop-classic"<?php endif; ?>><span class="qm"><i class="bi bi-gift-fill"></i></span></div>
                                         <div class="tt"><?= htmlspecialchars($t['entry_title'] !== '' ? $t['entry_title'] : (string)($t['product_title'] ?? '—')) ?></div>
                                         <div class="gi">
-                                            <?php if ($iname !== null): ?>
-                                                <a href="<?= htmlspecialchars(shop_wowhead_item_url($iid)) ?>" target="_blank" rel="noopener noreferrer"><?= htmlspecialchars($iname) ?></a><?= (int)$firstItem['count'] > 1 ? ' ×' . (int)$firstItem['count'] : '' ?><?= count($t['items']) > 1 ? ' +' . (count($t['items']) - 1) : '' ?>
-                                            <?php endif; ?>
+                                            <?php
+                                            // Every granted item is its own hoverable Wowhead link (bundles
+                                            // included) — the honest "preview", same widget as the armory.
+                                            $parts = [];
+                                            foreach ($t['items'] as $git) {
+                                                $gid = (int)$git['itemId'];
+                                                if ($gid <= 0) continue;
+                                                $gnm = $git['item_name'] ?? null;
+                                                $qty = (int)$git['count'] > 1 ? ' ×' . (int)$git['count'] : '';
+                                                if ($gnm !== null) {
+                                                    $parts[] = '<a href="' . htmlspecialchars(shop_wowhead_item_url($gid))
+                                                             . '" target="_blank" rel="noopener noreferrer">'
+                                                             . htmlspecialchars($gnm) . '</a>' . htmlspecialchars($qty);
+                                                } else {
+                                                    $parts[] = '<span class="miss">#' . $gid . '</span>' . htmlspecialchars($qty);
+                                                }
+                                            }
+                                            echo implode('<span class="sep">, </span>', $parts);
+                                            ?>
                                         </div>
                                         <div class="pr"><i class="bi bi-gem"></i><?= $t['price'] !== null ? number_format((int)$t['price']) : '—' ?><small><?= htmlspecialchars($TEXT['shop_coins'] ?? 'Battle Coins') ?></small></div>
                                     </div>

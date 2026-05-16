@@ -259,6 +259,7 @@ return [
   'shop_pub_disabled'          => 'La tienda no está disponible actualmente.',
   'shop_pub_unavailable'       => 'La tienda no está disponible temporalmente. Vuelve más tarde.',
   'shop_pub_empty'             => 'La tienda aún no tiene objetos. ¡Vuelve pronto!',
+  'shop_pub_hover'             => 'Pasa el ratón sobre un objeto para ver su tooltip del juego',
   'shop_your_balance'          => 'Tus Battle Coins',
   'shop_coins'                 => 'Battle Coins',
   'shop_donate_title'          => 'Apoya al servidor — consigue Battle Coins',
