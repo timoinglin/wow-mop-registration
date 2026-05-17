@@ -177,6 +177,7 @@ Full guides live in the [`docs/`](docs/) folder so this README stays focused on 
 | **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, changing text & images |
 | **[Security Notes](docs/SECURITY.md)** | What's protected out of the box and what you must configure |
 | **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and their fixes |
+| **[Shop DB Schema](docs/SHOP_SCHEMA.md)** | Reverse-engineered `battle_pay_*` reference for debugging / hand-editing the in-game shop |
 
 > New here? Use the [One-Click Installer](#one-click-installer) above, or follow the [manual Installation guide](docs/INSTALL.md).
 
