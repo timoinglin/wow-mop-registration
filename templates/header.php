@@ -35,18 +35,32 @@ try {
     error_log('header forum-enabled check failed: ' . $e->getMessage());
 }
 
-// Language switcher: only the languages enabled in admin Customization →
-// Languages. Defensive: defaults to a single-language list if anything fails.
+// Language switcher + theme. Both come from admin Customization (site_settings)
+// and must never break the public header — hard literal fallbacks first, then
+// override only if the helpers loaded cleanly.
 $nav_langs = [$lang => strtoupper($lang)];
+$theme = [
+    'accent' => '#c89b3c', 'bg_dark' => '', 'bg_card' => '', 'text' => '',
+    'preset' => '', 'custom_css' => '', 'custom_css_on' => 0,
+    'logo_main' => '', 'logo_top' => '', 'favicon' => '',
+    'header_bg' => '', 'header_bg_kind' => '',
+];
 try {
     @require_once __DIR__ . '/../includes/site_settings.php';
     if (function_exists('languages_enabled')) {
         $nav_langs = languages_enabled($pdo_auth ?? null);
         if (empty($nav_langs)) $nav_langs = ['en' => 'English'];
     }
+    if (function_exists('theme_get')) {
+        $theme = theme_get($pdo_auth ?? null);
+    }
 } catch (Throwable $e) {
-    error_log('header language list failed: ' . $e->getMessage());
+    error_log('header language/theme load failed: ' . $e->getMessage());
 }
+// Resolved branding URLs (override → shipped default), cache-busted.
+$brand_favicon  = function_exists('theme_asset_url') ? theme_asset_url($theme, 'favicon',   '/favicon.ico')               : '/favicon.ico';
+$brand_logo_top = function_exists('theme_asset_url') ? theme_asset_url($theme, 'logo_top',  '/assets/img/top-logo.webp')  : '/assets/img/top-logo.webp';
+$brand_logo_main= function_exists('theme_asset_url') ? theme_asset_url($theme, 'logo_main', '/assets/img/logo.webp')      : '/assets/img/logo.webp';
 
 // Public shop nav-link visibility — gated by its own features.shop flag AND
 // a reachable world DB with battle_pay_* tables (don't link to a broken page).
@@ -83,7 +97,7 @@ if (!empty($config['features']['maintenance'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($config['site']['title']) ?></title>
-    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" href="<?= htmlspecialchars($brand_favicon) ?>">
 
     <?php
     // ── OpenGraph / Twitter Card meta ──────────────────────────────────────────
@@ -100,7 +114,8 @@ if (!empty($config['features']['maintenance'])) {
         $_raw_realm_desc = $_raw_realm_desc[$lang] ?? ($_raw_realm_desc['en'] ?? reset($_raw_realm_desc) ?: '');
     }
     $_og_description = $og_description ?? $_raw_realm_desc;
-    $_og_image       = $og_image       ?? ($_og_base . '/assets/img/logo.webp');
+    // OG image: admin's main-logo override when set, else the shipped logo.
+    $_og_image       = $og_image       ?? ($_og_base . (strpos($brand_logo_main, '/') === 0 ? $brand_logo_main : '/assets/img/logo.webp'));
     $_og_type        = $og_type        ?? 'website';
     $_og_url         = $og_url         ?? ($_og_base . ($_SERVER['REQUEST_URI'] ?? '/'));
 
@@ -122,7 +137,7 @@ if (!empty($config['features']['maintenance'])) {
     <meta name="twitter:title"       content="<?= htmlspecialchars($_og_title) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($_og_description) ?>">
     <meta name="twitter:image"       content="<?= htmlspecialchars($_og_image) ?>">
-    <meta name="theme-color" content="#c8a96e">
+    <meta name="theme-color" content="<?= htmlspecialchars(preg_match('/^#[0-9a-fA-F]{6}$/', $theme['accent'] ?? '') ? $theme['accent'] : '#c8a96e') ?>">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Custom CSS -->
@@ -177,6 +192,17 @@ if (!empty($config['features']['maintenance'])) {
             vertical-align: middle;
         }
     </style>
+    <?php
+    // Admin theme override — comes AFTER style.css so the :root custom-prop
+    // overrides win. Empty string on a stock theme, so a non-customized
+    // install ships byte-identical markup (zero overhead).
+    if (function_exists('theme_css')) {
+        $__theme_css = theme_css($theme);
+        if ($__theme_css !== '') {
+            echo "<style id=\"site-theme\">\n" . $__theme_css . "\n</style>\n";
+        }
+    }
+    ?>
     <?php if (!empty($extra_head)) { echo $extra_head; } ?>
 </head>
 <body class="bg-dark text-light">
@@ -184,7 +210,7 @@ if (!empty($config['features']['maintenance'])) {
 <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top py-3 py-md-4 transition-all">
     <div class="container-fluid px-md-5">
         <a class="navbar-brand d-flex align-items-center" href="/">
-            <img src="/assets/img/top-logo.webp" alt="<?= $TEXT['nav_logo_alt'] ?>" style="height: 28px;">
+            <img src="<?= htmlspecialchars($brand_logo_top) ?>" alt="<?= $TEXT['nav_logo_alt'] ?>" style="height: 28px;">
         </a>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>

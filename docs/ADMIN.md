@@ -161,7 +161,16 @@ Two **independent** feature flags drive the player-facing side — neither impli
 
 Disabling hides a language from the menu (not deleted — re-enable anytime). Stored in `site_settings` (`site_languages_update`, audit-logged). `lang.php` discovers files from the filesystem and stays DB-free.
 
-> Foundation for a growing Customization page — home-page sections and theming are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
+**Theme & branding**: recolour the whole site and swap the branding without editing files — all DB-stored, so it **survives updates** (the stylesheet stays the shipped fallback).
+
+- **Accent colour** — set any `#rrggbb` (typed or via the colour picker), or click a **preset palette** (Gold / Azure / Verdant / Crimson / Arcane / Teal). One value drives the accent everywhere: `--accent` is overridden and `--accent-dim` / `--accent-glow` are auto-derived. A live preview updates as you type.
+- **Base tone** (optional, advanced) — override page / card background and body-text colours. Left blank = the shipped dark theme. A warning flags that a poor choice can hurt readability.
+- **Branding uploads** — **Main logo** (homepage hero), **Top-left logo** (navbar, every page), **Favicon**, and **Header background** (the full-screen homepage hero — an image *or* a looping `mp4`/`webm` video). Each shows the current asset with a one-click *Remove (revert to default)*. Limits: logos ≤ 3 MB, favicon ≤ 512 KB, header background ≤ 25 MB. **SVG is rejected** (XSS surface). Files are stored under `uploads/branding/` (updater-preserved, like avatars).
+- **Advanced: custom CSS** — an opt-in textarea injected site-wide *after* the theme variables. Tags, `@import`, `expression()` and `javascript:` are stripped on save, but it can still break your layout — you own any breakage.
+
+Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). The override `<style>` is emitted only when the theme is *not* stock, so a default install ships byte-identical markup. How the operator on a live deployment hand-edited `style.css` and lost it on the next update is exactly what this removes.
+
+> Foundation for a growing Customization page — home-page sections and presentational `config.php` migration are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 
 ### Changing Text and Labels
 

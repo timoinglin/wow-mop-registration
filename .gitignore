@@ -29,6 +29,11 @@
 # Folder .htaccess is tracked so the override rule ships with the repo.
 /uploads/forum/*
 !/uploads/forum/.htaccess
+# Site branding (admin-uploaded logos / favicon / hero bg via Customization →
+# Theme). Folder .htaccess is tracked so the public-read override ships with
+# the repo; the uploaded assets themselves are per-install and updater-safe.
+/uploads/branding/*
+!/uploads/branding/.htaccess
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log

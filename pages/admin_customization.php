@@ -83,26 +83,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $redirect('err', 'save');
     }
+    if (($_POST['action'] ?? '') === 'save_theme') {
+        $cur = theme_get($pdo_auth);          // start from the live theme…
+        $new = $cur;                          // …and only change what was posted.
+
+        // — Colours —
+        $acc = strtolower(trim((string)($_POST['accent'] ?? '')));
+        $new['accent'] = theme_hex_ok($acc) ? $acc : THEME_ACCENT_DEFAULT;
+        foreach (['bg_dark', 'bg_card', 'text'] as $k) {
+            $v = strtolower(trim((string)($_POST[$k] ?? '')));
+            $new[$k] = ($v === '') ? '' : (theme_hex_ok($v) ? $v : $cur[$k]);
+        }
+        $new['preset']       = preg_replace('/[^a-z0-9_]/', '', strtolower((string)($_POST['preset'] ?? '')));
+        $new['custom_css_on'] = !empty($_POST['custom_css_on']) ? 1 : 0;
+        $new['custom_css']    = theme_sanitize_css((string)($_POST['custom_css'] ?? ''));
+
+        // — Branding uploads / resets —
+        $brand_dir = __DIR__ . '/../uploads/branding';
+        if (!is_dir($brand_dir) && !@mkdir($brand_dir, 0775, true) && !is_dir($brand_dir)) {
+            error_log('admin_customization: cannot create ' . $brand_dir);
+            $redirect('err', 'upload');
+        }
+        // slot => [maxBytes, [mime => ext]]
+        $img = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
+        $slots = [
+            'logo_main' => [3 * 1024 * 1024,  $img],
+            'logo_top'  => [3 * 1024 * 1024,  $img],
+            'favicon'   => [512 * 1024,       ['image/png' => 'png', 'image/webp' => 'webp',
+                                               'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico']],
+            'header_bg' => [25 * 1024 * 1024, $img + ['video/mp4' => 'mp4', 'video/webm' => 'webm']],
+        ];
+        $clear_slot = function (string $slot) use ($brand_dir) {
+            foreach (glob($brand_dir . '/' . $slot . '.*') ?: [] as $f) {
+                if (is_file($f)) @unlink($f);
+            }
+        };
+        $upload_err = null;
+        foreach ($slots as $slot => [$max, $allowed]) {
+            if (!empty($_POST['reset'][$slot])) {            // explicit "remove" wins
+                $clear_slot($slot);
+                $new[$slot] = '';
+                if ($slot === 'header_bg') $new['header_bg_kind'] = '';
+                continue;
+            }
+            $f = $_FILES[$slot] ?? null;
+            if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;                                    // nothing posted — keep existing
+            }
+            if (($f['error'] ?? 1) !== UPLOAD_ERR_OK) { $upload_err = 'upload'; continue; }
+            if ((int)$f['size'] > $max)               { $upload_err = 'big';    continue; }
+            $mime = function_exists('mime_content_type') ? (mime_content_type($f['tmp_name']) ?: '') : '';
+            if (!isset($allowed[$mime]))              { $upload_err = 'type';   continue; }
+            $ext  = $allowed[$mime];
+            $clear_slot($slot);                              // drop any prior different-ext file
+            $dest = $brand_dir . '/' . $slot . '.' . $ext;
+            if (!@move_uploaded_file($f['tmp_name'], $dest)) {
+                error_log('admin_customization: move_uploaded_file failed for ' . $dest);
+                $upload_err = 'upload';
+                continue;
+            }
+            @chmod($dest, 0644);
+            $new[$slot] = '/uploads/branding/' . $slot . '.' . $ext;
+            if ($slot === 'header_bg') {
+                $new['header_bg_kind'] = (strncmp($mime, 'image/', 6) === 0) ? 'image' : 'video';
+            }
+        }
+
+        if (site_setting_set($pdo_auth, 'theme', $new)) {
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'site_theme_update', null,
+                'accent=' . $new['accent'] . ' css_on=' . $new['custom_css_on']
+                . ' logo_main=' . ($new['logo_main'] !== '' ? '1' : '0')
+                . ' logo_top=' . ($new['logo_top'] !== '' ? '1' : '0')
+                . ' favicon=' . ($new['favicon'] !== '' ? '1' : '0')
+                . ' header_bg=' . ($new['header_bg_kind'] ?: '0'), null);
+            $redirect('saved', $upload_err ? ('theme_' . $upload_err) : 'theme');
+        }
+        $redirect('err', 'save');
+    }
     $redirect();
 }
 
 // ─── GET ────────────────────────────────────────────────────────────────────
 $flash = '';
-if (isset($_GET['saved']) && $_GET['saved'] === 'footer') {
+$saved = $_GET['saved'] ?? '';
+if ($saved === 'footer') {
     $flash = $TEXT['cz_saved_footer'] ?? 'Footer saved.';
-} elseif (isset($_GET['saved']) && $_GET['saved'] === 'languages') {
+} elseif ($saved === 'languages') {
     $flash = $TEXT['cz_saved_languages'] ?? 'Languages saved.';
+} elseif ($saved === 'theme') {
+    $flash = $TEXT['cz_saved_theme'] ?? 'Theme saved.';
+} elseif (strncmp($saved, 'theme_', 6) === 0) {
+    // saved, but one of the file uploads was rejected
+    $flash = $TEXT['cz_saved_theme'] ?? 'Theme saved.';
 }
 $flash_err = '';
+if (strncmp($saved, 'theme_', 6) === 0) {
+    $why = substr($saved, 6);
+    $flash_err = $why === 'big'  ? ($TEXT['cz_theme_err_big']  ?? 'A file was too large and was skipped — the rest was saved.')
+              : ($why === 'type' ? ($TEXT['cz_theme_err_type'] ?? 'A file had an unsupported format and was skipped — the rest was saved.')
+              :                    ($TEXT['cz_theme_err_upload'] ?? 'A file upload failed and was skipped — the rest was saved.'));
+}
 if (isset($_GET['err'])) {
     $flash_err = $_GET['err'] === 'csrf'
         ? ($TEXT['cz_err_csrf'] ?? 'Session expired. Please try again.')
-        : ($TEXT['cz_err_save'] ?? 'Could not save changes.');
+        : ($_GET['err'] === 'upload'
+            ? ($TEXT['cz_theme_err_dir'] ?? 'Could not write the branding upload folder.')
+            : ($TEXT['cz_err_save'] ?? 'Could not save changes.'));
 }
 
 $footer = footer_links_get($pdo_auth);
 $langs_all      = languages_available();
 $langs_disabled = languages_disabled($pdo_auth);
+$theme          = theme_get($pdo_auth);
 
 $page_title = ($TEXT['cz_title'] ?? 'Site Customization') . ' — ' . ($config['site']['title'] ?? 'WoW');
 require_once __DIR__ . '/../templates/header.php';
@@ -151,6 +243,55 @@ $bi_labels = [
 .cz-prev a:hover { color:#c8a96e; }
 .cz-prev .sep { color:rgba(255,255,255,.2); margin:0 .5rem; }
 .cz-hint { color:#4a5568; font-size:.78rem; margin-top:.5rem; }
+/* Theme card */
+.cz-color-row { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+.cz-color-row input[type=color] {
+    width:46px; height:38px; padding:0; border:1px solid rgba(139,69,19,.35);
+    border-radius:6px; background:#0a0a0f; cursor:pointer;
+}
+.cz-presets { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; }
+.cz-preset {
+    display:flex; align-items:center; gap:.45rem; background:#0a0a0f;
+    border:1px solid rgba(139,69,19,.35); color:#dee2e6; border-radius:20px;
+    padding:.35rem .8rem; font-size:.8rem; cursor:pointer; font-family:inherit;
+}
+.cz-preset:hover { border-color:rgba(200,169,110,.6); }
+.cz-dot { width:13px; height:13px; border-radius:50%; box-shadow:0 0 0 1px rgba(255,255,255,.15); }
+.cz-theme-prev { margin-top:1.1rem; --p:#c89b3c; }
+.cz-prev-demo { display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap; }
+.cz-prev-btn {
+    background:var(--p); color:#1a1206; font-weight:700; border-radius:6px;
+    padding:.45rem 1.1rem; font-size:.85rem; box-shadow:0 0 16px -2px var(--p);
+}
+.cz-prev-link { color:var(--p); text-decoration:none; font-size:.88rem; border-bottom:1px dashed var(--p); }
+.cz-prev-chip {
+    border:1px solid var(--p); color:var(--p); border-radius:20px;
+    padding:.2rem .7rem; font-size:.75rem; text-transform:uppercase; letter-spacing:.5px;
+}
+.cz-tone { display:flex; flex-wrap:wrap; gap:1rem; }
+.cz-tone-item { display:flex; flex-direction:column; gap:.3rem; font-size:.82rem; color:#9aa7b4; }
+.cz-tone-item .cz-input { max-width:150px; }
+.cz-brand {
+    border:1px solid rgba(139,69,19,.22); border-radius:8px;
+    padding:.85rem 1rem; margin-bottom:.7rem; background:#0a0a0f;
+}
+.cz-brand-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem; margin-bottom:.6rem; }
+.cz-brand-head strong { color:#dee2e6; font-size:.92rem; }
+.cz-brand-body { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+.cz-brand-thumb {
+    width:84px; height:54px; object-fit:contain; background:#161616;
+    border:1px solid rgba(139,69,19,.3); border-radius:6px;
+}
+.cz-brand-none { color:#4a5568; font-size:.8rem; font-style:italic; }
+.cz-brand-ctl { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+.cz-file { color:#9aa7b4; font-size:.82rem; max-width:260px; }
+.cz-file::file-selector-button {
+    background:#1e1e1e; color:#c8a96e; border:1px solid rgba(139,69,19,.4);
+    border-radius:5px; padding:.35rem .7rem; font-size:.8rem; cursor:pointer; margin-right:.6rem;
+}
+.cz-reset, .cz-adv-toggle { display:flex; align-items:center; gap:.45rem; color:#f0a; font-size:.8rem; cursor:pointer; }
+.cz-reset { color:#f87e8a; }
+.cz-adv-toggle { color:#dee2e6; font-size:.88rem; }
 </style>
 
 <div class="container cz-wrap" style="max-width:880px">
@@ -261,6 +402,133 @@ $bi_labels = [
             </div>
         </div>
     </form>
+
+    <?php
+    // Preset palettes — name => [accent hex, display label]. Picking one just
+    // fills the accent field (admins can still fine-tune the hex after).
+    $cz_presets = [
+        'gold'    => ['#c89b3c', $TEXT['cz_theme_preset_gold']    ?? 'WoW Gold'],
+        'azure'   => ['#3c8fc8', $TEXT['cz_theme_preset_azure']   ?? 'Azure'],
+        'verdant' => ['#4caf50', $TEXT['cz_theme_preset_verdant'] ?? 'Verdant'],
+        'crimson' => ['#c0392b', $TEXT['cz_theme_preset_crimson'] ?? 'Crimson'],
+        'arcane'  => ['#9b59b6', $TEXT['cz_theme_preset_arcane']  ?? 'Arcane'],
+        'teal'    => ['#1abc9c', $TEXT['cz_theme_preset_teal']    ?? 'Teal'],
+    ];
+    $cz_brand_rows = [
+        'logo_main' => [$TEXT['cz_theme_logo_main'] ?? 'Main logo',
+                        $TEXT['cz_theme_logo_main_sub'] ?? 'The big logo on the homepage hero. Default: assets/img/logo.webp.'],
+        'logo_top'  => [$TEXT['cz_theme_logo_top'] ?? 'Top-left logo',
+                        $TEXT['cz_theme_logo_top_sub'] ?? 'The small logo in the navbar (every page). Default: assets/img/top-logo.webp.'],
+        'favicon'   => [$TEXT['cz_theme_favicon'] ?? 'Favicon',
+                        $TEXT['cz_theme_favicon_sub'] ?? 'Browser tab / bookmark icon. .ico, .png or .webp.'],
+        'header_bg' => [$TEXT['cz_theme_header_bg'] ?? 'Header background',
+                        $TEXT['cz_theme_header_bg_sub'] ?? 'The full-screen homepage hero background — an image or a looping video (mp4/webm).'],
+    ];
+    ?>
+    <form method="post" action="/admin_customization" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+        <input type="hidden" name="action" value="save_theme">
+        <input type="hidden" name="preset" id="czPreset" value="<?= htmlspecialchars($theme['preset']) ?>">
+
+        <div class="cz-card">
+            <h2><i class="bi bi-palette2 me-2"></i><?= htmlspecialchars($TEXT['cz_theme_title'] ?? 'Theme & branding') ?></h2>
+            <div class="sub"><?= htmlspecialchars($TEXT['cz_theme_sub'] ?? 'Recolour the site and swap the logos / favicon / hero background. Stored in the database — your changes survive updates.') ?></div>
+
+            <!-- Accent colour -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_theme_accent'] ?? 'Accent colour') ?></span>
+            <div class="cz-color-row">
+                <input type="color" id="czAccentPick" value="<?= htmlspecialchars($theme['accent']) ?>" aria-label="Accent colour picker">
+                <input class="cz-input" type="text" id="czAccent" name="accent" maxlength="7" value="<?= htmlspecialchars($theme['accent']) ?>" placeholder="#c89b3c" style="max-width:140px;font-family:monospace">
+                <span class="cz-hint" style="margin:0"><?= htmlspecialchars($TEXT['cz_theme_accent_hint'] ?? 'Any #rrggbb. Buttons, links, highlights and glows all follow it.') ?></span>
+            </div>
+            <div class="cz-presets">
+                <?php foreach ($cz_presets as $pk => $pv): ?>
+                    <button type="button" class="cz-preset" data-name="<?= htmlspecialchars($pk) ?>" data-hex="<?= htmlspecialchars($pv[0]) ?>" title="<?= htmlspecialchars($pv[0]) ?>">
+                        <span class="cz-dot" style="background:<?= htmlspecialchars($pv[0]) ?>"></span><?= htmlspecialchars($pv[1]) ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Live preview -->
+            <div class="cz-prev cz-theme-prev" id="czThemePrev">
+                <span class="cz-label" style="margin:0 0 .6rem"><?= htmlspecialchars($TEXT['cz_theme_preview'] ?? 'Live preview') ?></span>
+                <div class="cz-prev-demo">
+                    <span class="cz-prev-btn"><?= htmlspecialchars($TEXT['register'] ?? 'Register') ?></span>
+                    <a href="#" class="cz-prev-link" onclick="return false"><?= htmlspecialchars($TEXT['cz_theme_preview_link'] ?? 'a sample link') ?></a>
+                    <span class="cz-prev-chip"><?= htmlspecialchars($TEXT['cz_theme_preview_badge'] ?? 'Badge') ?></span>
+                </div>
+            </div>
+
+            <!-- Base tone (optional / advanced) -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_theme_tone'] ?? 'Base tone (optional)') ?></span>
+            <div class="cz-hint" style="margin-top:0;margin-bottom:.6rem"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($TEXT['cz_theme_tone_hint'] ?? 'Leave blank to keep the shipped dark theme. Override only if you know what you are doing — a poor choice here can make text unreadable.') ?></div>
+            <div class="cz-tone">
+                <?php foreach ([
+                    'bg_dark' => $TEXT['cz_theme_bg_dark'] ?? 'Page background',
+                    'bg_card' => $TEXT['cz_theme_bg_card'] ?? 'Card background',
+                    'text'    => $TEXT['cz_theme_text']    ?? 'Body text',
+                ] as $tk => $tl): ?>
+                    <label class="cz-tone-item">
+                        <span><?= htmlspecialchars($tl) ?></span>
+                        <input class="cz-input" type="text" name="<?= $tk ?>" maxlength="7" value="<?= htmlspecialchars($theme[$tk]) ?>" placeholder="<?= htmlspecialchars($TEXT['cz_theme_default_ph'] ?? 'default') ?>" style="font-family:monospace">
+                    </label>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Branding files -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_theme_branding'] ?? 'Logos, favicon & hero background') ?></span>
+            <?php foreach ($cz_brand_rows as $slot => $info):
+                $cur = $theme[$slot];
+                $is_video = ($slot === 'header_bg' && $theme['header_bg_kind'] === 'video');
+            ?>
+                <div class="cz-brand">
+                    <div class="cz-brand-head">
+                        <strong><?= htmlspecialchars($info[0]) ?></strong>
+                        <span class="cz-hint" style="margin:0"><?= htmlspecialchars($info[1]) ?></span>
+                    </div>
+                    <div class="cz-brand-body">
+                        <div class="cz-brand-cur">
+                            <?php if ($cur === ''): ?>
+                                <span class="cz-brand-none"><?= htmlspecialchars($TEXT['cz_theme_using_default'] ?? 'Using default') ?></span>
+                            <?php elseif ($is_video): ?>
+                                <video src="<?= htmlspecialchars($cur) ?>" muted loop class="cz-brand-thumb" style="object-fit:cover"></video>
+                            <?php else: ?>
+                                <img src="<?= htmlspecialchars($cur) ?>" alt="" class="cz-brand-thumb">
+                            <?php endif; ?>
+                        </div>
+                        <div class="cz-brand-ctl">
+                            <input class="cz-file" type="file" name="<?= $slot ?>"
+                                   accept="<?= $slot === 'favicon' ? 'image/png,image/webp,.ico' : ($slot === 'header_bg' ? 'image/*,video/mp4,video/webm' : 'image/png,image/jpeg,image/webp,image/gif') ?>">
+                            <?php if ($cur !== ''): ?>
+                                <label class="cz-reset">
+                                    <input type="checkbox" name="reset[<?= $slot ?>]" value="1">
+                                    <?= htmlspecialchars($TEXT['cz_theme_reset'] ?? 'Remove (revert to default)') ?>
+                                </label>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            <div class="cz-hint"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_theme_branding_hint'] ?? 'Logos & favicon ≤ 3 MB (favicon ≤ 512 KB); header background ≤ 25 MB. SVG is not accepted for security reasons.') ?></div>
+
+            <!-- Advanced custom CSS -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_theme_css'] ?? 'Advanced: custom CSS') ?></span>
+            <label class="cz-adv-toggle">
+                <input type="checkbox" name="custom_css_on" id="czCssOn" value="1" <?= !empty($theme['custom_css_on']) ? 'checked' : '' ?>>
+                <?= htmlspecialchars($TEXT['cz_theme_css_enable'] ?? 'Enable custom CSS (advanced — you own any breakage)') ?>
+            </label>
+            <div id="czCssWrap" style="<?= !empty($theme['custom_css_on']) ? '' : 'display:none' ?>">
+                <textarea class="cz-input" name="custom_css" id="czCss" rows="6" spellcheck="false"
+                          style="font-family:monospace;font-size:.82rem;margin-top:.6rem"
+                          placeholder=".btn-gold{ letter-spacing:.5px } /* injected site-wide */"><?= htmlspecialchars($theme['custom_css']) ?></textarea>
+                <div class="cz-hint"><i class="bi bi-shield-exclamation me-1"></i><?= htmlspecialchars($TEXT['cz_theme_css_hint'] ?? 'Injected on every page after the theme variables. Tags, @import, expression() and javascript: are stripped on save; it can still break your layout — test before relying on it.') ?></div>
+            </div>
+
+            <div style="margin-top:1.5rem">
+                <button type="submit" class="cz-btn"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['cz_theme_save'] ?? 'Save theme') ?></button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <script>
@@ -278,6 +546,48 @@ $bi_labels = [
         d.querySelector('.cz-del').addEventListener('click', function () { d.remove(); });
         rows.appendChild(d);
     });
+})();
+
+// Theme card: keep hex text ↔ colour picker ↔ live preview in sync,
+// wire presets and the advanced-CSS toggle.
+(function () {
+    var txt  = document.getElementById('czAccent');
+    if (!txt) return;
+    var pick = document.getElementById('czAccentPick');
+    var prev = document.getElementById('czThemePrev');
+    var presetField = document.getElementById('czPreset');
+    var HEX = /^#[0-9a-fA-F]{6}$/;
+
+    function apply(hex, fromPreset) {
+        if (!HEX.test(hex)) return;
+        if (pick)  pick.value = hex;
+        if (prev)  prev.style.setProperty('--p', hex);
+        if (!fromPreset && presetField) presetField.value = ''; // manual edit clears preset
+    }
+    apply(txt.value, true);
+
+    txt.addEventListener('input', function () { apply(txt.value.trim(), false); });
+    if (pick) pick.addEventListener('input', function () {
+        txt.value = pick.value;
+        apply(pick.value, false);
+    });
+
+    document.querySelectorAll('.cz-preset').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var hex = b.getAttribute('data-hex');
+            txt.value = hex;
+            if (presetField) presetField.value = b.getAttribute('data-name') || '';
+            apply(hex, true);
+        });
+    });
+
+    var cssOn = document.getElementById('czCssOn');
+    var cssWrap = document.getElementById('czCssWrap');
+    if (cssOn && cssWrap) {
+        cssOn.addEventListener('change', function () {
+            cssWrap.style.display = cssOn.checked ? '' : 'none';
+        });
+    }
 })();
 </script>
 

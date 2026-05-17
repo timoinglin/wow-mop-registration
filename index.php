@@ -91,19 +91,36 @@ $faq_items = $config['faq'] ?? [];
 
 <!-- Background Video Container -->
 <div class="video-container position-relative">
-    <!-- Background Video -->
+    <!-- Background: admin Theme override (image or video) → shipped video -->
+    <?php
+    $hero_bg   = function_exists('theme_asset_url') ? theme_asset_url($theme ?? [], 'header_bg', '') : '';
+    $hero_kind = $theme['header_bg_kind'] ?? '';
+    if ($hero_bg !== '' && $hero_kind === 'image'):
+    ?>
+    <img src="<?= htmlspecialchars($hero_bg) ?>" alt="" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
+    <?php
+    elseif ($hero_bg !== '' && $hero_kind === 'video'):
+        $hero_ext  = strtolower((string)pathinfo((string)parse_url($hero_bg, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $hero_type = $hero_ext === 'webm' ? 'video/webm' : 'video/mp4';
+    ?>
+    <video playsinline="playsinline" autoplay="autoplay" muted="muted" loop="loop" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
+        <source src="<?= htmlspecialchars($hero_bg) ?>" type="<?= $hero_type ?>">
+        <p class="visually-hidden">Your browser does not support HTML5 video.</p>
+    </video>
+    <?php else: ?>
     <video playsinline="playsinline" autoplay="autoplay" muted="muted" loop="loop" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
         <source src="/assets/bg-video-mop.mp4" type="video/mp4">
         <p class="visually-hidden">Your browser does not support HTML5 video.</p>
     </video>
+    <?php endif; ?>
 
     <!-- Video Header Content Section -->
     <div class="video-header">
         <div class="container">
             <div class="overlay-content text-center">
-                <!-- Logo -->
+                <!-- Logo (admin Theme override → shipped logo.webp) -->
                 <div class="logo-container">
-                    <img src="/assets/img/logo.webp" alt="<?= $TEXT['wow_logo_alt'] ?>" class="img-fluid">
+                    <img src="<?= htmlspecialchars($brand_logo_main ?? '/assets/img/logo.webp') ?>" alt="<?= $TEXT['wow_logo_alt'] ?>" class="img-fluid">
                 </div>
 
                 <h1 class="hero-title mb-3"><?= $TEXT['welcome'] ?></h1>
