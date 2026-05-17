@@ -119,6 +119,14 @@ require_once __DIR__ . '/../templates/header.php';
     color:#ffe08a; background:rgba(0,0,0,.35); padding:.03rem .4rem; border-radius:4px;
     font-family:'Courier New',monospace; font-weight:700;
 }
+.shp-tipnote {
+    display:flex; align-items:flex-start; gap:.55rem;
+    background:rgba(255,255,255,.03); border:1px solid rgba(139,69,19,.35);
+    border-left:4px solid #c8a96e; border-radius:8px;
+    padding:.65rem .9rem; margin:0 0 1.25rem; color:#9aa7b4; font-size:.8rem; line-height:1.55;
+}
+.shp-tipnote i { color:#c8a96e; font-size:1rem; margin-top:.05rem; flex-shrink:0; }
+.shp-tipnote b { color:#c8a96e; }
 .shp-steps { margin:0; padding-left:1.2rem; color:#9aa7b4; font-size:.85rem; line-height:1.75; }
 .shp-steps code, .shp-code-cap code {
     color:#f0c040; background:rgba(240,192,64,.12); padding:.03rem .35rem; border-radius:4px;
@@ -258,6 +266,10 @@ require_once __DIR__ . '/../templates/header.php';
             <a href="<?= htmlspecialchars($don_cfg['kofi_url'] !== '' ? $don_cfg['kofi_url'] : '#') ?>" target="_blank" rel="noopener noreferrer" class="shp-btn shp-btn-kofi">
                 <i class="bi bi-cup-hot me-1"></i><?= htmlspecialchars($TEXT['shop_donate_btn'] ?? 'Donate on Ko-fi') ?>
             </a>
+        </div>
+        <div class="shp-tipnote">
+            <i class="bi bi-info-circle-fill"></i>
+            <span><b><?= htmlspecialchars($TEXT['shop_donate_disclaimer_lead'] ?? 'This is a voluntary donation, not a purchase.') ?></b> <?= htmlspecialchars($TEXT['shop_donate_disclaimer'] ?? "It helps cover the server's running costs. Battle Coins are a complimentary thank-you gift — not goods or a service for sale — and donations are non-refundable.") ?></span>
         </div>
         <?php if ($uid > 0 && $don_code !== null): ?>
             <div class="shp-code-box">

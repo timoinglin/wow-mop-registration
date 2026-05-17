@@ -284,6 +284,8 @@ return [
   'shop_donate_step3'          => 'Los Battle Coins se acreditan automáticamente, normalmente en menos de un minuto tras el pago.',
   'shop_donate_recent'         => 'Tus donaciones recientes',
   'shop_donate_login_hint'     => 'para obtener tu código de donación personal y que tus Battle Coins se acrediten automáticamente.',
+  'shop_donate_disclaimer_lead' => 'Esto es una donación voluntaria, no una compra.',
+  'shop_donate_disclaimer'     => 'Ayuda a cubrir los costes de funcionamiento del servidor. Los Battle Coins son un regalo de agradecimiento — no bienes ni un servicio a la venta — y las donaciones no son reembolsables.',
   'shop_add_cat'               => 'Añadir categoría',
   'shop_cat_name'              => 'Nombre (máx. 16)',
   'shop_cat_icon'              => 'Icono (FileDataID)',

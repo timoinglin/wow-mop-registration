@@ -284,6 +284,8 @@ return [
   'shop_donate_step3'          => 'Battle Coins are credited automatically, usually within a minute of payment.',
   'shop_donate_recent'         => 'Your recent donations',
   'shop_donate_login_hint'     => 'to get your personal donation code so your Battle Coins are credited automatically.',
+  'shop_donate_disclaimer_lead' => 'This is a voluntary donation, not a purchase.',
+  'shop_donate_disclaimer'     => "It helps cover the server's running costs. Battle Coins are a complimentary thank-you gift — not goods or a service for sale — and donations are non-refundable.",
   'shop_add_cat'               => 'Add category',
   'shop_cat_name'              => 'Name (max 16)',
   'shop_cat_icon'              => 'Icon (FileDataID)',
