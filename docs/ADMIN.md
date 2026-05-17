@@ -60,6 +60,13 @@ The Forum tab in `/admin_dashboard` shows status tiles and a **Configure Forum**
 
 **Categories** — one level only (no sub-categories by design). Each has a slug, name, description, Bootstrap-Icons class, and sort order. Deleting a category cascades to its threads + posts (confirmation-gated).
 
+Each category also has a **posting policy** (two independent toggles on the add/edit form):
+
+- **Only GMs can start threads** (`admin_only`) — turns it into an announcement category: regular users can read it but can't create threads. It shows an "Announcements" badge on the forum index. GMs (gmlevel ≥ 9) post as normal.
+- **Allow user replies** (`allow_replies`) — uncheck for a fully read-only category (only GMs can reply). Combine the two for News/Patch-notes (GM threads, users discuss) or pure read-only announcements (GM threads, no replies).
+
+Both default to fully open (anyone posts & replies), so existing categories are unchanged after the upgrade. Enforced server-side, not just hidden in the UI.
+
 **Forum Bans** — forum-only mute. Banned users can still log in and play; they just can't post or reply. Add by username + reason + optional expiry datetime. GM 9+ accounts cannot be banned.
 
 **Moderation Queue** — pending threads + replies waiting for approval. Each shows the body (collapsed by default), author, category, time, and Approve / Reject buttons. Approve flips the row to published and bumps the right counters; Reject hard-deletes. Threads are also approvable inline from the thread page itself (see below).

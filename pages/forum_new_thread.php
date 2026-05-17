@@ -36,13 +36,14 @@ if (!$category) {
 }
 
 $settings = forum_settings_get($pdo_auth);
-[$can_post, $reason] = forum_can_user_post($pdo_auth, $user_id, $gm_level, $settings, null);
+[$can_post, $reason] = forum_can_user_post($pdo_auth, $user_id, $gm_level, $settings, null, $category);
 
 if (!$can_post) {
     require_once __DIR__ . '/../templates/header.php';
     $msg = match ($reason) {
         'forum_disabled' => $TEXT['forum_disabled_hint'] ?? 'The forum is not available right now.',
         'banned'         => $TEXT['forum_banned_hint']   ?? 'You are banned from posting in the forum.',
+        'admin_only'     => $TEXT['forum_announce_only']  ?? 'Announcements — only GMs can post here.',
         default          => $TEXT['forum_cannot_post']   ?? 'You cannot post right now.',
     };
     echo '<main class="container" style="padding-top:120px;text-align:center;max-width:680px"><h2 style="color:#c8a96e">'

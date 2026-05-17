@@ -65,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $icon  = trim((string)($_POST['icon'] ?? 'bi-chat-square-text'));
             $sort  = (int)($_POST['sort_order'] ?? 0);
             $slug  = trim((string)($_POST['slug'] ?? ''));
+            $admin_only    = isset($_POST['admin_only']) ? 1 : 0;
+            $allow_replies = isset($_POST['allow_replies']) ? 1 : 0;
 
             if ($name === '')               $errors[] = $TEXT['forum_err_cat_name']  ?? 'Category name is required.';
             if (mb_strlen($name) > 120)     $errors[] = $TEXT['forum_err_cat_name_long'] ?? 'Name too long.';
@@ -74,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (empty($errors)) {
-                $newId = forum_category_save($pdo_auth, $cid ?: null, $name, $desc, $icon, $sort, $slug);
+                $newId = forum_category_save($pdo_auth, $cid ?: null, $name, $desc, $icon, $sort, $slug, $admin_only, $allow_replies);
                 if ($newId) {
                     log_admin_action($pdo_auth, $admin_id, $admin_name,
                         $cid ? 'forum_category_update' : 'forum_category_create',
@@ -480,6 +482,30 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                     <label class="fa-label"><?= htmlspecialchars($TEXT['forum_cat_desc'] ?? 'Description') ?></label>
                     <input name="description" type="text" maxlength="500" class="fa-input"
                            value="<?= htmlspecialchars($edit_cat['description'] ?? '') ?>">
+                </div>
+                <?php
+                $cat_admin_only = isset($edit_cat['admin_only']) ? (int)$edit_cat['admin_only'] : 0;
+                // New categories default to "replies allowed" so behaviour is unchanged.
+                $cat_allow_replies = isset($edit_cat['allow_replies']) ? (int)$edit_cat['allow_replies'] : 1;
+                ?>
+                <div class="col-12 mt-1">
+                    <label class="fa-label"><?= htmlspecialchars($TEXT['forum_cat_posting'] ?? 'Posting policy') ?></label>
+                    <div style="display:flex;flex-wrap:wrap;gap:1.4rem;padding:.6rem .2rem">
+                        <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-size:.88rem;color:#dee2e6;max-width:340px">
+                            <input type="checkbox" name="admin_only" value="1" style="margin-top:.2rem" <?= $cat_admin_only ? 'checked' : '' ?>>
+                            <span>
+                                <strong><?= htmlspecialchars($TEXT['forum_cat_admin_only'] ?? 'Only GMs can start threads') ?></strong><br>
+                                <span style="color:#8899aa;font-size:.8rem"><?= htmlspecialchars($TEXT['forum_cat_admin_only_help'] ?? 'Announcement-style category. Regular users can read (and reply, unless disabled below) but cannot create threads.') ?></span>
+                            </span>
+                        </label>
+                        <label style="display:flex;align-items:flex-start;gap:.5rem;cursor:pointer;font-size:.88rem;color:#dee2e6;max-width:340px">
+                            <input type="checkbox" name="allow_replies" value="1" style="margin-top:.2rem" <?= $cat_allow_replies ? 'checked' : '' ?>>
+                            <span>
+                                <strong><?= htmlspecialchars($TEXT['forum_cat_allow_replies'] ?? 'Allow user replies') ?></strong><br>
+                                <span style="color:#8899aa;font-size:.8rem"><?= htmlspecialchars($TEXT['forum_cat_allow_replies_help'] ?? 'Uncheck for a fully read-only category (only GMs can reply). Threads still display normally.') ?></span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
                 <div class="col-12 d-flex gap-2 mt-2">
                     <button type="submit" class="fa-btn fa-btn-primary">

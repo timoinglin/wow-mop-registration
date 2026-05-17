@@ -562,6 +562,7 @@ if ($mode === 'thread') {
                 'too_long'       => $TEXT['forum_reply_err_long']   ?? 'Reply too long.',
                 'banned'         => $TEXT['forum_banned_hint']      ?? 'You are banned from posting in the forum.',
                 'locked'         => $TEXT['forum_locked_hint']      ?? 'This thread is locked. No new replies.',
+                'replies_closed' => $TEXT['forum_replies_closed_hint'] ?? 'This category is read-only. Only GMs can reply here.',
                 'forum_disabled' => $TEXT['forum_disabled_hint']    ?? 'The forum is currently disabled.',
                 'not_logged_in'  => $TEXT['forum_login_to_reply']   ?? 'Log in to reply.',
                 'cooldown'       => sprintf($TEXT['forum_err_cooldown'] ?? 'Please wait %d more second(s) before posting again.', $wait),
@@ -677,6 +678,7 @@ if ($mode === 'thread') {
                     'not_logged_in'  => sprintf($TEXT['forum_login_to_reply_link'] ?? 'Please <a href="%s" style="color:#c8a96e">log in</a> to reply.', '/login'),
                     'banned'         => $TEXT['forum_banned_hint']   ?? 'You are banned from posting in the forum.',
                     'locked'         => '<i class="bi bi-lock-fill me-1"></i>' . htmlspecialchars($TEXT['forum_locked_hint'] ?? 'This thread is locked. No new replies.'),
+                    'replies_closed' => '<i class="bi bi-megaphone-fill me-1"></i>' . htmlspecialchars($TEXT['forum_replies_closed_hint'] ?? 'This category is read-only. Only GMs can reply here.'),
                     'forum_disabled' => $TEXT['forum_disabled_hint'] ?? 'The forum is currently disabled.',
                     default          => $TEXT['forum_cannot_post']   ?? 'You cannot post right now.',
                 };
@@ -748,7 +750,7 @@ if ($mode === 'category') {
             <div style="color:#8899aa;font-size:.85rem;text-align:right;flex-shrink:0">
                 <div><?= (int)$total ?> <?= htmlspecialchars($TEXT['forum_threads'] ?? 'threads') ?></div>
                 <?php
-                [$can_post_here, $post_reason] = forum_can_user_post($pdo_auth, $user_id ?: null, $gm_level, $settings, null);
+                [$can_post_here, $post_reason] = forum_can_user_post($pdo_auth, $user_id ?: null, $gm_level, $settings, null, $category);
                 if ($can_post_here):
                 ?>
                     <a href="/forum/new/<?= htmlspecialchars(rawurlencode($category['slug']), ENT_QUOTES) ?>"
@@ -759,6 +761,10 @@ if ($mode === 'category') {
                     <a href="/login" style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:transparent;color:#c8a96e;border:1px solid rgba(200,169,110,.4);border-radius:4px;text-decoration:none;font-size:.85rem">
                         <i class="bi bi-box-arrow-in-right me-1"></i><?= htmlspecialchars($TEXT['forum_login_to_post'] ?? 'Log in to post') ?>
                     </a>
+                <?php elseif ($post_reason === 'admin_only'): ?>
+                    <div style="margin-top:.6rem;font-size:.78rem;color:#c8a96e">
+                        <i class="bi bi-megaphone-fill me-1"></i><?= htmlspecialchars($TEXT['forum_announce_only'] ?? 'Announcements — only GMs can post here.') ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -876,7 +882,14 @@ echo $forum_css;
             <a class="fo-cat-card" href="<?= htmlspecialchars($href, ENT_QUOTES) ?>">
                 <div class="fo-cat-icon"><i class="bi <?= htmlspecialchars($c['icon'] ?: 'bi-chat-square-text') ?>"></i></div>
                 <div class="fo-cat-body">
-                    <div class="fo-cat-name"><?= htmlspecialchars($c['name']) ?></div>
+                    <div class="fo-cat-name">
+                        <?= htmlspecialchars($c['name']) ?>
+                        <?php if (!empty($c['admin_only'])): ?>
+                            <span style="margin-left:.5rem;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#c8a96e;background:rgba(200,169,110,.14);border:1px solid rgba(200,169,110,.35);padding:.12rem .5rem;border-radius:10px;vertical-align:middle">
+                                <i class="bi bi-megaphone-fill me-1"></i><?= htmlspecialchars($TEXT['forum_badge_announce'] ?? 'Announcements') ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
                     <?php if (!empty($c['description'])): ?>
                         <div class="fo-cat-desc"><?= htmlspecialchars($c['description']) ?></div>
                     <?php endif; ?>
