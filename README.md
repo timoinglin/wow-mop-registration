@@ -183,6 +183,7 @@ Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold i
 
 - **Forum per-category posting policy** — admins can flag a forum category as *announcement-only* (only GMs start threads) and/or *read-only* (no user replies), via two toggles on the category form. Existing categories stay fully open.
 - **Donation disclaimer on `/shop`** — a clear, always-visible note that donations are a voluntary tip (not a purchase) and Battle Coins are a complimentary thank-you gift, non-refundable. Protects the operator from refund/chargeback/consumer-rights claims.
+- **Customizable footer** — new admin **Customization** page (`/admin_customization`): toggle the built-in footer quick-links and add your own (e.g. a donations-disclaimer link). Stored in the DB so it survives updates; `config.php` stays the fallback. Foundation for future home-page/theming customization.
 
 *Empty = the latest tagged release is fully current.*
 
