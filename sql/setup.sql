@@ -384,6 +384,19 @@ CREATE TABLE IF NOT EXISTS shop_settings (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 17. Site Settings — generic key → JSON store for admin-editable site
+-- customization (footer links now; home-page sections / theming later).
+-- NO seed: when a key is absent the resolver falls back to config.php /
+-- built-in defaults, so config.php stays the bootstrap and the DB row is
+-- purely the admin override (same pattern as the donation-rate override).
+-- Secrets/bootstrap (db, smtp, recaptcha, base_url, feature flags) are NEVER
+-- stored here — they remain file-only in config.php.
+CREATE TABLE IF NOT EXISTS site_settings (
+  k VARCHAR(64) NOT NULL PRIMARY KEY,
+  v MEDIUMTEXT NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed a default "General Discussion" category on first install. Idempotent —
 -- the INSERT is guarded by NOT EXISTS so it only fires when the table is
 -- completely empty (admins who delete it won't see it reappear on re-run).

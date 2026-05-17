@@ -369,6 +369,7 @@ $s_world    = check_port_status($db_host, $world_port);
     <button class="adm-tab" onclick="switchTab('tickets',this)"><i class="bi bi-ticket-perforated me-1"></i><?= htmlspecialchars($TEXT['admin_tab_tickets'] ?? 'Tickets') ?></button>
     <button class="adm-tab" onclick="switchTab('news',this)"><i class="bi bi-newspaper me-1"></i><?= htmlspecialchars($TEXT['admin_tab_news'] ?? 'News') ?></button>
     <button class="adm-tab" onclick="switchTab('forum',this)"><i class="bi bi-chat-square-text me-1"></i><?= htmlspecialchars($TEXT['admin_tab_forum'] ?? 'Forum') ?></button>
+    <button class="adm-tab" onclick="switchTab('customization',this)"><i class="bi bi-palette me-1"></i><?= htmlspecialchars($TEXT['admin_tab_customization'] ?? 'Customization') ?></button>
     <?php if (!empty($config['features']['shop_admin'])): ?>
     <button class="adm-tab" onclick="switchTab('shop',this)"><i class="bi bi-shop me-1"></i><?= htmlspecialchars($TEXT['admin_tab_shop'] ?? 'Shop') ?></button>
     <?php endif; ?>
@@ -937,6 +938,21 @@ $s_world    = check_port_status($db_host, $world_port);
         <button class="tool-btn tool-btn-primary" style="width:100%" onclick="submitTicketReply()">
             <i class="bi bi-send me-1"></i> <?= htmlspecialchars($TEXT['admin_send_reply'] ?? 'Send Reply') ?>
         </button>
+    </div>
+</div>
+
+<!-- TAB: CUSTOMIZATION -->
+<div class="adm-tab-content" id="tab-customization">
+    <div class="admin-panel" style="height:auto">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="panel-title mb-0"><i class="bi bi-palette me-2"></i><?= htmlspecialchars($TEXT['admin_cz_title'] ?? 'Site Customization') ?></div>
+            <a href="/admin_customization" class="tool-btn tool-btn-primary" style="text-decoration:none">
+                <i class="bi bi-sliders me-1"></i><?= htmlspecialchars($TEXT['admin_cz_manage'] ?? 'Customize Site') ?>
+            </a>
+        </div>
+        <p style="color:#8899aa;font-size:.9rem;margin:0">
+            <?= htmlspecialchars($TEXT['admin_cz_hint'] ?? 'Customize the public site without touching code — footer links now (toggle built-ins, add your own e.g. a donations-disclaimer link). Home-page & theming sections planned.') ?>
+        </p>
     </div>
 </div>
 

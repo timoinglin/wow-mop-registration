@@ -142,6 +142,18 @@ Two **independent** feature flags drive the player-facing side — neither impli
 
 ## Customization
 
+### Site Customization page (admin, no code)
+
+`/admin_dashboard` → **Customization** tab → **Customize Site** (GM 9+), or go straight to `/admin_customization`.
+
+**Footer links** (first section): toggle which built-in quick-links show (Home / Register / Login / Support — "Support" also needs the tickets feature on), and add your own **custom label + URL rows** (e.g. a donations-disclaimer page). A live preview of the saved footer is shown.
+
+- Stored in the `site_settings` table (DB), **not** `config.php` — so it survives updates (like avatars/news/forum), and `config.php` stays the bootstrap/fallback. No migration needed: until you save here, the built-in defaults apply.
+- Custom URLs are sanitised on save — only `https://` / `http://` or a site path starting with `/` are kept; anything else (e.g. `javascript:`, protocol-relative `//host`) is dropped.
+- Audit-logged (`site_footer_update`).
+
+> Foundation for a growing Customization page — home-page sections and theming are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
+
 ### Changing Text and Labels
 
 All user-facing text is in the `lang/` folder:
