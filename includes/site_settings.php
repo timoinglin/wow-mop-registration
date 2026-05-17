@@ -155,3 +155,86 @@ if (!function_exists('footer_link_url_ok')) {
         return (bool)preg_match('#^https?://[^\s]+$#i', $url);
     }
 }
+
+// ─── Languages ──────────────────────────────────────────────────────────────
+
+if (!function_exists('language_label')) {
+    /**
+     * Human label for a language code. Built-in map for common codes (no file
+     * load — the switcher would otherwise have to require every lang array);
+     * unknown codes fall back to the upper-cased code.
+     */
+    function language_label(string $code): string
+    {
+        static $names = [
+            'en' => 'English',   'es' => 'Español',     'fr' => 'Français',
+            'de' => 'Deutsch',   'pt' => 'Português',   'pt_br' => 'Português (BR)',
+            'it' => 'Italiano',  'ru' => 'Русский',     'pl' => 'Polski',
+            'tr' => 'Türkçe',    'nl' => 'Nederlands',  'sv' => 'Svenska',
+            'cs' => 'Čeština',   'ro' => 'Română',      'hu' => 'Magyar',
+            'el' => 'Ελληνικά',  'uk' => 'Українська',  'zh' => '中文',
+            'ja' => '日本語',     'ko' => '한국어',       'ar' => 'العربية',
+        ];
+        return $names[strtolower($code)] ?? strtoupper($code);
+    }
+}
+
+if (!function_exists('languages_available')) {
+    /**
+     * Every lang/<code>.php on disk → [code => label], EN first then sorted.
+     * Filesystem-only (no DB) so it matches lang.php's discovery exactly.
+     */
+    function languages_available(): array
+    {
+        $codes = [];
+        foreach (glob(__DIR__ . '/../lang/*.php') ?: [] as $f) {
+            $c = strtolower(basename($f, '.php'));
+            if (preg_match('/^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/', $c)) {
+                $codes[$c] = true;
+            }
+        }
+        $codes['en'] = true;               // EN always present (the fallback)
+        $codes = array_keys($codes);
+        sort($codes);
+        $codes = array_values(array_diff($codes, ['en']));
+        array_unshift($codes, 'en');       // EN first
+        $out = [];
+        foreach ($codes as $c) {
+            $out[$c] = language_label($c);
+        }
+        return $out;
+    }
+}
+
+if (!function_exists('languages_disabled')) {
+    /**
+     * Codes the admin has disabled (site_settings 'languages'). EN can never
+     * be disabled. Safe/empty when no DB or unset.
+     */
+    function languages_disabled(?PDO $pdo): array
+    {
+        $cfg = site_setting($pdo, 'languages', null);
+        $dis = (is_array($cfg) && isset($cfg['disabled']) && is_array($cfg['disabled']))
+            ? array_map('strtolower', $cfg['disabled'])
+            : [];
+        return array_values(array_filter(array_unique($dis), fn($c) => $c !== 'en'));
+    }
+}
+
+if (!function_exists('languages_enabled')) {
+    /**
+     * [code => label] of languages actually offered to visitors = available
+     * minus disabled. EN always included and first.
+     */
+    function languages_enabled(?PDO $pdo): array
+    {
+        $disabled = languages_disabled($pdo);
+        $out = [];
+        foreach (languages_available() as $code => $label) {
+            if ($code === 'en' || !in_array($code, $disabled, true)) {
+                $out[$code] = $label;
+            }
+        }
+        return $out;
+    }
+}

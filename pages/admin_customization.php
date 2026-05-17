@@ -67,6 +67,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $redirect('err', 'save');
     }
+    if (($_POST['action'] ?? '') === 'save_languages') {
+        // Enabled = boxes ticked; disabled = the rest. EN is never disabled.
+        $available = array_keys(languages_available());
+        $enabled   = is_array($_POST['lang'] ?? null) ? array_keys($_POST['lang']) : [];
+        $disabled  = [];
+        foreach ($available as $code) {
+            if ($code === 'en') continue;
+            if (!in_array($code, $enabled, true)) $disabled[] = $code;
+        }
+        if (site_setting_set($pdo_auth, 'languages', ['disabled' => $disabled])) {
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'site_languages_update', null,
+                'disabled=' . json_encode($disabled), null);
+            $redirect('saved', 'languages');
+        }
+        $redirect('err', 'save');
+    }
     $redirect();
 }
 
@@ -74,6 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = '';
 if (isset($_GET['saved']) && $_GET['saved'] === 'footer') {
     $flash = $TEXT['cz_saved_footer'] ?? 'Footer saved.';
+} elseif (isset($_GET['saved']) && $_GET['saved'] === 'languages') {
+    $flash = $TEXT['cz_saved_languages'] ?? 'Languages saved.';
 }
 $flash_err = '';
 if (isset($_GET['err'])) {
@@ -83,6 +101,8 @@ if (isset($_GET['err'])) {
 }
 
 $footer = footer_links_get($pdo_auth);
+$langs_all      = languages_available();
+$langs_disabled = languages_disabled($pdo_auth);
 
 $page_title = ($TEXT['cz_title'] ?? 'Site Customization') . ' — ' . ($config['site']['title'] ?? 'WoW');
 require_once __DIR__ . '/../templates/header.php';
@@ -197,6 +217,47 @@ $bi_labels = [
                     <?php if ($i > 0): ?><span class="sep">·</span><?php endif; ?>
                     <a href="<?= htmlspecialchars($p[0]) ?>"><?= htmlspecialchars($p[1]) ?></a>
                 <?php endforeach; endif; ?>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" action="/admin_customization">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+        <input type="hidden" name="action" value="save_languages">
+
+        <div class="cz-card">
+            <h2><i class="bi bi-translate me-2"></i><?= htmlspecialchars($TEXT['cz_lang_title'] ?? 'Languages') ?></h2>
+            <div class="sub"><?= htmlspecialchars($TEXT['cz_lang_sub'] ?? 'Pick which languages appear in the site language menu. English is always on — it is the fallback for any untranslated text.') ?></div>
+
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_lang_available'] ?? 'Available languages') ?></span>
+            <div class="cz-bi" style="flex-direction:column;gap:.55rem;align-items:flex-start">
+                <?php foreach ($langs_all as $code => $label):
+                    $isEn = ($code === 'en');
+                    $on   = $isEn || !in_array($code, $langs_disabled, true);
+                ?>
+                    <label>
+                        <input type="checkbox" name="lang[<?= htmlspecialchars($code) ?>]" value="1" <?= $on ? 'checked' : '' ?> <?= $isEn ? 'disabled' : '' ?>>
+                        <strong><?= htmlspecialchars($label) ?></strong>
+                        <span style="color:#4a5568;font-size:.8rem">(<code><?= htmlspecialchars($code) ?>.php</code>)</span>
+                        <?php if ($isEn): ?><span style="color:#5dd87c;font-size:.75rem;margin-left:.3rem">— <?= htmlspecialchars($TEXT['cz_lang_always_on'] ?? 'always on') ?></span><?php endif; ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="cz-prev" style="margin-top:1.2rem">
+                <strong style="color:#c8a96e"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_lang_howto_title'] ?? 'Add a custom language') ?></strong>
+                <ol style="margin:.6rem 0 0;padding-left:1.2rem;color:#9aa7b4;line-height:1.8">
+                    <li><?= str_replace(['{from}', '{to}'], ['<code>lang/en.php</code>', '<code>lang/&lt;code&gt;.php</code>'],
+                            htmlspecialchars($TEXT['cz_lang_howto_1'] ?? 'Copy {from} to {to} — use a 2-letter code (e.g. lang/fr.php, lang/de.php).')) ?></li>
+                    <li><?= htmlspecialchars($TEXT['cz_lang_howto_2'] ?? 'Translate the values (the text after =>). Keep every key name exactly as-is.') ?></li>
+                    <li><?= htmlspecialchars($TEXT['cz_lang_howto_3'] ?? 'It shows up in this list automatically — tick it and Save to put it in the menu.') ?></li>
+                    <li><?= htmlspecialchars($TEXT['cz_lang_howto_4'] ?? 'Any key you miss falls back to English automatically, so a partial translation is safe to ship.') ?></li>
+                </ol>
+            </div>
+            <div class="cz-hint"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_lang_note'] ?? 'Disabling a language hides it from the menu; it is not deleted, so you can re-enable it anytime. Files survive updates only if you keep your own copy — see the Updating guide.') ?></div>
+
+            <div style="margin-top:1.4rem">
+                <button type="submit" class="cz-btn"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['cz_lang_save'] ?? 'Save languages') ?></button>
             </div>
         </div>
     </form>

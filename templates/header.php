@@ -35,6 +35,19 @@ try {
     error_log('header forum-enabled check failed: ' . $e->getMessage());
 }
 
+// Language switcher: only the languages enabled in admin Customization →
+// Languages. Defensive: defaults to a single-language list if anything fails.
+$nav_langs = [$lang => strtoupper($lang)];
+try {
+    @require_once __DIR__ . '/../includes/site_settings.php';
+    if (function_exists('languages_enabled')) {
+        $nav_langs = languages_enabled($pdo_auth ?? null);
+        if (empty($nav_langs)) $nav_langs = ['en' => 'English'];
+    }
+} catch (Throwable $e) {
+    error_log('header language list failed: ' . $e->getMessage());
+}
+
 // Public shop nav-link visibility — gated by its own features.shop flag AND
 // a reachable world DB with battle_pay_* tables (don't link to a broken page).
 // shop_public_availability() short-circuits on the flag, so zero DB cost when off.
@@ -251,16 +264,19 @@ if (!empty($config['features']['maintenance'])) {
                         <?php endif; ?>
                     </ul>
                 </li>
-                <!-- Language Dropdown -->
+                <!-- Language Dropdown (enabled languages only; hidden when just one) -->
+                <?php if (count($nav_langs) >= 2): ?>
                 <li class="nav-item dropdown ms-2">
                     <a class="nav-link dropdown-toggle btn btn-sm btn-outline-secondary text-white border-0" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 20px; padding: 0.4rem 1rem;">
-                        <i class="bi bi-globe me-1"></i> <?= strtoupper($lang) ?>
+                        <i class="bi bi-globe me-1"></i> <?= strtoupper(htmlspecialchars($lang)) ?>
                     </a>
                     <ul class="dropdown-menu game-dropdown dropdown-menu-end" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item py-2 <?= ($lang === 'en') ? 'active' : '' ?>" href="?lang=en">EN <span class="text-white-50 ms-2">(English)</span></a></li>
-                        <li><a class="dropdown-item py-2 <?= ($lang === 'es') ? 'active' : '' ?>" href="?lang=es">ES <span class="text-white-50 ms-2">(Español)</span></a></li>
+                        <?php foreach ($nav_langs as $lc => $lname): ?>
+                        <li><a class="dropdown-item py-2 <?= ($lang === $lc) ? 'active' : '' ?>" href="?lang=<?= htmlspecialchars(rawurlencode($lc)) ?>"><?= htmlspecialchars(strtoupper($lc)) ?> <span class="text-white-50 ms-2">(<?= htmlspecialchars($lname) ?>)</span></a></li>
+                        <?php endforeach; ?>
                     </ul>
                 </li>
+                <?php endif; ?>
             </div>
         </div>
     </div>

@@ -152,6 +152,15 @@ Two **independent** feature flags drive the player-facing side — neither impli
 - Custom URLs are sanitised on save — only `https://` / `http://` or a site path starting with `/` are kept; anything else (e.g. `javascript:`, protocol-relative `//host`) is dropped.
 - Audit-logged (`site_footer_update`).
 
+**Languages**: every `lang/<code>.php` file is **auto-discovered** and listed here — drop a new file in and it appears (no code change). Tick to enable/disable which languages show in the site's language menu; **English is always on** (the fallback for any untranslated key). The section includes step-by-step instructions to add a custom language:
+
+1. Copy `lang/en.php` → `lang/<code>.php` (2-letter code, e.g. `lang/fr.php`).
+2. Translate the values; keep the key names unchanged.
+3. It appears in the list automatically — enable it and Save.
+4. Missing keys fall back to English automatically (`$TEXT[...] ?? '...'`), so a partial translation is safe.
+
+Disabling hides a language from the menu (not deleted — re-enable anytime). Stored in `site_settings` (`site_languages_update`, audit-logged). `lang.php` discovers files from the filesystem and stays DB-free.
+
 > Foundation for a growing Customization page — home-page sections and theming are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 
 ### Changing Text and Labels
