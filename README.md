@@ -6,7 +6,9 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![PHP 8.0+](https://img.shields.io/badge/PHP-8.0%2B-blue) ![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5-purple) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Status: In Development](https://img.shields.io/badge/status-In%20Development-orange) ![GitHub Release](https://img.shields.io/github/v/release/timoinglin/wow-mop-registration?label=release&color=8B4513) [![Live Demo](https://img.shields.io/badge/demo-wow--legends.eu-c8a96e?logo=globe)](https://wow-legends.eu/)
 
-> ⚠️ **Active Development** — This portal is still evolving. Features land in `main` regularly. Pin a release tag if you need stability, or follow the [Updating guide](docs/UPDATE.md) to stay current.
+> ⚠️ **Active Development** — two ways to run it:
+> - **Tagged release** *(recommended / production)* — what the [one-click installer & updater](docs/UPDATE.md) install. Stable.
+> - **`develop` branch** — finished, tested features that aren't in a release yet. `git clone -b develop …` (or `git pull` on `develop`), then run the idempotent `sql/setup.sql`. See **[What's on `develop`](#whats-on-develop-not-yet-released)** for the current list.
 
 > 💛 **Enjoying the portal?** It's free and open-source, built and maintained in spare time. If it saved you hours of setup or you'd like to see it keep growing, a coffee genuinely helps — see [Support the Project](#support-the-project).
 >
@@ -18,6 +20,7 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - [Preview](#preview)
 - [Quick Start](#quick-start)
 - [One-Click Installer](#one-click-installer)
+- [What's on `develop`](#whats-on-develop-not-yet-released)
 - [Documentation](#documentation)
 - [Support the Project](#support-the-project)
 - [License](#license)
@@ -163,6 +166,24 @@ After the installer finishes, open `config.php` and add your reCAPTCHA keys and 
 
 > [!WARNING]
 > The installer is designed for a fresh local XAMPP setup. If `C:\xampp\htdocs\` already contains files, it offers to back them up and then replaces the web root contents so the app can run at `http://localhost/`.
+
+---
+
+## What's on `develop` (not yet released)
+
+These features are **finished and tested** but haven't been bundled into a tagged release yet. To run them now:
+
+```bash
+git clone -b develop https://github.com/timoinglin/wow-mop-registration.git
+# already installed? from your install folder:
+git checkout develop && git pull
+```
+
+Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold into the next release automatically.
+
+- **Forum per-category posting policy** — admins can flag a forum category as *announcement-only* (only GMs start threads) and/or *read-only* (no user replies), via two toggles on the category form. Existing categories stay fully open.
+
+*Empty = the latest tagged release is fully current.*
 
 ---
 
