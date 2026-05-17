@@ -254,14 +254,18 @@ require_once __DIR__ . '/../templates/header.php';
         // (a "log in" prompt). Only a bare donate bar (".solo") shows in the
         // rare logged-in-but-code-mint-failed case.
         $show_code_box = ($uid > 0 && $don_code !== null) || $uid === 0;
-        $rate_hint = '1' . $cur_sym . ' = ' . number_format($don_rate)
-                   . ' ' . ($TEXT['shop_coins'] ?? 'Battle Coins');
+        // Phrased as a thank-you ratio, NOT "1€ = X" — a price equation
+        // would read like a sale, contradicting the not-a-purchase note below.
+        $rate_hint = sprintf(
+            $TEXT['shop_donate_rate'] ?? '%1$s %2$s per 1%3$s',
+            number_format($don_rate), $TEXT['shop_coins'] ?? 'Battle Coins', $cur_sym
+        );
         ?>
         <div class="shp-donate<?= $show_code_box ? '' : ' solo' ?>">
             <div>
                 <div class="t"><i class="bi bi-heart-fill me-1"></i><?= htmlspecialchars($TEXT['shop_donate_title'] ?? 'Support the server — get Battle Coins') ?></div>
-                <div class="s"><?= htmlspecialchars($TEXT['shop_donate_desc'] ?? 'Donate via Ko-fi and Battle Coins are added to your account automatically.') ?>
-                    <b><?= htmlspecialchars($rate_hint) ?></b></div>
+                <div class="s"><?= htmlspecialchars($TEXT['shop_donate_desc'] ?? "Donate via Ko-fi to help keep the server running — as a thank-you you're credited") ?>
+                    <b><?= htmlspecialchars($rate_hint) ?></b>.</div>
             </div>
             <a href="<?= htmlspecialchars($don_cfg['kofi_url'] !== '' ? $don_cfg['kofi_url'] : '#') ?>" target="_blank" rel="noopener noreferrer" class="shp-btn shp-btn-kofi">
                 <i class="bi bi-cup-hot me-1"></i><?= htmlspecialchars($TEXT['shop_donate_btn'] ?? 'Donate on Ko-fi') ?>
