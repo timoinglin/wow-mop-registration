@@ -180,7 +180,15 @@ Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). 
 
 Stored as one `site_settings['settings']` row (`site_settings_update`, audit-logged), resolved everywhere through `settings_get()` (DB → `config.php`). **Stays file-only (locked):** `donation.kofi_verification_token`, `db.*`, `smtp.*`, `recaptcha.*`, `security.*`, `site.base_url`, realm connection fields, and **all `features.*`** including `playtime_reward.enabled`.
 
-> Foundation for a growing Customization page — home-page sections (client download + FAQ become content blocks there) are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
+**Home page**: a section-based designer for the homepage **body** (the global nav bar and footer are *not* touched — they have their own tools). The default layout = the shipped order, so an un-customized install is pixel-identical.
+
+- **Built-in sections** (`hero`, `news`, `forum`, `steps`, `counters`, `features`, `faq`) — **toggle on/off + drag to reorder only**; their content keeps coming from its live source (news posts, forum, i18n/config). The **hero is pinned as the top section** (full-bleed banner) — you can hide it but not move it below the fold.
+- **Custom sections** — add your own, from safe predefined types: **Card grid** (heading + cards + 2/3/4 responsive column picker, themed `.game-card` style), **Text block** (Markdown via the same safe renderer as tickets/news), **Call to action** (heading + text + button), **Q&A accordion**. Drag to position them anywhere among the built-ins; Edit / Delete per section.
+- Reordering is drag-and-drop (SortableJS); “View homepage” opens it in a new tab.
+
+Stored as one `site_settings['homepage']` row (`site_homepage_update`, audit-logged), resolved through `homepage_layout_get()` (DB → shipped default). Safety: predefined types only, structured fields, Markdown via `render_markdown()` (Parsedown safe-mode), URLs via `footer_link_url_ok()`, icons allow-listed (`bi-*`), section/card/Q&A counts capped — **no raw HTML/CSS** (the Theme tab's custom-CSS box is the separate, sanitised escape hatch). Built-in markup is captured verbatim via output buffering, so toggling/reordering can't change how a section looks.
+
+> Foundation complete — client download + the `config.php` FAQ can later become custom Card-grid/Q&A sections here; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 
 ### Changing Text and Labels
 

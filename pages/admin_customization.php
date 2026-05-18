@@ -216,6 +216,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $redirect('err', 'save');
     }
+    if (($_POST['action'] ?? '') === 'save_homepage') {
+        require_once __DIR__ . '/../includes/homepage.php';
+        // $_POST['hp'] is keyed by section id; PHP preserves the submission
+        // order = DOM order = the drag-sorted order. Hero is pinned first.
+        $posted   = is_array($_POST['hp'] ?? null) ? $_POST['hp'] : [];
+        $builtins = homepage_builtin_keys();
+        $customs  = homepage_custom_types();
+
+        $layout = [['id' => 'hero', 'type' => 'hero',
+                    'on' => !empty($posted['hero']['on']) ? 1 : 0]];
+        foreach ($posted as $id => $f) {
+            if ($id === 'hero' || !is_array($f)) continue;
+            $type = (string)($f['type'] ?? '');
+            $on   = !empty($f['on']) ? 1 : 0;
+            if ($type !== 'hero' && in_array($type, $builtins, true)) {
+                $layout[] = ['id' => $type, 'type' => $type, 'on' => $on];
+            } elseif (in_array($type, $customs, true)) {
+                $cid = (string)$id;
+                if (!preg_match('/^c_[a-z0-9]{2,16}$/', $cid)) {
+                    $cid = 'c_' . substr(bin2hex(random_bytes(6)), 0, 10);
+                }
+                $layout[] = [
+                    'id'   => $cid,
+                    'type' => $type,
+                    'on'   => $on,
+                    'data' => homepage_sanitize_custom_data($type, $f['data'] ?? []),
+                ];
+            }
+        }
+        // Normalise: de-dupe, re-clean, ensure every built-in is present.
+        $layout = homepage_normalize_layout($layout);
+        if (site_setting_set($pdo_auth, 'homepage', $layout)) {
+            $n_custom = 0;
+            foreach ($layout as $s) { if (!in_array($s['type'], $builtins, true)) $n_custom++; }
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'site_homepage_update', null,
+                'sections=' . count($layout) . ' custom=' . $n_custom, null);
+            $redirect('saved', 'homepage');
+        }
+        $redirect('err', 'save');
+    }
     $redirect();
 }
 
@@ -233,6 +273,8 @@ if ($saved === 'footer') {
     $flash = $TEXT['cz_saved_theme'] ?? 'Theme saved.';
 } elseif ($saved === 'settings') {
     $flash = $TEXT['cz_saved_settings'] ?? 'Settings saved.';
+} elseif ($saved === 'homepage') {
+    $flash = $TEXT['cz_saved_homepage'] ?? 'Home page saved.';
 }
 $flash_err = '';
 if (strncmp($saved, 'theme_', 6) === 0) {
@@ -255,6 +297,8 @@ $langs_disabled = languages_disabled($pdo_auth);
 $theme          = theme_get($pdo_auth);
 $settings       = settings_get($pdo_auth, $config);
 $set_raw        = $settings['_raw'] ?? [];   // stored overrides, to repopulate the form blank-where-unset
+require_once __DIR__ . '/../includes/homepage.php';
+$hp_layout      = homepage_layout_get($pdo_auth, $config);
 
 $page_title = ($TEXT['cz_title'] ?? 'Site Customization') . ' — ' . $settings['site_title'];
 require_once __DIR__ . '/../templates/header.php';
@@ -359,6 +403,24 @@ $bi_labels = [
 .cz-vote-row { display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem; flex-wrap:wrap; }
 .cz-vote-row .cz-input { flex:1 1 160px; }
 .cz-vote-row .cz-vote-cd { flex:0 0 90px; max-width:90px; }
+/* Home page designer */
+.hp-sort { display:flex; flex-direction:column; gap:.5rem; margin:.5rem 0 .9rem; }
+.hp-row { background:#0a0a0f; border:1px solid rgba(var(--btn-bg-rgb),.3); border-radius:8px; }
+.hp-row.hp-hero { margin:.6rem 0 .3rem; border-color:rgba(var(--accent-rgb),.35); }
+.hp-row.sortable-ghost { opacity:.4; }
+.hp-row.sortable-chosen { border-color:rgba(var(--accent-rgb),.6); }
+.hp-bar { display:flex; align-items:center; gap:.6rem; padding:.6rem .8rem; flex-wrap:wrap; }
+.hp-grip { cursor:grab; color:#8899aa; font-size:1.1rem; }
+.hp-grip-off { cursor:default; color:var(--accent); }
+.hp-tico { color:var(--accent); }
+.hp-name { color:#dee2e6; font-weight:600; font-size:.92rem; }
+.hp-tag { font-size:.66rem; text-transform:uppercase; letter-spacing:.5px; color:#8899aa; border:1px solid rgba(255,255,255,.12); border-radius:4px; padding:.05rem .35rem; }
+.hp-tag-c { color:var(--accent); border-color:rgba(var(--accent-rgb),.4); }
+.hp-switch { display:flex; align-items:center; gap:.35rem; margin-left:auto; color:#9aa7b4; font-size:.8rem; cursor:pointer; }
+.hp-edit-panel { padding:.2rem .8rem .9rem; display:flex; flex-direction:column; gap:.4rem; }
+.hp-card-row, .hp-faq-row { display:flex; gap:.4rem; align-items:center; margin-bottom:.4rem; flex-wrap:wrap; }
+.hp-card-row .cz-input, .hp-faq-row .cz-input { flex:1 1 130px; }
+.hp-add { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-top:.4rem; }
 </style>
 
 <div class="container cz-wrap" style="max-width:880px">
@@ -713,6 +775,172 @@ $bi_labels = [
             </div>
         </div>
     </form>
+
+    <?php
+    $hp_meta = homepage_section_meta();
+    $hp_builtins = homepage_builtin_keys();
+    $hp_label = function (string $type) use ($hp_meta, $TEXT) {
+        if ($type === 'faq' && !isset($hp_meta['faq'])) return 'FAQ';
+        $m = $hp_meta[$type] ?? null;
+        if (!$m) return ucfirst(str_replace('-', ' ', $type));
+        return $TEXT[$m[0]] ?? ucfirst(str_replace('-', ' ', $type));
+    };
+    $hp_icon = function (string $type) use ($hp_meta) {
+        return $hp_meta[$type][1] ?? 'bi-puzzle';
+    };
+
+    // Renders the structured-field editor for one custom section. Used both
+    // for existing sections and (with id "__ID__") inside the JS templates.
+    $hp_custom_fields = function (string $id, string $type, array $d) use ($TEXT) {
+        $n = function ($k) use ($id) { return 'hp[' . $id . '][data][' . $k . ']'; };
+        ob_start();
+        if ($type === 'text'): ?>
+            <input class="cz-input" type="text" name="<?= $n('title') ?>" maxlength="120" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_title'] ?? 'Heading (optional)') ?>" value="<?= htmlspecialchars($d['title'] ?? '') ?>" style="margin-bottom:.5rem">
+            <textarea class="cz-input" name="<?= $n('body') ?>" rows="5" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_md'] ?? 'Markdown supported') ?>" style="font-family:monospace;font-size:.85rem"><?= htmlspecialchars($d['body'] ?? '') ?></textarea>
+        <?php elseif ($type === 'cta'): ?>
+            <input class="cz-input" type="text" name="<?= $n('title') ?>" maxlength="120" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_title'] ?? 'Heading') ?>" value="<?= htmlspecialchars($d['title'] ?? '') ?>" style="margin-bottom:.5rem">
+            <input class="cz-input" type="text" name="<?= $n('text') ?>" maxlength="400" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_text'] ?? 'Sub-text') ?>" value="<?= htmlspecialchars($d['text'] ?? '') ?>" style="margin-bottom:.5rem">
+            <div class="cz-set-grid">
+                <input class="cz-input" type="text" name="<?= $n('btn_label') ?>" maxlength="60" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_btn'] ?? 'Button label') ?>" value="<?= htmlspecialchars($d['btn_label'] ?? '') ?>">
+                <input class="cz-input" type="url" name="<?= $n('btn_url') ?>" maxlength="300" placeholder="https://… or /register" value="<?= htmlspecialchars($d['btn_url'] ?? '') ?>">
+            </div>
+        <?php elseif ($type === 'card-grid'):
+            $cols = (int)($d['cols'] ?? 3); $cards = $d['cards'] ?? []; ?>
+            <div class="cz-set-grid" style="align-items:flex-end">
+                <input class="cz-input" type="text" name="<?= $n('title') ?>" maxlength="120" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_title'] ?? 'Heading (optional)') ?>" value="<?= htmlspecialchars($d['title'] ?? '') ?>">
+                <label class="cz-set-field" style="max-width:150px">
+                    <span><?= htmlspecialchars($TEXT['cz_hp_f_cols'] ?? 'Columns') ?></span>
+                    <select class="cz-input" name="<?= $n('cols') ?>">
+                        <?php foreach ([2,3,4] as $cv): ?><option value="<?= $cv ?>" <?= $cols===$cv?'selected':'' ?>><?= $cv ?></option><?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
+            <div class="hp-cards" style="margin-top:.6rem">
+                <?php foreach (($cards ?: [[]]) as $ci => $cd): ?>
+                    <div class="hp-card-row">
+                        <input class="cz-input" type="text" name="hp[<?= $id ?>][data][cards][<?= $ci ?>][icon]" maxlength="40" placeholder="bi-trophy" value="<?= htmlspecialchars($cd['icon'] ?? '') ?>" style="max-width:120px">
+                        <input class="cz-input" type="text" name="hp[<?= $id ?>][data][cards][<?= $ci ?>][title]" maxlength="80" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_ctitle'] ?? 'Card title') ?>" value="<?= htmlspecialchars($cd['title'] ?? '') ?>">
+                        <input class="cz-input" type="text" name="hp[<?= $id ?>][data][cards][<?= $ci ?>][text]" maxlength="400" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_ctext'] ?? 'Card text') ?>" value="<?= htmlspecialchars($cd['text'] ?? '') ?>">
+                        <input class="cz-input" type="url" name="hp[<?= $id ?>][data][cards][<?= $ci ?>][url]" maxlength="300" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_curl'] ?? 'Link (optional)') ?>" value="<?= htmlspecialchars($cd['url'] ?? '') ?>">
+                        <button type="button" class="cz-btn cz-btn-sm cz-del hp-card-del"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost hp-card-add"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['cz_hp_card_add'] ?? 'Add card') ?></button>
+        <?php elseif ($type === 'faq'):
+            $items = $d['items'] ?? []; ?>
+            <input class="cz-input" type="text" name="<?= $n('title') ?>" maxlength="120" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_title'] ?? 'Heading (optional)') ?>" value="<?= htmlspecialchars($d['title'] ?? '') ?>" style="margin-bottom:.5rem">
+            <div class="hp-faqs">
+                <?php foreach (($items ?: [[]]) as $fi => $fd): ?>
+                    <div class="hp-faq-row">
+                        <input class="cz-input" type="text" name="hp[<?= $id ?>][data][items][<?= $fi ?>][q]" maxlength="200" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_q'] ?? 'Question') ?>" value="<?= htmlspecialchars($fd['q'] ?? '') ?>">
+                        <input class="cz-input" type="text" name="hp[<?= $id ?>][data][items][<?= $fi ?>][a]" maxlength="2000" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_a'] ?? 'Answer (markdown)') ?>" value="<?= htmlspecialchars($fd['a'] ?? '') ?>">
+                        <button type="button" class="cz-btn cz-btn-sm cz-del hp-faq-del"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost hp-faq-add"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['cz_hp_faq_add'] ?? 'Add Q&A') ?></button>
+        <?php endif;
+        return ob_get_clean();
+    };
+
+    // Renders one section row (built-in or custom).
+    $hp_row = function (array $sec) use ($hp_label, $hp_icon, $hp_builtins, $hp_custom_fields, $TEXT) {
+        $id = $sec['id']; $type = $sec['type']; $on = !empty($sec['on']);
+        $is_builtin = in_array($type, $hp_builtins, true);
+        ob_start(); ?>
+        <div class="hp-row" data-id="<?= htmlspecialchars($id) ?>" data-type="<?= htmlspecialchars($type) ?>">
+            <div class="hp-bar">
+                <span class="hp-grip" title="<?= htmlspecialchars($TEXT['cz_hp_drag'] ?? 'Drag to reorder') ?>"><i class="bi bi-grip-vertical"></i></span>
+                <i class="bi <?= htmlspecialchars($hp_icon($type)) ?> hp-tico"></i>
+                <span class="hp-name"><?= htmlspecialchars($hp_label($type)) ?></span>
+                <?php if ($is_builtin): ?>
+                    <span class="hp-tag"><?= htmlspecialchars($TEXT['cz_hp_builtin'] ?? 'built-in') ?></span>
+                <?php else: ?>
+                    <span class="hp-tag hp-tag-c"><?= htmlspecialchars($TEXT['cz_hp_custom'] ?? 'custom') ?></span>
+                    <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost hp-edit"><i class="bi bi-pencil"></i></button>
+                    <button type="button" class="cz-btn cz-btn-sm cz-del hp-row-del"><i class="bi bi-trash"></i></button>
+                <?php endif; ?>
+                <label class="hp-switch" title="<?= htmlspecialchars($TEXT['cz_hp_toggle'] ?? 'Show / hide') ?>">
+                    <input type="checkbox" name="hp[<?= htmlspecialchars($id) ?>][on]" value="1" <?= $on ? 'checked' : '' ?>>
+                    <span><?= htmlspecialchars($TEXT['cz_hp_on'] ?? 'On') ?></span>
+                </label>
+                <input type="hidden" name="hp[<?= htmlspecialchars($id) ?>][type]" value="<?= htmlspecialchars($type) ?>">
+            </div>
+            <?php if (!$is_builtin): ?>
+                <div class="hp-edit-panel" style="display:none">
+                    <?= $hp_custom_fields($id, $type, is_array($sec['data'] ?? null) ? $sec['data'] : []) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php return ob_get_clean();
+    };
+
+    // split hero (pinned, separate control) from the sortable rest
+    $hp_hero = null; $hp_rest = [];
+    foreach ($hp_layout as $s) { if ($s['type'] === 'hero') $hp_hero = $s; else $hp_rest[] = $s; }
+    $hp_hero_on = $hp_hero ? !empty($hp_hero['on']) : true;
+    ?>
+    <form method="post" action="/admin_customization" id="hpForm">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+        <input type="hidden" name="action" value="save_homepage">
+
+        <div class="cz-card">
+            <h2><i class="bi bi-layout-wtf me-2"></i><?= htmlspecialchars($TEXT['cz_hp_title'] ?? 'Home page') ?></h2>
+            <div class="sub"><?= htmlspecialchars($TEXT['cz_hp_sub'] ?? 'Toggle, reorder (drag) and add sections to the homepage body. Built-in sections keep their live content; the nav and footer are not affected.') ?></div>
+
+            <!-- Hero (pinned top) -->
+            <div class="hp-row hp-hero">
+                <div class="hp-bar">
+                    <span class="hp-grip hp-grip-off" title="<?= htmlspecialchars($TEXT['cz_hp_hero_pin'] ?? 'Hero is always the top section') ?>"><i class="bi bi-pin-angle-fill"></i></span>
+                    <i class="bi bi-stars hp-tico"></i>
+                    <span class="hp-name"><?= htmlspecialchars($TEXT['cz_hp_s_hero'] ?? 'Hero banner') ?></span>
+                    <span class="hp-tag"><?= htmlspecialchars($TEXT['cz_hp_pinned'] ?? 'pinned top') ?></span>
+                    <label class="hp-switch">
+                        <input type="checkbox" name="hp[hero][on]" value="1" <?= $hp_hero_on ? 'checked' : '' ?>>
+                        <span><?= htmlspecialchars($TEXT['cz_hp_on'] ?? 'On') ?></span>
+                    </label>
+                    <input type="hidden" name="hp[hero][type]" value="hero">
+                </div>
+            </div>
+
+            <div id="hpSort" class="hp-sort">
+                <?php foreach ($hp_rest as $s) echo $hp_row($s); ?>
+            </div>
+
+            <div class="hp-add">
+                <select class="cz-input" id="hpAddType" style="max-width:200px">
+                    <option value="card-grid"><?= htmlspecialchars($hp_label('card-grid')) ?></option>
+                    <option value="text"><?= htmlspecialchars($hp_label('text')) ?></option>
+                    <option value="cta"><?= htmlspecialchars($hp_label('cta')) ?></option>
+                    <option value="qa"><?= htmlspecialchars($hp_label('qa')) ?></option>
+                </select>
+                <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost" id="hpAddBtn"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['cz_hp_add'] ?? 'Add section') ?></button>
+                <a href="/" target="_blank" rel="noopener" class="cz-btn cz-btn-sm cz-btn-ghost" style="margin-left:auto"><i class="bi bi-box-arrow-up-right me-1"></i><?= htmlspecialchars($TEXT['cz_hp_view'] ?? 'View homepage') ?></a>
+            </div>
+            <div class="cz-hint"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_hp_note'] ?? 'Built-in sections only show when they have content (e.g. News appears when posts exist). Custom sections use safe, structured fields — no raw HTML.') ?></div>
+
+            <div style="margin-top:1.4rem">
+                <button type="submit" class="cz-btn"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['cz_hp_save'] ?? 'Save home page') ?></button>
+            </div>
+        </div>
+
+        <?php foreach (homepage_custom_types() as $ct): ?>
+        <template id="hpTpl-<?= htmlspecialchars($ct) ?>"><?= $hp_row(['id' => '__ID__', 'type' => $ct, 'on' => 1, 'data' => []]) ?></template>
+        <?php endforeach; ?>
+        <template id="hpTpl-card"><div class="hp-card-row">
+            <input class="cz-input" type="text" name="__CN__[icon]" maxlength="40" placeholder="bi-trophy" style="max-width:120px">
+            <input class="cz-input" type="text" name="__CN__[title]" maxlength="80" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_ctitle'] ?? 'Card title', ENT_QUOTES) ?>">
+            <input class="cz-input" type="text" name="__CN__[text]" maxlength="400" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_ctext'] ?? 'Card text', ENT_QUOTES) ?>">
+            <input class="cz-input" type="url" name="__CN__[url]" maxlength="300" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_curl'] ?? 'Link (optional)', ENT_QUOTES) ?>">
+            <button type="button" class="cz-btn cz-btn-sm cz-del hp-card-del"><i class="bi bi-x-lg"></i></button>
+        </div></template>
+        <template id="hpTpl-faqitem"><div class="hp-faq-row">
+            <input class="cz-input" type="text" name="__FN__[q]" maxlength="200" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_q'] ?? 'Question', ENT_QUOTES) ?>">
+            <input class="cz-input" type="text" name="__FN__[a]" maxlength="2000" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_a'] ?? 'Answer (markdown)', ENT_QUOTES) ?>">
+            <button type="button" class="cz-btn cz-btn-sm cz-del hp-faq-del"><i class="bi bi-x-lg"></i></button>
+        </div></template>
+    </form>
 </div>
 
 <script>
@@ -789,6 +1017,86 @@ $bi_labels = [
             '<button type="button" class="cz-btn cz-btn-sm cz-del"><i class="bi bi-x-lg"></i></button>';
         d.querySelector('.cz-del').addEventListener('click', function () { d.remove(); });
         rows.appendChild(d);
+    });
+})();
+</script>
+
+<!-- Home page designer: SortableJS drag-reorder + add/edit/delete sections -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+(function () {
+    var sort = document.getElementById('hpSort');
+    if (!sort) return;
+    var gIdx = 1; // unique suffix for dynamically-added card/faq rows
+
+    if (window.Sortable) {
+        Sortable.create(sort, {
+            handle: '.hp-grip', animation: 150,
+            ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen'
+        });
+    }
+
+    function rand(n) {
+        var s = ''; var c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        for (var i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)];
+        return s;
+    }
+
+    // Add a new custom section from its <template>.
+    var addBtn = document.getElementById('hpAddBtn');
+    var addSel = document.getElementById('hpAddType');
+    if (addBtn && addSel) {
+        addBtn.addEventListener('click', function () {
+            var tpl = document.getElementById('hpTpl-' + addSel.value);
+            if (!tpl) return;
+            var id = 'c_' + rand(10);
+            var html = tpl.innerHTML.split('__ID__').join(id);
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html.trim();
+            var row = tmp.firstElementChild;
+            var panel = row.querySelector('.hp-edit-panel');
+            if (panel) panel.style.display = ''; // open editor for a fresh section
+            sort.appendChild(row);
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    }
+
+    // Delegated handlers (work for server-rendered AND newly added rows).
+    sort.addEventListener('click', function (e) {
+        var t = e.target.closest('button');
+        if (!t || !sort.contains(t)) return;
+
+        if (t.classList.contains('hp-edit')) {
+            var p = t.closest('.hp-row').querySelector('.hp-edit-panel');
+            if (p) p.style.display = (p.style.display === 'none' || !p.style.display) ? '' : 'none';
+            return;
+        }
+        if (t.classList.contains('hp-row-del')) {
+            t.closest('.hp-row').remove();
+            return;
+        }
+        if (t.classList.contains('hp-card-add')) {
+            var row = t.closest('.hp-row');
+            var box = t.closest('.hp-edit-panel').querySelector('.hp-cards');
+            var ctpl = document.getElementById('hpTpl-card');
+            var nm = 'hp[' + row.dataset.id + '][data][cards][x' + (gIdx++) + ']';
+            var d = document.createElement('div');
+            d.innerHTML = ctpl.innerHTML.split('__CN__').join(nm).trim();
+            box.appendChild(d.firstElementChild);
+            return;
+        }
+        if (t.classList.contains('hp-faq-add')) {
+            var row2 = t.closest('.hp-row');
+            var box2 = t.closest('.hp-edit-panel').querySelector('.hp-faqs');
+            var ftpl = document.getElementById('hpTpl-faqitem');
+            var nm2 = 'hp[' + row2.dataset.id + '][data][items][x' + (gIdx++) + ']';
+            var d2 = document.createElement('div');
+            d2.innerHTML = ftpl.innerHTML.split('__FN__').join(nm2).trim();
+            box2.appendChild(d2.firstElementChild);
+            return;
+        }
+        if (t.classList.contains('hp-card-del')) { t.closest('.hp-card-row').remove(); return; }
+        if (t.classList.contains('hp-faq-del')) { t.closest('.hp-faq-row').remove(); return; }
     });
 })();
 </script>

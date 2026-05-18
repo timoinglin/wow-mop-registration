@@ -89,6 +89,16 @@ if (!empty($nav_forum_enabled) && function_exists('forum_recent_threads')) {
 $faq_items = $config['faq'] ?? [];
 ?>
 
+<?php
+// ── Customizable home page ─────────────────────────────────────────────────
+// Built-in sections keep their exact markup (captured below via output
+// buffering → zero visual change); the saved layout only toggles/reorders
+// them and interleaves custom sections. Default layout = shipped order.
+require_once __DIR__ . '/includes/homepage.php';
+$hp_layout = homepage_layout_get($pdo_auth ?? null, $config);
+$hp_ctx    = ['TEXT' => $TEXT, 'lang' => $lang, 'config' => $config];
+$hp_blocks = [];
+ob_start(); ?>
 <!-- Background Video Container -->
 <div class="video-container position-relative">
     <!-- Background: admin Theme override (image or video) → shipped video -->
@@ -146,10 +156,16 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </div>
 </div>
+<?php
+$hp_blocks['hero'] = ob_get_clean();
+$hp_hero_on = true;
+foreach ($hp_layout as $hp_s) { if ($hp_s['type'] === 'hero') { $hp_hero_on = !empty($hp_s['on']); break; } }
+if ($hp_hero_on) echo $hp_blocks['hero'];
+?>
 
 <!-- Main Content Area (Starts After Full-Screen Header) -->
 <main class="container content-section">
-
+<?php ob_start(); ?>
     <!-- ═══════════════ NEWS SECTION ═══════════════ -->
     <?php if (!empty($news_items)): ?>
     <section id="news" class="content-section py-5 my-4 rounded">
@@ -189,6 +205,7 @@ $faq_items = $config['faq'] ?? [];
     </section>
     <?php endif; ?>
 
+<?php $hp_blocks['news'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ FROM THE COMMUNITY (FORUM) ═══════════════ -->
     <?php if (!empty($forum_items)): ?>
     <section id="forum-latest" class="content-section py-5 my-4 rounded">
@@ -225,6 +242,7 @@ $faq_items = $config['faq'] ?? [];
     </section>
     <?php endif; ?>
 
+<?php $hp_blocks['forum'] = ob_get_clean(); ob_start(); ?>
     <!-- How to Connect Section -->
     <section id="how-to-connect" class="content-section py-5 my-4 rounded">
         <div class="container">
@@ -289,6 +307,7 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['steps'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ ANIMATED COUNTER BAR ═══════════════ -->
     <section id="stats-counter" class="content-section py-5 my-4 rounded">
         <div class="container">
@@ -318,6 +337,7 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['counters'] = ob_get_clean(); ob_start(); ?>
     <!-- Server Info & Status Section -->
     <section id="server-info-status" class="content-section py-5 my-4 rounded">
         <div class="container">
@@ -415,6 +435,7 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['features'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ FAQ SECTION ═══════════════ -->
     <?php if (!empty($faq_items)): ?>
     <section id="faq" class="content-section py-5 my-4 rounded">
@@ -442,7 +463,16 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
     <?php endif; ?>
-
+<?php
+$hp_blocks['faq'] = ob_get_clean();
+// Emit the non-hero sections in the saved order; unknown types = custom.
+foreach ($hp_layout as $hp_s) {
+    if (empty($hp_s['on']) || $hp_s['type'] === 'hero') continue;
+    echo isset($hp_blocks[$hp_s['type']])
+        ? $hp_blocks[$hp_s['type']]
+        : homepage_render_custom($hp_s, $hp_ctx);
+}
+?>
 </main>
 
 <style>
