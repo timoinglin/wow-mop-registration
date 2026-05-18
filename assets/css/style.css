@@ -13,6 +13,17 @@
     /* WoW gold */
     --accent-dim: #8c6a23;
     --accent-glow: rgba(200, 155, 60, .55);
+    /* RGB triplet of --accent, so rgba(var(--accent-rgb), a) borders/glows
+       follow the theme too. Admin theme override redefines all of these. */
+    --accent-rgb: 200, 155, 60;
+    /* Button base (shipped saddle-brown; recoloured to the accent when an
+       admin theme is set). Kept as its own var so the wood-button look is
+       the default but still themeable. */
+    --btn-bg: #8B4513;
+    --btn-bg-hover: #A0522D;
+    /* RGB triplet of --btn-bg, so the many rgba(var(--btn-bg-rgb), a)
+       translucent borders/panels recolour with the theme too. */
+    --btn-bg-rgb: 139, 69, 19;
     --red: #c0392b;
     --text: #e8e8e8;
     --text-muted: #888;
@@ -59,7 +70,7 @@ body::before {
 body::after {
     bottom: -10%;
     right: -10%;
-    background: #8b4513; /* Deep thematic orange-brown */
+    background: var(--btn-bg); /* Deep thematic orange-brown */
     animation-delay: -12.5s;
     animation-duration: 28s;
 }
@@ -248,7 +259,7 @@ h6 {
 .logo-container img {
     max-height: 320px;
     max-width: 90%;
-    filter: drop-shadow(0 4px 24px rgba(200, 155, 60, .45));
+    filter: drop-shadow(0 4px 24px rgba(var(--accent-rgb), .45));
     transition: transform .35s ease;
 }
 
@@ -261,7 +272,7 @@ h6 {
     font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 800;
     color: #fff;
-    text-shadow: 0 0 24px rgba(200, 155, 60, .6), 0 2px 6px rgba(0, 0, 0, .8);
+    text-shadow: 0 0 24px rgba(var(--accent-rgb), .6), 0 2px 6px rgba(0, 0, 0, .8);
     letter-spacing: 1px;
 }
 
@@ -285,12 +296,12 @@ h6 {
     text-transform: uppercase;
     font-size: .95rem;
     transition: all .25s ease;
-    box-shadow: 0 4px 18px rgba(200, 155, 60, .35);
+    box-shadow: 0 4px 18px rgba(var(--accent-rgb), .35);
 }
 
 .btn-gold:hover {
     background: linear-gradient(135deg, #ddb84a, var(--accent));
-    box-shadow: 0 6px 24px rgba(200, 155, 60, .6);
+    box-shadow: 0 6px 24px rgba(var(--accent-rgb), .6);
     transform: translateY(-2px);
     color: #000;
 }
@@ -310,7 +321,7 @@ h6 {
 .btn-outline-gold:hover {
     background: var(--accent);
     color: #000;
-    box-shadow: 0 4px 18px rgba(200, 155, 60, .45);
+    box-shadow: 0 4px 18px rgba(var(--accent-rgb), .45);
     transform: translateY(-2px);
 }
 
@@ -343,14 +354,14 @@ h6 {
     border-radius: 6px;
     padding: .75rem 2rem;
     transition: all .25s ease;
-    box-shadow: 0 4px 18px rgba(200, 155, 60, .35);
+    box-shadow: 0 4px 18px rgba(var(--accent-rgb), .35);
 }
 
 .btn-primary:hover {
     background: linear-gradient(135deg, #ddb84a, var(--accent));
     color: #000;
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(200, 155, 60, .6);
+    box-shadow: 0 6px 24px rgba(var(--accent-rgb), .6);
 }
 
 .btn-secondary {
@@ -427,8 +438,8 @@ h6 {
     transition: color .2s ease, background .2s ease, transform .2s ease;
 }
 #mainNavbar .nav-main .nav-link:hover {
-    color: #c8a96e;
-    background: rgba(200, 169, 110, .08);
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), .08);
 }
 #mainNavbar .nav-main .nav-link:hover i {
     transform: translateY(-1px);
@@ -438,12 +449,12 @@ h6 {
     transition: transform .2s ease, opacity .2s ease;
 }
 #mainNavbar .nav-main .nav-link.active {
-    color: #c8a96e;
-    background: rgba(200, 169, 110, .06);
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), .06);
 }
 #mainNavbar .nav-main .nav-link.active i {
     opacity: 1;
-    text-shadow: 0 0 10px rgba(200, 169, 110, .55);
+    text-shadow: 0 0 10px rgba(var(--accent-rgb), .55);
 }
 #mainNavbar .nav-main .nav-link.active::after {
     content: '';
@@ -453,14 +464,14 @@ h6 {
     width: 24px;
     height: 2px;
     transform: translateX(-50%);
-    background: linear-gradient(90deg, transparent, #c8a96e, transparent);
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
     border-radius: 2px;
 }
 
 /* User dropdown trigger — pill style, shows username on desktop */
 #mainNavbar .nav-user {
     background: rgba(255, 255, 255, .04);
-    border: 1px solid rgba(200, 169, 110, .25);
+    border: 1px solid rgba(var(--accent-rgb), .25);
     border-radius: 50px;
     padding: .35rem .9rem !important;
     font-weight: 600;
@@ -469,9 +480,9 @@ h6 {
 }
 #mainNavbar .nav-user:hover,
 #mainNavbar .nav-user[aria-expanded="true"] {
-    background: rgba(200, 169, 110, .12);
-    border-color: rgba(200, 169, 110, .55);
-    color: #c8a96e !important;
+    background: rgba(var(--accent-rgb), .12);
+    border-color: rgba(var(--accent-rgb), .55);
+    color: var(--accent) !important;
 }
 #mainNavbar .nav-user .nav-user-name {
     font-size: .88rem;
@@ -490,7 +501,7 @@ h6 {
     #mainNavbar .nav-main {
         margin-top: .75rem;
         padding-top: .75rem;
-        border-top: 1px solid rgba(200, 169, 110, .15);
+        border-top: 1px solid rgba(var(--accent-rgb), .15);
     }
     #mainNavbar .nav-main .nav-link.active::after {
         display: none;
@@ -576,7 +587,7 @@ h6 {
     background: #151515;
     color: var(--text);
     border-color: var(--accent-dim);
-    box-shadow: 0 0 0 .2rem rgba(200, 155, 60, .2);
+    box-shadow: 0 0 0 .2rem rgba(var(--accent-rgb), .2);
 }
 
 .form-control::placeholder {

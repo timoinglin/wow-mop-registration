@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 .auth-panel {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,0.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.3);
     border-radius: 16px;
     padding: 2.4rem 2rem;
 }
@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #c8a96e;
+    color: var(--accent);
     margin-bottom: .3rem;
 }
 .auth-sub {
@@ -141,8 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     box-sizing: border-box;
 }
 .auth-input:focus {
-    border-color: rgba(200,169,110,0.5);
-    box-shadow: 0 0 0 3px rgba(139,69,19,0.15);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--btn-bg-rgb), 0.15);
     background: rgba(255,255,255,0.07);
 }
 .auth-btn {
@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     padding: .9rem;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, #8B4513, #A0522D);
+    background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover));
     color: #fff;
     font-size: 1rem;
     font-weight: 700;
@@ -160,9 +160,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     margin-top: 1.4rem;
 }
 .auth-btn:hover {
-    background: linear-gradient(135deg, #A0522D, #c8a96e);
+    background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent));
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139,69,19,.35);
+    box-shadow: 0 6px 20px rgba(var(--btn-bg-rgb), .35);
 }
 .auth-back {
     display: block;
@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     text-decoration: none;
     transition: color .2s;
 }
-.auth-back:hover { color: #c8a96e; }
+.auth-back:hover { color: var(--accent); }
 .auth-alert-success {
     background: rgba(93,216,124,.1);
     border: 1px solid rgba(93,216,124,.3);

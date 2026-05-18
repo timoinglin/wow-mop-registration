@@ -115,11 +115,11 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 .auth-panel {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,0.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.3);
     border-radius: 16px;
     padding: 2.4rem 2rem;
 }
-.auth-title { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; color: #c8a96e; margin-bottom: .3rem; }
+.auth-title { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; color: var(--accent); margin-bottom: .3rem; }
 .auth-sub   { font-size: .85rem; color: #8899aa; margin-bottom: 2rem; line-height: 1.5; }
 .auth-label {
     font-size: .75rem; color: #8899aa; text-transform: uppercase;
@@ -138,8 +138,8 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
     box-sizing: border-box;
 }
 .auth-input:focus {
-    border-color: rgba(200,169,110,0.5);
-    box-shadow: 0 0 0 3px rgba(139,69,19,0.15);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--btn-bg-rgb), 0.15);
     background: rgba(255,255,255,0.07);
 }
 /* Password strength meter */
@@ -149,13 +149,13 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 .auth-btn {
     width: 100%; padding: .9rem; border: none; border-radius: 10px;
-    background: linear-gradient(135deg, #8B4513, #A0522D);
+    background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover));
     color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: .8px;
     cursor: pointer; transition: all .25s; margin-top: 1.4rem;
 }
-.auth-btn:hover { background: linear-gradient(135deg,#A0522D,#c8a96e); transform:translateY(-2px); box-shadow:0 6px 20px rgba(139,69,19,.35); }
+.auth-btn:hover { background: linear-gradient(135deg,var(--btn-bg-hover),var(--accent)); transform:translateY(-2px); box-shadow:0 6px 20px rgba(var(--btn-bg-rgb), .35); }
 .auth-back { display:block; text-align:center; margin-top:1.2rem; font-size:.85rem; color:#8899aa; text-decoration:none; transition:color .2s; }
-.auth-back:hover { color:#c8a96e; }
+.auth-back:hover { color:var(--accent); }
 .auth-alert-success { background:rgba(93,216,124,.1); border:1px solid rgba(93,216,124,.3); border-radius:10px; color:#5dd87c; padding:1.2rem 1.4rem; font-size:.92rem; text-align:center; }
 .auth-alert-error   { background:rgba(220,53,69,.1); border:1px solid rgba(220,53,69,.3); border-radius:10px; color:#f87e8a; padding:1rem 1.4rem; font-size:.88rem; margin-bottom:1.2rem; }
 </style>
@@ -180,7 +180,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
             <?= implode('<br>', array_map('htmlspecialchars', $errors)) ?>
             <?php if (!$showForm && !empty($config['features']['recover_password'])): ?>
                 <div style="margin-top:.6rem">
-                    <a href="/recover" style="color:#c8a96e"><?= $TEXT['request_new_link'] ?></a>
+                    <a href="/recover" style="color:var(--accent)"><?= $TEXT['request_new_link'] ?></a>
                 </div>
             <?php endif; ?>
         </div>

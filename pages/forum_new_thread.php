@@ -28,7 +28,7 @@ $category = $cat_slug !== '' ? forum_category_get_by_slug($pdo_auth, $cat_slug) 
 if (!$category) {
     http_response_code(404);
     require_once __DIR__ . '/../templates/header.php';
-    echo '<main class="container" style="padding-top:120px;text-align:center"><h2 style="color:#c8a96e">'
+    echo '<main class="container" style="padding-top:120px;text-align:center"><h2 style="color:var(--accent)">'
        . htmlspecialchars($TEXT['forum_cat_not_found'] ?? 'Category not found') . '</h2>'
        . '<a href="/forum" class="btn btn-gold mt-2">' . htmlspecialchars($TEXT['forum_back_to_index'] ?? 'Back to forum') . '</a></main>';
     require_once __DIR__ . '/../templates/footer.php';
@@ -46,7 +46,7 @@ if (!$can_post) {
         'admin_only'     => $TEXT['forum_announce_only']  ?? 'Announcements — only GMs can post here.',
         default          => $TEXT['forum_cannot_post']   ?? 'You cannot post right now.',
     };
-    echo '<main class="container" style="padding-top:120px;text-align:center;max-width:680px"><h2 style="color:#c8a96e">'
+    echo '<main class="container" style="padding-top:120px;text-align:center;max-width:680px"><h2 style="color:var(--accent)">'
        . htmlspecialchars($TEXT['forum_cannot_post_title'] ?? 'Cannot post')
        . '</h2><p style="color:#8899aa">' . htmlspecialchars($msg) . '</p>'
        . '<a href="/forum" class="btn btn-gold mt-2">' . htmlspecialchars($TEXT['forum_back_to_index'] ?? 'Back to forum') . '</a></main>';
@@ -112,22 +112,22 @@ $csrf = generate_csrf_token();
 .fn-wrap { padding-top:120px; padding-bottom:3rem; }
 .fn-card {
     background: linear-gradient(145deg,#15151f,#0e0e17);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 10px;
     padding: 1.5rem;
 }
 .fn-label { display:block; font-size:.72rem; color:#8899aa; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.3rem; }
 .fn-input {
     width:100%; padding:.6rem .8rem; background:#0a0a0f;
-    border:1px solid rgba(139,69,19,.3); border-radius:4px; color:#fff;
+    border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:4px; color:#fff;
     font-size:1rem;
 }
-.fn-input:focus { outline:none; border-color:#c8a96e; }
+.fn-input:focus { outline:none; border-color:var(--accent); }
 .fn-btn { padding:.55rem 1.1rem; border-radius:4px; border:1px solid; cursor:pointer; font-size:.92rem; text-decoration:none; display:inline-block; font-family:inherit; }
-.fn-btn-primary { background:#8B4513; color:#fff; border-color:#A0522D; }
-.fn-btn-primary:hover { background:#A0522D; color:#fff; }
-.fn-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(139,69,19,.3); }
-.fn-btn-ghost:hover { color:#c8a96e; border-color:#c8a96e; }
+.fn-btn-primary { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
+.fn-btn-primary:hover { background:var(--btn-bg-hover); color:#fff; }
+.fn-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(var(--btn-bg-rgb), .3); }
+.fn-btn-ghost:hover { color:var(--accent); border-color:var(--accent); }
 .fn-flash-err { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); color:#e74c3c; padding:.7rem 1rem; border-radius:4px; margin-bottom:1rem; }
 .fn-pending-note {
     background:rgba(240,192,64,.08);
@@ -140,15 +140,15 @@ $csrf = generate_csrf_token();
 }
 
 /* EasyMDE dark-theme override (matches admin_news) */
-.EasyMDEContainer .editor-toolbar { background:#15151f; border:1px solid rgba(139,69,19,.3); border-bottom:none; }
-.EasyMDEContainer .editor-toolbar button { color:#c8a96e !important; border-color:transparent !important; }
-.EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(139,69,19,.3) !important; color:#fff !important; }
-.EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(139,69,19,.3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:280px; }
-.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid #c8a96e !important; }
-.EasyMDEContainer .CodeMirror-selected { background:rgba(200,169,110,.18); }
-.EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(139,69,19,.3); line-height:1.7; }
-.EasyMDEContainer .editor-preview h1, .EasyMDEContainer .editor-preview h2, .EasyMDEContainer .editor-preview h3, .EasyMDEContainer .editor-preview-side h1, .EasyMDEContainer .editor-preview-side h2, .EasyMDEContainer .editor-preview-side h3 { color:#c8a96e; }
-.EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(139,69,19,.15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
+.EasyMDEContainer .editor-toolbar { background:#15151f; border:1px solid rgba(var(--btn-bg-rgb), .3); border-bottom:none; }
+.EasyMDEContainer .editor-toolbar button { color:var(--accent) !important; border-color:transparent !important; }
+.EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(var(--btn-bg-rgb), .3) !important; color:#fff !important; }
+.EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(var(--btn-bg-rgb), .3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:280px; }
+.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+.EasyMDEContainer .CodeMirror-selected { background:rgba(var(--accent-rgb), .18); }
+.EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(var(--btn-bg-rgb), .3); line-height:1.7; }
+.EasyMDEContainer .editor-preview h1, .EasyMDEContainer .editor-preview h2, .EasyMDEContainer .editor-preview h3, .EasyMDEContainer .editor-preview-side h1, .EasyMDEContainer .editor-preview-side h2, .EasyMDEContainer .editor-preview-side h3 { color:var(--accent); }
+.EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(var(--btn-bg-rgb), .15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
 .EasyMDEContainer .editor-toolbar.fullscreen, .EasyMDEContainer .CodeMirror-fullscreen, .EasyMDEContainer .editor-preview-side { z-index:1050; }
 body:has(.editor-toolbar.fullscreen) #mainNavbar, body:has(.editor-preview-side.fullscreen) #mainNavbar, body.easymde-fullscreen #mainNavbar { display:none; }
 .EasyMDEContainer .editor-toolbar.fullscreen { display:flex; flex-wrap:wrap; align-items:center; height:auto; min-height:50px; padding:0 4px; }
@@ -157,12 +157,12 @@ body:has(.editor-toolbar.fullscreen) #mainNavbar, body:has(.editor-preview-side.
 
 <div class="container fn-wrap" style="max-width: 880px">
     <div style="color:#8899aa;font-size:.85rem;margin-bottom:1rem">
-        <a href="/forum" style="color:#c8a96e;text-decoration:none"><i class="bi bi-chevron-left"></i> <?= htmlspecialchars($TEXT['forum_nav'] ?? 'Forum') ?></a>
+        <a href="/forum" style="color:var(--accent);text-decoration:none"><i class="bi bi-chevron-left"></i> <?= htmlspecialchars($TEXT['forum_nav'] ?? 'Forum') ?></a>
         &middot;
-        <a href="/forum/<?= htmlspecialchars(rawurlencode($category['slug']), ENT_QUOTES) ?>" style="color:#c8a96e;text-decoration:none"><?= htmlspecialchars($category['name']) ?></a>
+        <a href="/forum/<?= htmlspecialchars(rawurlencode($category['slug']), ENT_QUOTES) ?>" style="color:var(--accent);text-decoration:none"><?= htmlspecialchars($category['name']) ?></a>
     </div>
 
-    <h1 style="color:#c8a96e;font-weight:700;margin-bottom:1.2rem">
+    <h1 style="color:var(--accent);font-weight:700;margin-bottom:1.2rem">
         <i class="bi bi-pencil-square me-2"></i><?= htmlspecialchars($TEXT['forum_new_thread_title'] ?? 'New Thread') ?>
         <small style="color:#8899aa;font-weight:400;font-size:.9rem">— <?= htmlspecialchars($category['name']) ?></small>
     </h1>

@@ -142,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $server_name = htmlspecialchars($config['realm']['name'] ?? 'WoW Server');
             $cat_label   = $categories[$category]['label'] ?? $category;
             $inner = "
-                <h2 style='color:#c8a96e;margin-top:0'>&#127903; New Support Ticket</h2>
+                <h2 style='color:var(--accent);margin-top:0'>&#127903; New Support Ticket</h2>
                 <table style='width:100%;border-collapse:collapse;font-size:14px'>
                   <tr><td style='padding:6px 0;color:#8899aa;width:120px'>Server</td>
                       <td style='padding:6px 0;color:#e2e8f0;font-weight:600'>{$server_name}</td></tr>
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </table>
                 <hr style='border:none;border-top:1px solid #2a2a3e;margin:20px 0'>
                 <p style='color:#8899aa;margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:1px'>Message</p>
-                <div style='background:#1a1a2e;border-left:3px solid #c8a96e;padding:16px;border-radius:6px;white-space:pre-line'>" . htmlspecialchars($message) . "</div>
+                <div style='background:#1a1a2e;border-left:3px solid var(--accent);padding:16px;border-radius:6px;white-space:pre-line'>" . htmlspecialchars($message) . "</div>
             ";
             if (!empty($uploaded_files)) {
                 $inner .= "<p style='margin-top:16px;color:#8899aa;font-size:13px'>&#128206; " . count($uploaded_files) . " attachment(s) included.</p>";
@@ -203,42 +203,42 @@ require_once __DIR__ . '/../templates/header.php';
 .ticket-wrap { padding-top: 90px; padding-bottom: 3rem; }
 
 .ticket-header {
-    background: linear-gradient(135deg, rgba(139,69,19,0.35) 0%, rgba(10,10,20,0.9) 70%),
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), 0.35) 0%, rgba(10,10,20,0.9) 70%),
                 url('/assets/img/wow-bg/4-2.webp') center/cover no-repeat;
-    border: 1px solid rgba(139,69,19,0.4);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.4);
     border-radius: 16px;
     padding: 2.2rem 2rem;
     margin-bottom: 2rem;
 }
 .ticket-header h1 {
     font-size: 1.9rem; font-weight: 700; letter-spacing: 1.5px;
-    background: linear-gradient(90deg, #c8a96e, #fff 60%, #c8a96e);
+    background: linear-gradient(90deg, var(--accent), #fff 60%, var(--accent));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     margin: 0;
 }
-.ticket-header p { color: rgba(200,169,110,.7); font-size: .9rem; margin: .4rem 0 0; }
+.ticket-header p { color: rgba(var(--accent-rgb), .7); font-size: .9rem; margin: .4rem 0 0; }
 
 .ticket-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
 .ticket-tab-btn {
     padding: .7rem 1.5rem; border-radius: 10px;
-    border: 1px solid rgba(139,69,19,0.3); background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.3); background: rgba(255,255,255,0.03);
     color: #8899aa; font-weight: 600; font-size: .88rem; cursor: pointer;
     transition: all .2s ease; display: flex; align-items: center; gap: .5rem;
 }
-.ticket-tab-btn:hover { background: rgba(255,255,255,0.07); color: #c8a96e; }
-.ticket-tab-btn.active { background: linear-gradient(135deg, rgba(139,69,19,0.3), rgba(139,69,19,0.15)); border-color: rgba(200,169,110,0.5); color: #c8a96e; }
-.tab-badge { background: rgba(200,169,110,0.2); color: #c8a96e; font-size: .72rem; padding: .1rem .45rem; border-radius: 6px; font-weight: 700; }
+.ticket-tab-btn:hover { background: rgba(255,255,255,0.07); color: var(--accent); }
+.ticket-tab-btn.active { background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), 0.3), rgba(var(--btn-bg-rgb), 0.15)); border-color: rgba(var(--accent-rgb), 0.5); color: var(--accent); }
+.tab-badge { background: rgba(var(--accent-rgb), 0.2); color: var(--accent); font-size: .72rem; padding: .1rem .45rem; border-radius: 6px; font-weight: 700; }
 
 .ticket-panel {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,0.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.25);
     border-radius: 14px;
     padding: 2rem;
 }
 .panel-section-title {
-    font-size: .72rem; color: #c8a96e; text-transform: uppercase; letter-spacing: 1.5px;
+    font-size: .72rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px;
     font-weight: 700; margin-bottom: 1rem; padding-bottom: .5rem;
-    border-bottom: 1px solid rgba(139,69,19,0.25);
+    border-bottom: 1px solid rgba(var(--btn-bg-rgb), 0.25);
 }
 
 /* Category cards (unchanged) */
@@ -246,7 +246,7 @@ require_once __DIR__ . '/../templates/header.php';
 @media(max-width:576px) { .category-grid { grid-template-columns: repeat(2, 1fr); } }
 .cat-card { position: relative; padding: 1rem .8rem; border-radius: 10px; border: 2px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); cursor: pointer; transition: all .2s ease; text-align: center; user-select: none; }
 .cat-card:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
-.cat-card.selected { background: rgba(139,69,19,0.2); border-color: var(--cat-color, #c8a96e); box-shadow: 0 0 16px rgba(139,69,19,0.25); }
+.cat-card.selected { background: rgba(var(--btn-bg-rgb), 0.2); border-color: var(--cat-color, var(--accent)); box-shadow: 0 0 16px rgba(var(--btn-bg-rgb), 0.25); }
 .cat-card i { font-size: 1.5rem; display: block; margin-bottom: .4rem; }
 .cat-card span { font-size: .78rem; font-weight: 600; color: #c0c8d8; }
 .cat-card.selected span { color: #fff; }
@@ -257,28 +257,28 @@ require_once __DIR__ . '/../templates/header.php';
     border-radius: 10px; color: #e2e8f0; padding: .85rem 1rem; font-size: .95rem;
     transition: all .2s ease; outline: none; resize: vertical; box-sizing: border-box; font-family: inherit;
 }
-.ticket-input:focus { border-color: rgba(200,169,110,0.5); box-shadow: 0 0 0 3px rgba(139,69,19,0.15); background: rgba(255,255,255,0.07); }
+.ticket-input:focus { border-color: rgba(var(--accent-rgb), 0.5); box-shadow: 0 0 0 3px rgba(var(--btn-bg-rgb), 0.15); background: rgba(255,255,255,0.07); }
 .ticket-input::placeholder { color: #4a5568; }
 .char-count { font-size: .75rem; color: #4a5568; text-align: right; margin-top: .3rem; }
 .char-count.warn { color: #f6ad55; }
 .char-count.over { color: #f87171; }
 
 .md-hint { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: #6c7a8c; margin-top: .4rem; flex-wrap: wrap; }
-.md-hint code { background: rgba(0,0,0,.3); padding: .05rem .3rem; border-radius: 3px; color: #c8a96e; font-size: .9em; }
+.md-hint code { background: rgba(0,0,0,.3); padding: .05rem .3rem; border-radius: 3px; color: var(--accent); font-size: .9em; }
 
 /* File drop zone */
 .drop-zone { border: 2px dashed rgba(255,255,255,0.12); border-radius: 10px; padding: 1.8rem 1rem; text-align: center; cursor: pointer; transition: all .2s ease; background: rgba(255,255,255,0.02); position: relative; }
-.drop-zone:hover, .drop-zone.dragover { border-color: rgba(200,169,110,0.4); background: rgba(139,69,19,0.08); }
+.drop-zone:hover, .drop-zone.dragover { border-color: rgba(var(--accent-rgb), 0.4); background: rgba(var(--btn-bg-rgb), 0.08); }
 .drop-zone i { font-size: 2rem; color: #4a5568; display: block; margin-bottom: .5rem; }
 .drop-zone p  { color: #8899aa; font-size: .85rem; margin: 0; }
 .drop-zone small { color: #4a5568; font-size: .75rem; }
 .drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .file-list { margin-top: .75rem; display: flex; flex-wrap: wrap; gap: .5rem; }
-.file-pill { background: rgba(200,169,110,0.12); border: 1px solid rgba(200,169,110,0.25); color: #c8a96e; font-size: .75rem; padding: .2rem .6rem; border-radius: 6px; display: flex; align-items: center; gap: .3rem; }
+.file-pill { background: rgba(var(--accent-rgb), 0.12); border: 1px solid rgba(var(--accent-rgb), 0.25); color: var(--accent); font-size: .75rem; padding: .2rem .6rem; border-radius: 6px; display: flex; align-items: center; gap: .3rem; }
 
 /* Submit */
-.submit-btn { width: 100%; padding: 1rem; border: none; border-radius: 10px; background: linear-gradient(135deg, #8B4513, #A0522D); color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all .25s ease; margin-top: 1.5rem; }
-.submit-btn:hover { background: linear-gradient(135deg, #A0522D, #c8a96e); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(139,69,19,0.4); }
+.submit-btn { width: 100%; padding: 1rem; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover)); color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all .25s ease; margin-top: 1.5rem; }
+.submit-btn:hover { background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent)); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(var(--btn-bg-rgb), 0.4); }
 
 /* Success */
 .success-card { text-align: center; padding: 3.5rem 2rem; }
@@ -297,8 +297,8 @@ require_once __DIR__ . '/../templates/header.php';
     color: inherit;
 }
 .ticket-row:hover {
-    background: rgba(200,169,110,0.06);
-    border-color: rgba(200,169,110,0.35);
+    background: rgba(var(--accent-rgb), 0.06);
+    border-color: rgba(var(--accent-rgb), 0.35);
     transform: translateX(3px);
     color: inherit;
 }
@@ -320,7 +320,7 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .ticket-row .row-side .last { display: block; }
 .ticket-row .row-side .by-admin { color: #5dd87c; }
-.ticket-row .row-side .by-user  { color: #c8a96e; }
+.ticket-row .row-side .by-user  { color: var(--accent); }
 
 .ticket-status { display: inline-block; padding: .12rem .55rem; border-radius: 6px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
 .status-open        { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
@@ -337,7 +337,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <div class="ticket-header">
         <h1><i class="bi bi-ticket-perforated me-2"></i><?= $TEXT['submit_ticket'] ?></h1>
-        <p><?= sprintf($TEXT['tickets_intro_html'] ?? 'Describe your issue — our team will respond to <strong style="color:#c8a96e">%s</strong>', htmlspecialchars($user_email)) ?></p>
+        <p><?= sprintf($TEXT['tickets_intro_html'] ?? 'Describe your issue — our team will respond to <strong style="color:var(--accent)">%s</strong>', htmlspecialchars($user_email)) ?></p>
     </div>
 
     <?php if (!empty($errors)): ?>
@@ -369,10 +369,10 @@ require_once __DIR__ . '/../templates/header.php';
             <h2><?= htmlspecialchars($TEXT['tickets_submitted_title'] ?? 'Ticket Submitted!') ?></h2>
             <p><?= $TEXT['ticket_success'] ?></p>
             <div class="d-flex gap-2 justify-content-center mt-3">
-                <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;border-radius:10px;font-weight:700;text-decoration:none;background:rgba(255,255,255,0.05);color:#c8a96e;border:1px solid rgba(200,169,110,0.3);transition:all .2s ease;">
+                <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;border-radius:10px;font-weight:700;text-decoration:none;background:rgba(255,255,255,0.05);color:var(--accent);border:1px solid rgba(var(--accent-rgb), 0.3);transition:all .2s ease;">
                     <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['tickets_view_my_btn'] ?? 'View My Tickets') ?>
                 </a>
-                <a href="/dashboard" class="action-btn action-btn-primary" style="display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;border-radius:10px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,#8B4513,#A0522D);color:#fff;transition:all .2s ease;">
+                <a href="/dashboard" class="action-btn action-btn-primary" style="display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 1.5rem;border-radius:10px;font-weight:700;text-decoration:none;background:linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));color:#fff;transition:all .2s ease;">
                     <i class="bi bi-speedometer2"></i> <?= htmlspecialchars($TEXT['dashboard'] ?? 'Dashboard') ?>
                 </a>
             </div>
@@ -423,7 +423,7 @@ require_once __DIR__ . '/../templates/header.php';
                 <div class="drop-zone" id="dropZone">
                     <input type="file" name="attachments[]" id="attachments" multiple accept=".jpg,.jpeg,.png,.webp" onchange="showFiles(this)">
                     <i class="bi bi-cloud-arrow-up"></i>
-                    <p><?= $TEXT['tickets_drop_zone_text'] ?? 'Drag &amp; drop files here, or <strong style="color:#c8a96e">browse</strong>' ?></p>
+                    <p><?= $TEXT['tickets_drop_zone_text'] ?? 'Drag &amp; drop files here, or <strong style="color:var(--accent)">browse</strong>' ?></p>
                     <small><?= $TEXT['ticket_attachments_info'] ?></small>
                 </div>
                 <div class="file-list" id="fileList"></div>

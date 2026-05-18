@@ -72,7 +72,7 @@ require_once __DIR__ . '/../templates/header.php';
 .dead-code {
     font-size: .8rem;
     letter-spacing: 4px;
-    color: rgba(200,169,110,.4);
+    color: rgba(var(--accent-rgb), .4);
     text-transform: uppercase;
     margin-bottom: .5rem;
     font-weight: 600;
@@ -115,12 +115,12 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .dead-btn-secondary {
     background: rgba(255,255,255,.04);
-    border-color: rgba(200,169,110,.3);
-    color: #c8a96e;
+    border-color: rgba(var(--accent-rgb), .3);
+    color: var(--accent);
 }
 .dead-btn-secondary:hover {
-    background: rgba(200,169,110,.12);
-    border-color: rgba(200,169,110,.6);
+    background: rgba(var(--accent-rgb), .12);
+    border-color: rgba(var(--accent-rgb), .6);
     color: #e8c87e;
     transform: translateY(-2px);
 }
@@ -140,7 +140,7 @@ require_once __DIR__ . '/../templates/header.php';
     z-index: 9999;
     pointer-events: none;
     white-space: nowrap;
-    color: #c8a96e;
+    color: var(--accent);
     font-weight: 700;
     font-size: 1rem;
     text-shadow: 0 0 12px rgba(0,0,0,.7), 0 2px 4px rgba(0,0,0,.5);
@@ -156,7 +156,7 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .murloc-bubble {
     background: rgba(0,0,0,.6);
-    border: 1px solid rgba(200,169,110,.3);
+    border: 1px solid rgba(var(--accent-rgb), .3);
     border-radius: 12px;
     padding: .25rem .75rem;
     font-size: .85rem;

@@ -211,14 +211,14 @@ $bi_labels = [
 .cz-wrap { padding-top:120px; padding-bottom:3rem; }
 .cz-card {
     background: linear-gradient(145deg,#15151f,#0e0e17);
-    border:1px solid rgba(139,69,19,.3); border-radius:12px;
+    border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:12px;
     padding:1.4rem 1.6rem; margin-bottom:1.4rem;
 }
-.cz-card h2 { color:#c8a96e; font-size:1.15rem; font-weight:700; margin:0 0 .3rem; }
+.cz-card h2 { color:var(--accent); font-size:1.15rem; font-weight:700; margin:0 0 .3rem; }
 .cz-card .sub { color:#8899aa; font-size:.85rem; margin-bottom:1.1rem; }
-.cz-label { color:#c8a96e; font-size:.78rem; text-transform:uppercase; letter-spacing:.5px; font-weight:600; display:block; margin:1rem 0 .5rem; }
+.cz-label { color:var(--accent); font-size:.78rem; text-transform:uppercase; letter-spacing:.5px; font-weight:600; display:block; margin:1rem 0 .5rem; }
 .cz-input {
-    background:#0a0a0f; border:1px solid rgba(139,69,19,.35); border-radius:6px;
+    background:#0a0a0f; border:1px solid rgba(var(--btn-bg-rgb), .35); border-radius:6px;
     color:#dee2e6; padding:.5rem .7rem; font-size:.9rem; font-family:inherit; width:100%;
 }
 .cz-input:focus { outline:none; border-color:rgba(200,169,110,.6); }
@@ -227,32 +227,32 @@ $bi_labels = [
 .cz-row { display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem; }
 .cz-row .cz-input.lbl { max-width:200px; }
 .cz-btn {
-    background:#8B4513; color:#fff; border:1px solid #A0522D; border-radius:6px;
+    background:var(--btn-bg); color:#fff; border:1px solid var(--btn-bg-hover); border-radius:6px;
     padding:.55rem 1.1rem; font-size:.88rem; cursor:pointer; font-family:inherit; text-decoration:none;
     display:inline-block; transition:background .14s ease;
 }
-.cz-btn:hover { background:#A0522D; color:#fff; }
+.cz-btn:hover { background:var(--btn-bg-hover); color:#fff; }
 .cz-btn-sm { padding:.4rem .6rem; font-size:.8rem; }
-.cz-btn-ghost { background:transparent; color:#c8a96e; border-color:rgba(200,169,110,.4); }
+.cz-btn-ghost { background:transparent; color:var(--accent); border-color:rgba(200,169,110,.4); }
 .cz-del { background:rgba(231,76,60,.15); border:1px solid rgba(231,76,60,.4); color:#f87e8a; }
 .cz-del:hover { background:rgba(231,76,60,.3); color:#fff; }
 .cz-flash-ok  { background:rgba(46,125,50,.15); border:1px solid rgba(46,125,50,.5); color:#9ae6a4; padding:.7rem 1rem; border-radius:8px; margin-bottom:1rem; }
 .cz-flash-err { background:rgba(231,76,60,.12); border:1px solid rgba(231,76,60,.5); color:#f8b4b4; padding:.7rem 1rem; border-radius:8px; margin-bottom:1rem; }
-.cz-prev { background:#0a0a0f; border:1px solid rgba(139,69,19,.25); border-radius:8px; padding:.9rem 1.1rem; margin-top:1rem; font-size:.85rem; }
+.cz-prev { background:#0a0a0f; border:1px solid rgba(var(--btn-bg-rgb), .25); border-radius:8px; padding:.9rem 1.1rem; margin-top:1rem; font-size:.85rem; }
 .cz-prev a { color:rgba(255,255,255,.6); text-decoration:none; }
-.cz-prev a:hover { color:#c8a96e; }
+.cz-prev a:hover { color:var(--accent); }
 .cz-prev .sep { color:rgba(255,255,255,.2); margin:0 .5rem; }
 .cz-hint { color:#4a5568; font-size:.78rem; margin-top:.5rem; }
 /* Theme card */
 .cz-color-row { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
 .cz-color-row input[type=color] {
-    width:46px; height:38px; padding:0; border:1px solid rgba(139,69,19,.35);
+    width:46px; height:38px; padding:0; border:1px solid rgba(var(--btn-bg-rgb), .35);
     border-radius:6px; background:#0a0a0f; cursor:pointer;
 }
 .cz-presets { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.8rem; }
 .cz-preset {
     display:flex; align-items:center; gap:.45rem; background:#0a0a0f;
-    border:1px solid rgba(139,69,19,.35); color:#dee2e6; border-radius:20px;
+    border:1px solid rgba(var(--btn-bg-rgb), .35); color:#dee2e6; border-radius:20px;
     padding:.35rem .8rem; font-size:.8rem; cursor:pointer; font-family:inherit;
 }
 .cz-preset:hover { border-color:rgba(200,169,110,.6); }
@@ -272,7 +272,7 @@ $bi_labels = [
 .cz-tone-item { display:flex; flex-direction:column; gap:.3rem; font-size:.82rem; color:#9aa7b4; }
 .cz-tone-item .cz-input { max-width:150px; }
 .cz-brand {
-    border:1px solid rgba(139,69,19,.22); border-radius:8px;
+    border:1px solid rgba(var(--btn-bg-rgb), .22); border-radius:8px;
     padding:.85rem 1rem; margin-bottom:.7rem; background:#0a0a0f;
 }
 .cz-brand-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem; margin-bottom:.6rem; }
@@ -280,13 +280,13 @@ $bi_labels = [
 .cz-brand-body { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
 .cz-brand-thumb {
     width:84px; height:54px; object-fit:contain; background:#161616;
-    border:1px solid rgba(139,69,19,.3); border-radius:6px;
+    border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:6px;
 }
 .cz-brand-none { color:#4a5568; font-size:.8rem; font-style:italic; }
 .cz-brand-ctl { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
 .cz-file { color:#9aa7b4; font-size:.82rem; max-width:260px; }
 .cz-file::file-selector-button {
-    background:#1e1e1e; color:#c8a96e; border:1px solid rgba(139,69,19,.4);
+    background:#1e1e1e; color:var(--accent); border:1px solid rgba(var(--btn-bg-rgb), .4);
     border-radius:5px; padding:.35rem .7rem; font-size:.8rem; cursor:pointer; margin-right:.6rem;
 }
 .cz-reset, .cz-adv-toggle { display:flex; align-items:center; gap:.45rem; color:#f0a; font-size:.8rem; cursor:pointer; }
@@ -296,7 +296,7 @@ $bi_labels = [
 
 <div class="container cz-wrap" style="max-width:880px">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-        <h1 style="color:#c8a96e;margin:0;font-weight:700">
+        <h1 style="color:var(--accent);margin:0;font-weight:700">
             <i class="bi bi-palette me-2"></i><?= htmlspecialchars($TEXT['cz_title'] ?? 'Site Customization') ?>
         </h1>
         <a href="/admin_dashboard" class="cz-btn cz-btn-ghost"><i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['news_admin_back'] ?? 'Back to Admin') ?></a>
@@ -386,7 +386,7 @@ $bi_labels = [
             </div>
 
             <div class="cz-prev" style="margin-top:1.2rem">
-                <strong style="color:#c8a96e"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_lang_howto_title'] ?? 'Add a custom language') ?></strong>
+                <strong style="color:var(--accent)"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_lang_howto_title'] ?? 'Add a custom language') ?></strong>
                 <ol style="margin:.6rem 0 0;padding-left:1.2rem;color:#9aa7b4;line-height:1.8">
                     <li><?= str_replace(['{from}', '{to}'], ['<code>lang/en.php</code>', '<code>lang/&lt;code&gt;.php</code>'],
                             htmlspecialchars($TEXT['cz_lang_howto_1'] ?? 'Copy {from} to {to} — use a 2-letter code (e.g. lang/fr.php, lang/de.php).')) ?></li>

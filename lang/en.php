@@ -118,7 +118,7 @@ return [
   'forum_new_thread_btn'       => 'New Thread',
   'forum_login_to_post'        => 'Log in to post',
   'forum_login_to_reply'       => 'Log in to reply.',
-  'forum_login_to_reply_link'  => 'Please <a href="%s" style="color:#c8a96e">log in</a> to reply.',
+  'forum_login_to_reply_link'  => 'Please <a href="%s" style="color:var(--accent)">log in</a> to reply.',
   'forum_field_thread_title'   => 'Title *',
   'forum_field_body'           => 'Body * (Markdown)',
   'forum_title_placeholder'    => 'A short, descriptive title…',
@@ -819,12 +819,12 @@ return [
   'dash_view_my_armory'            => 'My Armory Profile',
 
   // ─── Tickets page ───────────────────────────────────────────────────────────
-  'tickets_intro_html'             => 'Describe your issue — our team will respond to <strong style="color:#c8a96e">%s</strong>',
+  'tickets_intro_html'             => 'Describe your issue — our team will respond to <strong style="color:var(--accent)">%s</strong>',
   'tickets_tab_new'                => 'New Ticket',
   'tickets_tab_my'                 => 'My Tickets',
   'tickets_subject_placeholder'    => 'Brief summary of your issue…',
   'tickets_message_placeholder'    => 'Describe your issue in detail…',
-  'tickets_drop_zone_text'         => 'Drag &amp; drop files here, or <strong style="color:#c8a96e">browse</strong>',
+  'tickets_drop_zone_text'         => 'Drag &amp; drop files here, or <strong style="color:var(--accent)">browse</strong>',
   'tickets_cat_account'            => 'Account Issues',
   'tickets_cat_bug'                => 'Report Bug',
   'tickets_cat_player'             => 'Report Player',

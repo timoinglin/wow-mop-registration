@@ -32,7 +32,7 @@ if (!$settings['enabled'] && $gm_level < 9) {
     ?>
     <main class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center;max-width:680px">
         <i class="bi bi-pause-circle" style="font-size:3rem;color:#8899aa;display:block;margin-bottom:1rem;opacity:.5"></i>
-        <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['forum_disabled_title'] ?? 'Forum is currently disabled') ?></h2>
+        <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['forum_disabled_title'] ?? 'Forum is currently disabled') ?></h2>
         <p style="color:#8899aa"><?= htmlspecialchars($TEXT['forum_disabled_hint'] ?? 'The forum is not available right now. Please check back later.') ?></p>
         <a href="/" class="btn btn-gold mt-3"><i class="bi bi-house me-1"></i><?= htmlspecialchars($TEXT['home'] ?? 'Home') ?></a>
     </main>
@@ -120,14 +120,14 @@ $forum_css = <<<'CSS'
 <style>
 .fo-wrap { padding-top:120px; padding-bottom:3rem; }
 .fo-hero {
-    background: linear-gradient(135deg, rgba(139,69,19,.25) 0%, rgba(10,10,20,.85) 60%);
-    border: 1px solid rgba(139,69,19,.4);
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), .25) 0%, rgba(10,10,20,.85) 60%);
+    border: 1px solid rgba(var(--btn-bg-rgb), .4);
     border-radius: 12px;
     padding: 1.5rem 1.75rem;
     margin-bottom: 1.5rem;
 }
 .fo-hero h1 {
-    color: #c8a96e;
+    color: var(--accent);
     margin: 0;
     font-weight: 700;
     letter-spacing: 1px;
@@ -139,7 +139,7 @@ $forum_css = <<<'CSS'
     font-size: .85rem;
     margin-bottom: 1rem;
 }
-.fo-crumb a { color: #c8a96e; text-decoration: none; }
+.fo-crumb a { color: var(--accent); text-decoration: none; }
 .fo-crumb a:hover { color: #fff; }
 
 /* Category card on the /forum index */
@@ -148,7 +148,7 @@ $forum_css = <<<'CSS'
     align-items: center;
     gap: 1.25rem;
     background: linear-gradient(145deg, #15151f, #0e0e17);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 10px;
     padding: 1.1rem 1.4rem;
     margin-bottom: 1rem;
@@ -156,19 +156,19 @@ $forum_css = <<<'CSS'
     color: inherit;
     transition: border-color .15s ease, transform .15s ease;
 }
-.fo-cat-card:hover { border-color: rgba(200,169,110,.6); transform: translateY(-1px); color: inherit; }
+.fo-cat-card:hover { border-color: rgba(var(--accent-rgb), .6); transform: translateY(-1px); color: inherit; }
 .fo-cat-icon {
     width: 56px; height: 56px;
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(145deg, #1a1a2e, #12121f);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 50%;
-    color: #c8a96e;
+    color: var(--accent);
     font-size: 1.5rem;
     flex-shrink: 0;
 }
 .fo-cat-body { flex: 1; min-width: 0; }
-.fo-cat-name { color: #c8a96e; font-weight: 700; font-size: 1.1rem; }
+.fo-cat-name { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
 .fo-cat-desc { color: #8899aa; font-size: .88rem; margin-top: .2rem; }
 .fo-cat-stats {
     text-align: right;
@@ -192,17 +192,17 @@ $forum_css = <<<'CSS'
     align-items: center;
     gap: 1rem;
     background: #0e0e17;
-    border: 1px solid rgba(139,69,19,.2);
+    border: 1px solid rgba(var(--btn-bg-rgb), .2);
     border-radius: 8px;
     padding: .85rem 1.1rem;
     margin-bottom: .55rem;
     transition: border-color .15s ease;
 }
-.fo-thread-row:hover { border-color: rgba(200,169,110,.4); }
+.fo-thread-row:hover { border-color: rgba(var(--accent-rgb), .4); }
 .fo-thread-row .wl-avatar { width: 40px !important; height: 40px !important; font-size: 16px !important; border-width: 1.5px !important; }
 .fo-thread-main { flex: 1; min-width: 0; }
 .fo-thread-title {
-    color: #c8a96e;
+    color: var(--accent);
     font-weight: 600;
     text-decoration: none;
     font-size: 1rem;
@@ -225,14 +225,14 @@ $forum_css = <<<'CSS'
     min-width: 170px;
 }
 .fo-thread-stats .latest-row { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; display: inline-block; }
-.fo-stat-count { color:#c8a96e; font-weight:600; }
+.fo-stat-count { color:var(--accent); font-weight:600; }
 
 /* Post (OP + replies on the thread page) */
 .fo-post {
     display: flex;
     gap: 1.2rem;
     background: linear-gradient(145deg, #15151f, #0e0e17);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 10px;
     padding: 1.4rem;
     margin-bottom: 1rem;
@@ -243,7 +243,7 @@ $forum_css = <<<'CSS'
     text-align: center;
 }
 .fo-post-side .wl-avatar { width: 64px !important; height: 64px !important; font-size: 26px !important; margin: 0 auto; }
-.fo-post-author { color: #c8a96e; font-weight: 700; margin-top: .55rem; font-size: .9rem; word-break: break-word; }
+.fo-post-author { color: var(--accent); font-weight: 700; margin-top: .55rem; font-size: .9rem; word-break: break-word; }
 .fo-post-op-pill {
     display: inline-block;
     margin-top: .25rem;
@@ -263,7 +263,7 @@ $forum_css = <<<'CSS'
     align-items: center;
     color: #4a5568;
     font-size: .78rem;
-    border-bottom: 1px solid rgba(139,69,19,.15);
+    border-bottom: 1px solid rgba(var(--btn-bg-rgb), .15);
     padding-bottom: .55rem;
     margin-bottom: .85rem;
 }
@@ -273,7 +273,7 @@ $forum_css = <<<'CSS'
     font-style: italic;
     margin-top: .8rem;
     padding-top: .55rem;
-    border-top: 1px dashed rgba(139,69,19,.15);
+    border-top: 1px dashed rgba(var(--btn-bg-rgb), .15);
 }
 .fo-post-body {
     color: rgba(255,255,255,.85);
@@ -284,35 +284,35 @@ $forum_css = <<<'CSS'
 .fo-post-body h1,
 .fo-post-body h2,
 .fo-post-body h3,
-.fo-post-body h4 { color: #c8a96e; margin-top: 1.2rem; }
+.fo-post-body h4 { color: var(--accent); margin-top: 1.2rem; }
 .fo-post-body a { color: #69CCF0; }
 .fo-post-body code { background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 3px; }
 .fo-post-body pre { background: rgba(0,0,0,.4); padding: .8rem 1rem; border-radius: 6px; overflow-x: auto; }
 .fo-post-body img { max-width: 100%; height: auto; border-radius: 6px; }
-.fo-post-body blockquote { border-left: 3px solid #c8a96e; padding-left: 1rem; color: #8899aa; margin: 1rem 0; }
+.fo-post-body blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: #8899aa; margin: 1rem 0; }
 .fo-post-body ul, .fo-post-body ol { padding-left: 1.5rem; }
 .fo-post-body table { border-collapse: collapse; margin: .6rem 0; }
-.fo-post-body th, .fo-post-body td { border: 1px solid rgba(139,69,19,.3); padding: .35rem .6rem; }
+.fo-post-body th, .fo-post-body td { border: 1px solid rgba(var(--btn-bg-rgb), .3); padding: .35rem .6rem; }
 
 /* Reuse the news-pager styling via .news-pager class (already defined on /news,
    but the forum page may render before that CSS, so duplicate the minimum.) */
 .news-pager .page-link {
     background: #1a1a2e;
-    color: #c8a96e;
-    border-color: rgba(139,69,19,.3);
+    color: var(--accent);
+    border-color: rgba(var(--btn-bg-rgb), .3);
     min-width: 2.4rem;
     text-align: center;
 }
-.news-pager .page-link:hover { background:#2a1f10; color:#fff; border-color:#c8a96e; }
-.news-pager .page-item.active .page-link { background:#8B4513; border-color:#A0522D; color:#fff; font-weight:600; }
-.news-pager .page-item.disabled .page-link { background:#12121f; color:#4a5568; border-color:rgba(139,69,19,.15); cursor:not-allowed; }
+.news-pager .page-link:hover { background:#2a1f10; color:#fff; border-color:var(--accent); }
+.news-pager .page-item.active .page-link { background:var(--btn-bg); border-color:var(--btn-bg-hover); color:#fff; font-weight:600; }
+.news-pager .page-item.disabled .page-link { background:#12121f; color:#4a5568; border-color:rgba(var(--btn-bg-rgb), .15); cursor:not-allowed; }
 
 /* Admin-disabled banner shown to GMs previewing while the public toggle is off */
 /* Inline moderation buttons (GM-only) */
 .fo-mod-btn {
     background: transparent;
-    color: #c8a96e;
-    border: 1px solid rgba(200,169,110,.35);
+    color: var(--accent);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     border-radius: 4px;
     padding: .35rem .75rem;
     font-size: .8rem;
@@ -320,7 +320,7 @@ $forum_css = <<<'CSS'
     font-family: inherit;
     transition: all .15s ease;
 }
-.fo-mod-btn:hover { background: rgba(200,169,110,.12); color: #fff; border-color: #c8a96e; }
+.fo-mod-btn:hover { background: rgba(var(--accent-rgb), .12); color: #fff; border-color: var(--accent); }
 .fo-mod-btn-ok { background: #2d6936; color: #fff; border-color: #3a7e44; }
 .fo-mod-btn-ok:hover { background: #3a7e44; color: #fff; border-color: #5dd87c; }
 .fo-mod-btn-danger { background: transparent; color: #f87e8a; border-color: rgba(231,76,60,.4); }
@@ -364,7 +364,7 @@ if ($mode === 'thread') {
         require_once __DIR__ . '/../templates/header.php';
         ?>
         <main class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center">
-            <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['forum_thread_not_found'] ?? 'Thread not found') ?></h2>
+            <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['forum_thread_not_found'] ?? 'Thread not found') ?></h2>
             <p style="color:#8899aa"><?= htmlspecialchars($TEXT['forum_thread_not_found_hint'] ?? 'This thread does not exist or is no longer published.') ?></p>
             <a href="/forum" class="btn btn-gold mt-2">← <?= htmlspecialchars($TEXT['forum_back_to_index'] ?? 'Back to forum') ?></a>
         </main>
@@ -448,7 +448,7 @@ if ($mode === 'thread') {
             </p>
 
             <?php if ($is_admin): $mod_csrf = generate_csrf_token(); ?>
-                <div class="d-flex gap-2 flex-wrap" style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid rgba(139,69,19,.25)">
+                <div class="d-flex gap-2 flex-wrap" style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid rgba(var(--btn-bg-rgb), .25)">
                     <span style="color:#8899aa;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;padding:.35rem .15rem">
                         <i class="bi bi-shield-lock me-1"></i><?= htmlspecialchars($TEXT['forum_mod_label'] ?? 'Mod tools') ?>
                     </span>
@@ -579,22 +579,22 @@ if ($mode === 'thread') {
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.css">
             <script src="https://cdn.jsdelivr.net/npm/easymde@2.18.0/dist/easymde.min.js" defer></script>
             <style>
-            .EasyMDEContainer .editor-toolbar { background:#15151f; border:1px solid rgba(139,69,19,.3); border-bottom:none; }
-            .EasyMDEContainer .editor-toolbar button { color:#c8a96e !important; border-color:transparent !important; }
-            .EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(139,69,19,.3) !important; color:#fff !important; }
-            .EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(139,69,19,.3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:200px; }
-            .EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid #c8a96e !important; }
-            .EasyMDEContainer .CodeMirror-selected { background: rgba(200,169,110,.18); }
-            .EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(139,69,19,.3); line-height:1.7; }
-            .EasyMDEContainer .editor-preview h1,.EasyMDEContainer .editor-preview h2,.EasyMDEContainer .editor-preview h3, .EasyMDEContainer .editor-preview-side h1, .EasyMDEContainer .editor-preview-side h2, .EasyMDEContainer .editor-preview-side h3 { color:#c8a96e; }
-            .EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(139,69,19,.15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
+            .EasyMDEContainer .editor-toolbar { background:#15151f; border:1px solid rgba(var(--btn-bg-rgb), .3); border-bottom:none; }
+            .EasyMDEContainer .editor-toolbar button { color:var(--accent) !important; border-color:transparent !important; }
+            .EasyMDEContainer .editor-toolbar button:hover, .EasyMDEContainer .editor-toolbar button.active { background:#2a1f10 !important; border-color:rgba(var(--btn-bg-rgb), .3) !important; color:#fff !important; }
+            .EasyMDEContainer .CodeMirror { background:#0a0a0f; color:#dee2e6; border:1px solid rgba(var(--btn-bg-rgb), .3); border-top:none; font-family:'SFMono-Regular',Consolas,monospace; font-size:.92rem; line-height:1.55; min-height:200px; }
+            .EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+            .EasyMDEContainer .CodeMirror-selected { background: rgba(var(--accent-rgb), .18); }
+            .EasyMDEContainer .editor-preview, .EasyMDEContainer .editor-preview-side { background:#0a0a0f; color:rgba(255,255,255,.85); border-color:rgba(var(--btn-bg-rgb), .3); line-height:1.7; }
+            .EasyMDEContainer .editor-preview h1,.EasyMDEContainer .editor-preview h2,.EasyMDEContainer .editor-preview h3, .EasyMDEContainer .editor-preview-side h1, .EasyMDEContainer .editor-preview-side h2, .EasyMDEContainer .editor-preview-side h3 { color:var(--accent); }
+            .EasyMDEContainer .editor-statusbar { color:#4a5568; border:1px solid rgba(var(--btn-bg-rgb), .15); border-top:none; background:#12121f; padding:.35rem .8rem; font-size:.75rem; }
             .EasyMDEContainer .editor-toolbar.fullscreen, .EasyMDEContainer .CodeMirror-fullscreen, .EasyMDEContainer .editor-preview-side { z-index:1050; }
             body:has(.editor-toolbar.fullscreen) #mainNavbar, body:has(.editor-preview-side.fullscreen) #mainNavbar, body.easymde-fullscreen #mainNavbar { display:none; }
             .EasyMDEContainer .editor-toolbar.fullscreen { display:flex; flex-wrap:wrap; align-items:center; height:auto; min-height:50px; padding:0 4px; }
             .EasyMDEContainer .editor-toolbar.fullscreen > * { float:none !important; margin:0 !important; flex:0 0 auto; }
             </style>
             <div style="margin-top:2rem">
-                <h4 style="color:#c8a96e;font-size:1rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">
+                <h4 style="color:var(--accent);font-size:1rem;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:.8rem">
                     <i class="bi bi-reply me-2"></i><?= htmlspecialchars($TEXT['forum_post_reply'] ?? 'Post a reply') ?>
                 </h4>
                 <?php
@@ -615,7 +615,7 @@ if ($mode === 'thread') {
                     <input type="hidden" name="thread_id" value="<?= (int)$thread['id'] ?>">
                     <textarea id="replyBody" name="body" required></textarea>
                     <div class="d-flex gap-2 justify-content-end mt-3">
-                        <button type="submit" style="padding:.55rem 1.1rem;border-radius:4px;border:1px solid #A0522D;background:#8B4513;color:#fff;cursor:pointer;font-family:inherit">
+                        <button type="submit" style="padding:.55rem 1.1rem;border-radius:4px;border:1px solid var(--btn-bg-hover);background:var(--btn-bg);color:#fff;cursor:pointer;font-family:inherit">
                             <i class="bi bi-send me-1"></i><?= htmlspecialchars($TEXT['forum_submit_reply'] ?? 'Post Reply') ?>
                         </button>
                     </div>
@@ -672,10 +672,10 @@ if ($mode === 'thread') {
             });
             </script>
         <?php else: ?>
-            <div style="margin-top:2rem;padding:1rem 1.2rem;background:#0e0e17;border:1px solid rgba(139,69,19,.25);border-radius:8px;color:#8899aa;text-align:center;font-size:.9rem">
+            <div style="margin-top:2rem;padding:1rem 1.2rem;background:#0e0e17;border:1px solid rgba(var(--btn-bg-rgb), .25);border-radius:8px;color:#8899aa;text-align:center;font-size:.9rem">
                 <?php
                 $msg = match ($reply_reason) {
-                    'not_logged_in'  => sprintf($TEXT['forum_login_to_reply_link'] ?? 'Please <a href="%s" style="color:#c8a96e">log in</a> to reply.', '/login'),
+                    'not_logged_in'  => sprintf($TEXT['forum_login_to_reply_link'] ?? 'Please <a href="%s" style="color:var(--accent)">log in</a> to reply.', '/login'),
                     'banned'         => $TEXT['forum_banned_hint']   ?? 'You are banned from posting in the forum.',
                     'locked'         => '<i class="bi bi-lock-fill me-1"></i>' . htmlspecialchars($TEXT['forum_locked_hint'] ?? 'This thread is locked. No new replies.'),
                     'replies_closed' => '<i class="bi bi-megaphone-fill me-1"></i>' . htmlspecialchars($TEXT['forum_replies_closed_hint'] ?? 'This category is read-only. Only GMs can reply here.'),
@@ -702,7 +702,7 @@ if ($mode === 'category') {
         require_once __DIR__ . '/../templates/header.php';
         ?>
         <main class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center">
-            <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['forum_cat_not_found'] ?? 'Category not found') ?></h2>
+            <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['forum_cat_not_found'] ?? 'Category not found') ?></h2>
             <a href="/forum" class="btn btn-gold mt-2">← <?= htmlspecialchars($TEXT['forum_back_to_index'] ?? 'Back to forum') ?></a>
         </main>
         <?php
@@ -754,15 +754,15 @@ if ($mode === 'category') {
                 if ($can_post_here):
                 ?>
                     <a href="/forum/new/<?= htmlspecialchars(rawurlencode($category['slug']), ENT_QUOTES) ?>"
-                       style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:#8B4513;color:#fff;border:1px solid #A0522D;border-radius:4px;text-decoration:none;font-size:.85rem">
+                       style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:var(--btn-bg);color:#fff;border:1px solid var(--btn-bg-hover);border-radius:4px;text-decoration:none;font-size:.85rem">
                         <i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['forum_new_thread_btn'] ?? 'New Thread') ?>
                     </a>
                 <?php elseif ($post_reason === 'not_logged_in'): ?>
-                    <a href="/login" style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:transparent;color:#c8a96e;border:1px solid rgba(200,169,110,.4);border-radius:4px;text-decoration:none;font-size:.85rem">
+                    <a href="/login" style="display:inline-block;margin-top:.6rem;padding:.45rem 1rem;background:transparent;color:var(--accent);border:1px solid rgba(var(--accent-rgb), .4);border-radius:4px;text-decoration:none;font-size:.85rem">
                         <i class="bi bi-box-arrow-in-right me-1"></i><?= htmlspecialchars($TEXT['forum_login_to_post'] ?? 'Log in to post') ?>
                     </a>
                 <?php elseif ($post_reason === 'admin_only'): ?>
-                    <div style="margin-top:.6rem;font-size:.78rem;color:#c8a96e">
+                    <div style="margin-top:.6rem;font-size:.78rem;color:var(--accent)">
                         <i class="bi bi-megaphone-fill me-1"></i><?= htmlspecialchars($TEXT['forum_announce_only'] ?? 'Announcements — only GMs can post here.') ?>
                     </div>
                 <?php endif; ?>
@@ -833,18 +833,18 @@ echo $forum_css;
     <?php $fo_recent = forum_recent_threads($pdo_auth, 6); ?>
     <?php if (!empty($fo_recent)): ?>
     <style>
-    .fo-recent { background:linear-gradient(145deg,#15151f,#0e0e17); border:1px solid rgba(139,69,19,.3); border-radius:10px; padding:1rem 1.2rem; margin-bottom:1.6rem; }
-    .fo-recent-h { color:#c8a96e; font-weight:700; font-size:1rem; margin-bottom:.5rem; }
-    .fo-recent-row { display:flex; align-items:center; gap:.85rem; padding:.55rem .35rem; border-top:1px solid rgba(139,69,19,.14); text-decoration:none; color:inherit; transition:background .12s ease; }
+    .fo-recent { background:linear-gradient(145deg,#15151f,#0e0e17); border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:10px; padding:1rem 1.2rem; margin-bottom:1.6rem; }
+    .fo-recent-h { color:var(--accent); font-weight:700; font-size:1rem; margin-bottom:.5rem; }
+    .fo-recent-row { display:flex; align-items:center; gap:.85rem; padding:.55rem .35rem; border-top:1px solid rgba(var(--btn-bg-rgb), .14); text-decoration:none; color:inherit; transition:background .12s ease; }
     .fo-recent-row:first-of-type { border-top:none; }
-    .fo-recent-row:hover { background:rgba(200,169,110,.06); }
-    .fo-recent-ic { width:30px; height:30px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; background:linear-gradient(145deg,#1a1a2e,#12121f); border:1px solid rgba(139,69,19,.3); color:#c8a96e; font-size:.9rem; }
+    .fo-recent-row:hover { background:rgba(var(--accent-rgb), .06); }
+    .fo-recent-ic { width:30px; height:30px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; background:linear-gradient(145deg,#1a1a2e,#12121f); border:1px solid rgba(var(--btn-bg-rgb), .3); color:var(--accent); font-size:.9rem; }
     .fo-recent-main { flex:1; min-width:0; }
     .fo-recent-title { display:block; color:#dee2e6; font-weight:600; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .fo-recent-row:hover .fo-recent-title { color:#fff; }
     .fo-recent-meta { display:block; color:#8899aa; font-size:.74rem; margin-top:.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .fo-recent-when { text-align:right; flex-shrink:0; font-size:.72rem; line-height:1.35; }
-    .fo-recent-when .by { display:block; color:#c8a96e; font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .fo-recent-when .by { display:block; color:var(--accent); font-weight:600; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .fo-recent-when .ago { display:block; color:#4a5568; }
     @media (max-width:560px){ .fo-recent-when .by { max-width:90px; } .fo-recent-meta { max-width:52vw; } }
     </style>
@@ -885,7 +885,7 @@ echo $forum_css;
                     <div class="fo-cat-name">
                         <?= htmlspecialchars($c['name']) ?>
                         <?php if (!empty($c['admin_only'])): ?>
-                            <span style="margin-left:.5rem;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#c8a96e;background:rgba(200,169,110,.14);border:1px solid rgba(200,169,110,.35);padding:.12rem .5rem;border-radius:10px;vertical-align:middle">
+                            <span style="margin-left:.5rem;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);background:rgba(var(--accent-rgb), .14);border:1px solid rgba(var(--accent-rgb), .35);padding:.12rem .5rem;border-radius:10px;vertical-align:middle">
                                 <i class="bi bi-megaphone-fill me-1"></i><?= htmlspecialchars($TEXT['forum_badge_announce'] ?? 'Announcements') ?>
                             </span>
                         <?php endif; ?>

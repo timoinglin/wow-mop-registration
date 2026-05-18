@@ -226,43 +226,43 @@ require_once __DIR__ . '/../includes/markdown.php';
 .fa-wrap { padding-top:120px; padding-bottom:3rem; }
 .fa-card {
     background: linear-gradient(145deg,#15151f,#0e0e17);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
 }
 .fa-card h2 {
-    color:#c8a96e;
+    color:var(--accent);
     font-size:1.1rem;
     text-transform:uppercase;
     letter-spacing:1px;
     font-weight:700;
     margin:0 0 1rem;
     padding-bottom:.6rem;
-    border-bottom: 1px solid rgba(139,69,19,.2);
+    border-bottom: 1px solid rgba(var(--btn-bg-rgb), .2);
 }
 .fa-input, .fa-select, .fa-textarea {
     width:100%; padding:.55rem .75rem; background:#0a0a0f;
-    border:1px solid rgba(139,69,19,.3); border-radius:4px; color:#fff;
+    border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:4px; color:#fff;
     font-size:.92rem; font-family:inherit;
 }
-.fa-input:focus, .fa-select:focus, .fa-textarea:focus { outline:none; border-color:#c8a96e; }
+.fa-input:focus, .fa-select:focus, .fa-textarea:focus { outline:none; border-color:var(--accent); }
 .fa-label { display:block; font-size:.72rem; color:#8899aa; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.25rem; }
 .fa-btn {
     padding:.45rem 1rem; border-radius:4px; border:1px solid; cursor:pointer;
     font-size:.85rem; text-decoration:none; display:inline-block; transition:all .15s ease;
     font-family: inherit;
 }
-.fa-btn-primary { background:#8B4513; color:#fff; border-color:#A0522D; }
-.fa-btn-primary:hover { background:#A0522D; }
-.fa-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(139,69,19,.3); }
-.fa-btn-ghost:hover { color:#c8a96e; border-color:#c8a96e; }
+.fa-btn-primary { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
+.fa-btn-primary:hover { background:var(--btn-bg-hover); }
+.fa-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(var(--btn-bg-rgb), .3); }
+.fa-btn-ghost:hover { color:var(--accent); border-color:var(--accent); }
 .fa-btn-danger { background:#5a1f1f; color:#fff; border-color:#7a2a2a; }
 .fa-btn-danger:hover { background:#7a2a2a; }
 .fa-tbl { width:100%; border-collapse:collapse; color:#dee2e6; font-size:.9rem; }
-.fa-tbl th { text-align:left; padding:.6rem .7rem; border-bottom:1px solid rgba(139,69,19,.3); color:#8899aa; font-weight:600; text-transform:uppercase; font-size:.7rem; letter-spacing:.5px; }
-.fa-tbl td { padding:.6rem .7rem; border-bottom:1px solid rgba(139,69,19,.1); vertical-align:middle; }
-.fa-tbl tr:hover td { background:rgba(139,69,19,.05); }
+.fa-tbl th { text-align:left; padding:.6rem .7rem; border-bottom:1px solid rgba(var(--btn-bg-rgb), .3); color:#8899aa; font-weight:600; text-transform:uppercase; font-size:.7rem; letter-spacing:.5px; }
+.fa-tbl td { padding:.6rem .7rem; border-bottom:1px solid rgba(var(--btn-bg-rgb), .1); vertical-align:middle; }
+.fa-tbl tr:hover td { background:rgba(var(--btn-bg-rgb), .05); }
 .fa-pill { display:inline-block; padding:.15rem .55rem; border-radius:10px; font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; }
 .fa-pill-on { background:rgba(46,204,113,.15); color:#5dd87c; border:1px solid rgba(46,204,113,.3); }
 .fa-pill-off { background:rgba(139,139,139,.15); color:#8899aa; border:1px solid rgba(139,139,139,.3); }
@@ -270,27 +270,27 @@ require_once __DIR__ . '/../includes/markdown.php';
 .fa-flash-err { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); color:#e74c3c; padding:.7rem 1rem; border-radius:4px; margin-bottom:1rem; }
 .fa-icon-preview {
     display:inline-flex; width:32px; height:32px; align-items:center; justify-content:center;
-    background:linear-gradient(145deg,#1a1a2e,#12121f); border:1px solid rgba(139,69,19,.3);
-    border-radius:50%; color:#c8a96e;
+    background:linear-gradient(145deg,#1a1a2e,#12121f); border:1px solid rgba(var(--btn-bg-rgb), .3);
+    border-radius:50%; color:var(--accent);
 }
 .toggle-row { display:flex; align-items:center; gap:.6rem; }
 .toggle-switch { position:relative; display:inline-block; width:46px; height:24px; }
 .toggle-switch input { opacity:0; width:0; height:0; }
 .toggle-slider {
     position:absolute; inset:0; cursor:pointer; background:#2a2a3a;
-    transition:.2s; border-radius:24px; border:1px solid rgba(139,69,19,.3);
+    transition:.2s; border-radius:24px; border:1px solid rgba(var(--btn-bg-rgb), .3);
 }
 .toggle-slider::before {
     position:absolute; content:''; height:18px; width:18px; left:2px; top:2px;
     background:#8899aa; transition:.2s; border-radius:50%;
 }
-input:checked + .toggle-slider { background: #8B4513; border-color:#A0522D; }
+input:checked + .toggle-slider { background: var(--btn-bg); border-color:var(--btn-bg-hover); }
 input:checked + .toggle-slider::before { transform: translateX(22px); background:#fff; }
 </style>
 
 <div class="container fa-wrap">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-        <h1 style="color:#c8a96e;margin:0;font-weight:700"><i class="bi bi-chat-square-text me-2"></i><?= htmlspecialchars($TEXT['forum_admin_title'] ?? 'Forum Configuration') ?></h1>
+        <h1 style="color:var(--accent);margin:0;font-weight:700"><i class="bi bi-chat-square-text me-2"></i><?= htmlspecialchars($TEXT['forum_admin_title'] ?? 'Forum Configuration') ?></h1>
         <a href="/admin_dashboard" class="fa-btn fa-btn-ghost"><i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['news_admin_back'] ?? 'Back to Admin') ?></a>
     </div>
 
@@ -329,7 +329,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                     <div style="background:#0e0e17;border:1px solid rgba(240,192,64,.25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
                             <div style="min-width:0;flex:1">
-                                <strong style="color:#c8a96e"><?= htmlspecialchars($t['title']) ?></strong>
+                                <strong style="color:var(--accent)"><?= htmlspecialchars($t['title']) ?></strong>
                                 <div style="color:#8899aa;font-size:.78rem;margin-top:.15rem">
                                     <i class="bi bi-person me-1"></i><?= htmlspecialchars($t['author_name']) ?>
                                     &middot;
@@ -374,7 +374,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                             <div style="min-width:0;flex:1">
                                 <span style="color:#8899aa;font-size:.78rem"><?= htmlspecialchars($TEXT['forum_queue_reply_to'] ?? 'Reply to') ?>:</span>
                                 <a href="/forum/<?= htmlspecialchars(rawurlencode($p['category_slug']), ENT_QUOTES) ?>/<?= htmlspecialchars(rawurlencode($p['thread_slug']), ENT_QUOTES) ?>"
-                                   target="_blank" style="color:#c8a96e;text-decoration:none"><?= htmlspecialchars($p['thread_title']) ?></a>
+                                   target="_blank" style="color:var(--accent);text-decoration:none"><?= htmlspecialchars($p['thread_title']) ?></a>
                                 <div style="color:#8899aa;font-size:.78rem;margin-top:.15rem">
                                     <i class="bi bi-person me-1"></i><?= htmlspecialchars($p['author_name']) ?>
                                     &middot;
@@ -542,7 +542,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                         <tr>
                             <td><span class="fa-icon-preview"><i class="bi <?= htmlspecialchars($c['icon'] ?: 'bi-chat-square-text') ?>"></i></span></td>
                             <td>
-                                <strong style="color:#c8a96e"><?= htmlspecialchars($c['name']) ?></strong>
+                                <strong style="color:var(--accent)"><?= htmlspecialchars($c['name']) ?></strong>
                                 <?php if (!empty($c['description'])): ?>
                                     <div style="color:#8899aa;font-size:.78rem;margin-top:.2rem"><?= htmlspecialchars($c['description']) ?></div>
                                 <?php endif; ?>
@@ -622,7 +622,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                         <?php $active = ($b['expires_at'] === null || strtotime($b['expires_at']) > time()); ?>
                         <tr>
                             <td>
-                                <strong style="color:#c8a96e"><?= htmlspecialchars($b['username']) ?></strong>
+                                <strong style="color:var(--accent)"><?= htmlspecialchars($b['username']) ?></strong>
                                 <?php if (!$active): ?>
                                     <span class="fa-pill fa-pill-off ms-2"><?= htmlspecialchars($TEXT['forum_ban_expired'] ?? 'Expired') ?></span>
                                 <?php endif; ?>

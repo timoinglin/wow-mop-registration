@@ -187,7 +187,7 @@ if ($is_profile) {
         <div class="container" style="padding-top:120px;padding-bottom:3rem">
             <div class="armory-empty text-center">
                 <div style="font-size:4rem;opacity:.25"><i class="bi bi-search"></i></div>
-                <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['armory_character_not_found'] ?? 'Character not found') ?></h2>
+                <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['armory_character_not_found'] ?? 'Character not found') ?></h2>
                 <p style="color:#8899aa"><?= sprintf(htmlspecialchars($TEXT['armory_character_not_found_hint'] ?? 'No character named %s exists on this realm.'), '<strong>' . htmlspecialchars($char_name) . '</strong>') ?></p>
                 <a href="/armory" class="btn btn-gold mt-2"><i class="bi bi-arrow-left me-2"></i><?= htmlspecialchars($TEXT['armory_back'] ?? 'Back to Armory') ?></a>
             </div>
@@ -200,7 +200,7 @@ if ($is_profile) {
     $cid     = (int)$char['class'];
     $rid     = (int)$char['race'];
     $gid     = (int)$char['gender'];
-    $clr     = $class_colors[$cid] ?? '#c8a96e';
+    $clr     = $class_colors[$cid] ?? 'var(--accent)';
     $faction = faction_for_race($rid, $alliance_races, $horde_races);
 
     // Equipped items (bag=0, slot 0..18). Pull item entry per slot.
@@ -292,7 +292,7 @@ if ($is_profile) {
     background:
         linear-gradient(135deg, rgba(<?= $faction === 'alliance' ? '0,112,222' : ($faction === 'horde' ? '196,31,59' : '139,69,19') ?>,.30) 0%, rgba(10,10,20,.92) 60%),
         url('/assets/img/wow-bg/4-<?= $bg_idx ?>.webp') center/cover no-repeat;
-    border: 1px solid rgba(200,169,110,.35);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     overflow: hidden;
 }
 .armory-hero::after {
@@ -326,7 +326,7 @@ if ($is_profile) {
 }
 .faction-alliance { background: rgba(0,112,222,.18); color: #69ccf0; border: 1px solid rgba(0,112,222,.45); }
 .faction-horde    { background: rgba(196,31,59,.18); color: #f87e8a; border: 1px solid rgba(196,31,59,.45); }
-.faction-neutral  { background: rgba(200,169,110,.15); color: #c8a96e; border: 1px solid rgba(200,169,110,.4); }
+.faction-neutral  { background: rgba(var(--accent-rgb), .15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .4); }
 .online-pill {
     display: inline-flex; align-items: center; gap: .4rem;
     padding: .25rem .65rem; border-radius: 50px;
@@ -343,7 +343,7 @@ if ($is_profile) {
 }
 .qstat {
     background: rgba(0,0,0,.35);
-    border: 1px solid rgba(200,169,110,.18);
+    border: 1px solid rgba(var(--accent-rgb), .18);
     border-radius: 10px;
     padding: .7rem .9rem;
 }
@@ -353,19 +353,19 @@ if ($is_profile) {
 /* Panel cards */
 .armory-panel {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
 }
 .armory-panel-title {
     font-size: .72rem;
-    color: #c8a96e;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     font-weight: 700;
     margin-bottom: 1rem;
     padding-bottom: .55rem;
-    border-bottom: 1px solid rgba(139,69,19,.3);
+    border-bottom: 1px solid rgba(var(--btn-bg-rgb), .3);
 }
 
 /* Equipment doll */
@@ -379,11 +379,11 @@ if ($is_profile) {
 .gear-col-r { align-items: flex-end; }
 .gear-center {
     width: 130px; height: 270px;
-    background: radial-gradient(circle at center, rgba(200,169,110,.18), transparent 70%);
+    background: radial-gradient(circle at center, rgba(var(--accent-rgb), .18), transparent 70%);
     border-radius: 80px;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap:.5rem;
-    color: rgba(200,169,110,.5);
+    color: rgba(var(--accent-rgb), .5);
     font-size: 4rem;
 }
 .gear-center-icon i { filter: drop-shadow(0 0 12px <?= $clr ?>aa); color: <?= $clr ?>; }
@@ -398,12 +398,12 @@ if ($is_profile) {
     min-width: 0;
 }
 .gear-col-r .gear-slot { flex-direction: row-reverse; text-align: right; }
-.gear-slot:hover { background: rgba(200,169,110,.06); border-color: rgba(200,169,110,.35); transform: translateY(-1px); }
+.gear-slot:hover { background: rgba(var(--accent-rgb), .06); border-color: rgba(var(--accent-rgb), .35); transform: translateY(-1px); }
 .gear-slot.empty { opacity: .5; }
 .gear-slot .gear-icon {
     width: 40px; height: 40px; border-radius: 6px; flex-shrink: 0;
     background: #000 url('https://wow.zamimg.com/images/wow/icons/medium/inv_misc_questionmark.jpg') center/cover;
-    border: 1px solid rgba(200,169,110,.35);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);
 }
 .gear-slot .gear-meta { min-width: 0; flex: 1; }
@@ -412,7 +412,7 @@ if ($is_profile) {
     margin-bottom: 1px;
 }
 .gear-slot .gear-item-name {
-    font-size: .82rem; color: #c8a96e; font-weight: 600;
+    font-size: .82rem; color: var(--accent); font-weight: 600;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .gear-slot .gear-item-name a { color: inherit; text-decoration: none; }
@@ -435,7 +435,7 @@ if ($is_profile) {
 .stat-row:last-child { border-bottom: none; }
 .stat-row .k { color: #8899aa; }
 .stat-row .v { color: #e2e8f0; font-weight: 700; font-variant-numeric: tabular-nums; }
-.stat-row.primary .v { color: #c8a96e; }
+.stat-row.primary .v { color: var(--accent); }
 
 /* Sibling chars */
 .sib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .55rem; }
@@ -446,7 +446,7 @@ if ($is_profile) {
     transition: all .2s ease;
     border-left: 3px solid;
 }
-.sib-card:hover { background: rgba(200,169,110,.07); border-color: rgba(200,169,110,.35); transform: translateX(3px); }
+.sib-card:hover { background: rgba(var(--accent-rgb), .07); border-color: rgba(var(--accent-rgb), .35); transform: translateX(3px); }
 .sib-card img { width: 28px; height: 28px; border-radius: 4px; border: 1px solid rgba(255,255,255,.15); }
 .sib-card .sn { font-weight: 700; font-size: .9rem; }
 .sib-card .sm { font-size: .7rem; color: #8899aa; }
@@ -577,7 +577,7 @@ if ($is_profile) {
                         <div class="gear-center-icon">
                             <i class="bi <?= $cid === 1 ? 'bi-shield-fill' : ($cid === 8 || $cid === 9 ? 'bi-magic' : ($cid === 5 || $cid === 7 ? 'bi-stars' : 'bi-person-fill')) ?>"></i>
                         </div>
-                        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:rgba(200,169,110,.6)"><?= htmlspecialchars(class_role_label($cid)) ?></div>
+                        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--accent-rgb), .6)"><?= htmlspecialchars(class_role_label($cid)) ?></div>
                     </div>
 
                     <!-- Right column -->
@@ -644,7 +644,7 @@ if ($is_profile) {
                         $stat_map = [
                             'maxhealth'   => [$TEXT['armory_stat_max_health']   ?? 'Max Health',   'bi-heart',            '#dc3545'],
                             'maxpower1'   => [$TEXT['armory_stat_max_power']    ?? 'Max Power',    'bi-droplet',          '#0070DE'],
-                            'strength'    => [$TEXT['armory_stat_strength']     ?? 'Strength',     'bi-hammer',           '#c8a96e'],
+                            'strength'    => [$TEXT['armory_stat_strength']     ?? 'Strength',     'bi-hammer',           'var(--accent)'],
                             'agility'     => [$TEXT['armory_stat_agility']      ?? 'Agility',      'bi-lightning-charge', '#abd473'],
                             'stamina'     => [$TEXT['armory_stat_stamina']      ?? 'Stamina',      'bi-shield-shaded',    '#dc3545'],
                             'intellect'   => [$TEXT['armory_stat_intellect']    ?? 'Intellect',    'bi-stars',            '#69ccf0'],
@@ -705,14 +705,14 @@ if ($is_profile) {
     <?php if (!empty($talent_groups)): ?>
     <style>
     .tal-spec { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin:.2rem 0 .9rem; }
-    .tal-spec .nm { color:#c8a96e; font-weight:700; font-size:1rem; }
+    .tal-spec .nm { color:var(--accent); font-weight:700; font-size:1rem; }
     .tal-spec .badge-act { background:rgba(105,204,240,.15); border:1px solid rgba(105,204,240,.45); color:#69ccf0; font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; padding:.12rem .55rem; border-radius:10px; }
     .tal-spec .badge-alt { color:#4a5568; font-size:.74rem; }
     .tal-grid { display:flex; flex-wrap:wrap; gap:.55rem; }
-    .tal-chip { background:linear-gradient(145deg,#1a1a26,#12121b); border:1px solid rgba(139,69,19,.35); border-radius:8px; padding:.5rem .75rem; font-size:.85rem; max-width:100%; }
+    .tal-chip { background:linear-gradient(145deg,#1a1a26,#12121b); border:1px solid rgba(var(--btn-bg-rgb), .35); border-radius:8px; padding:.5rem .75rem; font-size:.85rem; max-width:100%; }
     .tal-chip a { color:#dee2e6; text-decoration:none; }
     .tal-chip a:hover { color:#fff; }
-    .tal-group + .tal-group { margin-top:1.1rem; border-top:1px solid rgba(139,69,19,.2); padding-top:1rem; }
+    .tal-group + .tal-group { margin-top:1.1rem; border-top:1px solid rgba(var(--btn-bg-rgb), .2); padding-top:1rem; }
     .tal-empty { color:#8899aa; font-size:.88rem; }
     </style>
     <div class="armory-panel mt-3">
@@ -762,7 +762,7 @@ if ($is_profile) {
         <div class="sib-grid">
             <?php foreach ($siblings as $sib):
                 $scid = (int)$sib['class'];
-                $sclr = $class_colors[$scid] ?? '#c8a96e';
+                $sclr = $class_colors[$scid] ?? 'var(--accent)';
             ?>
             <a href="/armory/<?= rawurlencode($sib['name']) ?>" class="sib-card" style="border-left-color:<?= $sclr ?>">
                 <img src="<?= '/' . get_race_icon_path((int)$sib['race'], (int)$sib['gender']) ?>" alt="">
@@ -817,7 +817,7 @@ const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: true };
 /* Make the question-mark placeholder look intentional, not broken */
 .gear-icon:not(.icon-loaded) {
     background:
-        radial-gradient(circle at 35% 30%, rgba(200,169,110,.18), transparent 60%),
+        radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb), .18), transparent 60%),
         linear-gradient(135deg, #1a1f2e, #0a0d18) !important;
     position: relative;
 }
@@ -825,7 +825,7 @@ const whTooltips = { colorLinks: true, iconizeLinks: true, renameLinks: true };
     content: '?';
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    color: rgba(200,169,110,.4); font-weight: 700; font-size: 1.1rem;
+    color: rgba(var(--accent-rgb), .4); font-weight: 700; font-size: 1.1rem;
     font-family: serif;
 }
 </style>
@@ -939,39 +939,39 @@ function build_qs(array $overrides = []): string {
     padding: 2.4rem 1.8rem 2rem;
     margin-bottom: 1.5rem;
     background:
-        linear-gradient(135deg, rgba(139,69,19,.4), rgba(10,10,20,.92) 65%),
+        linear-gradient(135deg, rgba(var(--btn-bg-rgb), .4), rgba(10,10,20,.92) 65%),
         url('/assets/img/wow-bg/4-2.webp') center/cover no-repeat;
-    border: 1px solid rgba(200,169,110,.35);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     overflow: hidden;
 }
 .armory-banner h1 {
     font-size: clamp(1.8rem, 3.5vw, 2.6rem);
     font-weight: 800;
-    background: linear-gradient(90deg,#c8a96e,#fff 60%,#c8a96e);
+    background: linear-gradient(90deg,var(--accent),#fff 60%,var(--accent));
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
 }
 .armory-banner p { color: rgba(255,255,255,.75); margin-bottom: 1.2rem; }
 .armory-stats { display: flex; gap: 1.4rem; flex-wrap: wrap; font-size: .85rem; color:#8899aa; }
-.armory-stats strong { color:#c8a96e; font-weight:700; }
+.armory-stats strong { color:var(--accent); font-weight:700; }
 
 .search-form {
     background: linear-gradient(145deg,#12121f,#1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     padding: 1.2rem;
     margin-bottom: 1.4rem;
 }
 .search-form .form-control, .search-form .form-select {
     background: rgba(0,0,0,.35); color: #e2e8f0;
-    border: 1px solid rgba(200,169,110,.2);
+    border: 1px solid rgba(var(--accent-rgb), .2);
     font-size: .88rem;
 }
 .search-form .form-control:focus, .search-form .form-select:focus {
     background: rgba(0,0,0,.5);
-    border-color: #c8a96e;
-    box-shadow: 0 0 0 .2rem rgba(200,169,110,.18);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 .2rem rgba(var(--accent-rgb), .18);
     color: #fff;
 }
 .search-form label { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color:#8899aa; margin-bottom: .25rem; }
@@ -984,7 +984,7 @@ function build_qs(array $overrides = []): string {
 .result-card {
     display: flex; align-items: center; gap: .75rem;
     background: linear-gradient(145deg,#12121f,#1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-left: 4px solid;
     border-radius: 12px;
     padding: .85rem 1rem;
@@ -993,7 +993,7 @@ function build_qs(array $overrides = []): string {
 }
 .result-card:hover {
     background: linear-gradient(145deg,#1a1a2e,#12121f);
-    border-color: rgba(200,169,110,.6);
+    border-color: rgba(var(--accent-rgb), .6);
     transform: translateY(-2px);
     box-shadow: 0 8px 22px rgba(0,0,0,.35);
 }
@@ -1004,7 +1004,7 @@ function build_qs(array $overrides = []): string {
 .result-card .info .meta { font-size: .76rem; color: #8899aa; margin-top: 1px; }
 .result-card .info .extra { font-size: .72rem; color: #6c7a8c; margin-top: 3px; }
 .result-card .level-pill {
-    background: rgba(139,69,19,.4); color: #c8a96e; font-weight: 700;
+    background: rgba(var(--btn-bg-rgb), .4); color: var(--accent); font-weight: 700;
     padding: .25rem .55rem; border-radius: 6px; font-size: .78rem;
     flex-shrink: 0;
 }
@@ -1015,7 +1015,7 @@ function build_qs(array $overrides = []): string {
 
 .armory-empty {
     background: linear-gradient(145deg,#12121f,#1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     padding: 3rem 2rem;
 }
@@ -1023,12 +1023,12 @@ function build_qs(array $overrides = []): string {
 .armory-pager { display: flex; justify-content: center; align-items: center; gap: .35rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .armory-pager a, .armory-pager span {
     padding: .45rem .85rem; border-radius: 8px;
-    background: rgba(255,255,255,.04); border: 1px solid rgba(200,169,110,.2);
-    color: #c8a96e; font-size: .85rem; text-decoration: none;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(var(--accent-rgb), .2);
+    color: var(--accent); font-size: .85rem; text-decoration: none;
     min-width: 38px; text-align: center;
 }
-.armory-pager a:hover { background: rgba(200,169,110,.12); border-color: #c8a96e; }
-.armory-pager .active { background: linear-gradient(135deg,#8B4513,#A0522D); color:#fff; border-color:#A0522D; }
+.armory-pager a:hover { background: rgba(var(--accent-rgb), .12); border-color: var(--accent); }
+.armory-pager .active { background: linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover)); color:#fff; border-color:var(--btn-bg-hover); }
 .armory-pager .disabled { opacity: .35; pointer-events: none; }
 </style>
 
@@ -1116,7 +1116,7 @@ function build_qs(array $overrides = []): string {
     <?php if (empty($rows)): ?>
         <div class="armory-empty text-center">
             <div style="font-size:3.5rem;opacity:.25"><i class="bi bi-people"></i></div>
-            <h3 style="color:#c8a96e"><?= htmlspecialchars($TEXT['armory_no_results'] ?? 'No characters found') ?></h3>
+            <h3 style="color:var(--accent)"><?= htmlspecialchars($TEXT['armory_no_results'] ?? 'No characters found') ?></h3>
             <p style="color:#8899aa"><?= htmlspecialchars($TEXT['armory_no_results_hint'] ?? 'Try widening your filters or searching for a different name.') ?></p>
         </div>
     <?php else: ?>
@@ -1124,7 +1124,7 @@ function build_qs(array $overrides = []): string {
             <?php foreach ($rows as $row):
                 $cid = (int)$row['class'];
                 $rid = (int)$row['race'];
-                $clr = $class_colors[$cid] ?? '#c8a96e';
+                $clr = $class_colors[$cid] ?? 'var(--accent)';
                 $faction = faction_for_race($rid, $alliance_races, $horde_races);
             ?>
             <a href="/armory/<?= rawurlencode($row['name']) ?>" class="result-card" style="border-left-color:<?= $clr ?>">

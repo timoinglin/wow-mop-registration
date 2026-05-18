@@ -21,7 +21,7 @@ if ($slug !== '') {
         require_once __DIR__ . '/../templates/header.php';
         ?>
         <div class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center">
-            <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['news_not_found_title'] ?? 'Post not found') ?></h2>
+            <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['news_not_found_title'] ?? 'Post not found') ?></h2>
             <p style="color:#8899aa"><?= htmlspecialchars($TEXT['news_not_found_hint'] ?? 'This news post does not exist or is no longer published.') ?></p>
             <a href="/news" class="btn btn-gold mt-2">← <?= htmlspecialchars($TEXT['news_back_to_list'] ?? 'Back to News') ?></a>
         </div>
@@ -53,18 +53,18 @@ if ($slug !== '') {
                 <?php if ($is_admin): ?>
                     <a href="/admin_news?id=<?= (int)$post['id'] ?>"
                        class="btn btn-sm"
-                       style="background:#8B4513;color:#fff;border:1px solid #A0522D;font-size:.8rem;padding:.3rem .75rem">
+                       style="background:var(--btn-bg);color:#fff;border:1px solid var(--btn-bg-hover);font-size:.8rem;padding:.3rem .75rem">
                         <i class="bi bi-pencil-square me-1"></i><?= htmlspecialchars($TEXT['news_edit_post'] ?? 'Edit Post') ?>
                     </a>
                 <?php endif; ?>
             </div>
             <header class="text-center my-4">
                 <div class="d-flex align-items-center justify-content-center mb-3">
-                    <div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(145deg,#1a1a2e,#12121f);border:1px solid rgba(139,69,19,.3)">
-                        <i class="bi <?= htmlspecialchars($post['icon'] ?: 'bi-megaphone') ?>" style="color:#c8a96e;font-size:1.5rem"></i>
+                    <div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(145deg,#1a1a2e,#12121f);border:1px solid rgba(var(--btn-bg-rgb), .3)">
+                        <i class="bi <?= htmlspecialchars($post['icon'] ?: 'bi-megaphone') ?>" style="color:var(--accent);font-size:1.5rem"></i>
                     </div>
                 </div>
-                <h1 style="color:#c8a96e;font-weight:700"><?= htmlspecialchars($post['title']) ?></h1>
+                <h1 style="color:var(--accent);font-weight:700"><?= htmlspecialchars($post['title']) ?></h1>
                 <p style="color:#8899aa;font-size:.9rem;margin-top:.5rem">
                     <?php if ($published): ?>
                         <i class="bi bi-calendar3 me-1"></i><?= htmlspecialchars($published) ?>
@@ -85,13 +85,13 @@ if ($slug !== '') {
         </article>
     </main>
     <style>
-    .news-body h1,.news-body h2,.news-body h3,.news-body h4 { color:#c8a96e; margin-top:1.5rem; }
+    .news-body h1,.news-body h2,.news-body h3,.news-body h4 { color:var(--accent); margin-top:1.5rem; }
     .news-body a { color:#69CCF0; }
     .news-body code { background:rgba(255,255,255,.06); padding:.1rem .35rem; border-radius:3px; font-size:.95em; }
     .news-body pre { background:rgba(0,0,0,.4); padding:1rem; border-radius:6px; overflow-x:auto; }
     .news-body img { max-width:100%; height:auto; border-radius:6px; }
-    .news-body blockquote { border-left:3px solid #c8a96e; padding-left:1rem; color:#8899aa; margin:1rem 0; }
-    .news-body hr { border-color:rgba(139,69,19,.3); }
+    .news-body blockquote { border-left:3px solid var(--accent); padding-left:1rem; color:#8899aa; margin:1rem 0; }
+    .news-body hr { border-color:rgba(var(--btn-bg-rgb), .3); }
     .news-body ul, .news-body ol { padding-left:1.5rem; }
     </style>
     <?php
@@ -114,7 +114,7 @@ require_once __DIR__ . '/../templates/header.php';
 
 <main class="container" style="padding-top:120px;padding-bottom:3rem">
     <header class="text-center mb-5">
-        <h1 style="color:#c8a96e;font-weight:700"><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['news_page_title'] ?? 'News') ?></h1>
+        <h1 style="color:var(--accent);font-weight:700"><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['news_page_title'] ?? 'News') ?></h1>
         <p style="color:#8899aa"><?= htmlspecialchars($TEXT['news_page_subtitle'] ?? 'Updates, patch notes, and announcements.') ?></p>
     </header>
 
@@ -146,11 +146,11 @@ require_once __DIR__ . '/../templates/header.php';
                         <div class="game-card h-100" style="cursor:pointer;transition:transform .15s ease">
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center gap-3 mb-3">
-                                    <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(145deg,#1a1a2e,#12121f);border:1px solid rgba(139,69,19,.3);flex-shrink:0">
-                                        <i class="bi <?= htmlspecialchars($p['icon'] ?: 'bi-megaphone') ?>" style="color:#c8a96e"></i>
+                                    <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:linear-gradient(145deg,#1a1a2e,#12121f);border:1px solid rgba(var(--btn-bg-rgb), .3);flex-shrink:0">
+                                        <i class="bi <?= htmlspecialchars($p['icon'] ?: 'bi-megaphone') ?>" style="color:var(--accent)"></i>
                                     </div>
                                     <div style="min-width:0;flex:1">
-                                        <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($p['title']) ?></h5>
+                                        <h5 style="color:var(--accent);margin:0;font-weight:700;font-size:1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($p['title']) ?></h5>
                                         <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($date_str) ?></span>
                                     </div>
                                 </div>
@@ -224,26 +224,26 @@ require_once __DIR__ . '/../templates/header.php';
             <style>
                 .news-pager .page-link {
                     background: #1a1a2e;
-                    color: #c8a96e;
-                    border-color: rgba(139,69,19,.3);
+                    color: var(--accent);
+                    border-color: rgba(var(--btn-bg-rgb), .3);
                     min-width: 2.4rem;
                     text-align: center;
                 }
                 .news-pager .page-link:hover {
                     background: #2a1f10;
                     color: #fff;
-                    border-color: #c8a96e;
+                    border-color: var(--accent);
                 }
                 .news-pager .page-item.active .page-link {
-                    background: #8B4513;
-                    border-color: #A0522D;
+                    background: var(--btn-bg);
+                    border-color: var(--btn-bg-hover);
                     color: #fff;
                     font-weight: 600;
                 }
                 .news-pager .page-item.disabled .page-link {
                     background: #12121f;
                     color: #4a5568;
-                    border-color: rgba(139,69,19,.15);
+                    border-color: rgba(var(--btn-bg-rgb), .15);
                     cursor: not-allowed;
                 }
             </style>

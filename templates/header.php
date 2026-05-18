@@ -174,8 +174,8 @@ if (!empty($config['features']['maintenance'])) {
         .nav-tabs .nav-item.show .nav-link {
             /* Style for the active tab - matching custom btn-primary */
             color: #fff; /* White text */
-            background-color: #8B4513; /* Custom brownish-orange from button image */
-            border-color: #A0522D; /* Match background color */
+            background-color: var(--btn-bg); /* themeable (shipped brownish-orange) */
+            border-color: var(--btn-bg-hover); /* Match background color */
             font-weight: 500; /* Slightly bolder text */
         }
 
@@ -186,7 +186,7 @@ if (!empty($config['features']['maintenance'])) {
             height: 28px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1.5px solid rgba(200,169,110,.5);
+            border: 1.5px solid rgba(var(--accent-rgb),.5);
             box-shadow: 0 2px 6px rgba(0,0,0,.4);
             display: inline-block;
             vertical-align: middle;

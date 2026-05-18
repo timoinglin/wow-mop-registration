@@ -88,7 +88,7 @@ foreach ($footer_cfg['custom'] as $row) {
     text-decoration: none;
     transition: color .2s;
 }
-.footer-link:hover { color: #c8a96e; }
+.footer-link:hover { color: var(--accent); }
 .footer-sep { color: rgba(255,255,255,.2); margin: 0 .5rem; }
 </style>
 

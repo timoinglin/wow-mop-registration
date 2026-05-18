@@ -169,7 +169,7 @@ $faq_items = $config['faq'] ?? [];
                                     <i class="bi <?= htmlspecialchars($news['icon'] ?? 'bi-megaphone') ?>"></i>
                                 </div>
                                 <div>
-                                    <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem"><?= htmlspecialchars($news['title']) ?></h5>
+                                    <h5 style="color:var(--accent);margin:0;font-weight:700;font-size:1rem"><?= htmlspecialchars($news['title']) ?></h5>
                                     <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($news['date']) ?></span>
                                 </div>
                             </div>
@@ -205,7 +205,7 @@ $faq_items = $config['faq'] ?? [];
                                 <div class="d-flex align-items-center gap-3 mb-3">
                                     <div class="news-icon-circle"><i class="bi <?= htmlspecialchars($fi['icon']) ?>"></i></div>
                                     <div style="min-width:0">
-                                        <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fi['title']) ?></h5>
+                                        <h5 style="color:var(--accent);margin:0;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fi['title']) ?></h5>
                                         <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($fi['cat']) ?> &middot; <?= (int)$fi['replies'] ?> <?= htmlspecialchars($TEXT['forum_replies'] ?? 'replies') ?></span>
                                     </div>
                                 </div>
@@ -423,7 +423,7 @@ $faq_items = $config['faq'] ?? [];
                 <div class="accordion-item faq-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed faq-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq-<?= $i ?>" aria-expanded="false">
-                            <i class="bi bi-patch-question me-2" style="color:#c8a96e"></i>
+                            <i class="bi bi-patch-question me-2" style="color:var(--accent)"></i>
                             <?= htmlspecialchars($faq['q']) ?>
                         </button>
                     </h2>
@@ -469,19 +469,19 @@ $faq_items = $config['faq'] ?? [];
 }
 .news-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(200,169,110,.5);
+    border-color: rgba(var(--accent-rgb), .5);
 }
 .news-icon-circle {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(139,69,19,.3), rgba(200,169,110,.15));
-    border: 1px solid rgba(200,169,110,.25);
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), .3), rgba(var(--accent-rgb), .15));
+    border: 1px solid rgba(var(--accent-rgb), .25);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.3rem;
-    color: #c8a96e;
+    color: var(--accent);
     flex-shrink: 0;
 }
 
@@ -491,13 +491,13 @@ $faq_items = $config['faq'] ?? [];
 }
 .counter-icon {
     font-size: 2.5rem;
-    color: #c8a96e;
+    color: var(--accent);
     margin-bottom: .75rem;
 }
 .counter-value {
     font-size: 2.8rem;
     font-weight: 800;
-    color: #c8a96e;
+    color: var(--accent);
     line-height: 1;
     margin-bottom: .3rem;
     font-variant-numeric: tabular-nums;
@@ -513,7 +513,7 @@ $faq_items = $config['faq'] ?? [];
 /* FAQ Accordion */
 .faq-item {
     background: transparent;
-    border: 1px solid rgba(139,69,19,.2);
+    border: 1px solid rgba(var(--btn-bg-rgb), .2);
     border-radius: 12px !important;
     margin-bottom: .75rem;
     overflow: hidden;
@@ -529,8 +529,8 @@ $faq_items = $config['faq'] ?? [];
     transition: all .2s ease;
 }
 .faq-btn:not(.collapsed) {
-    background: rgba(139,69,19,.15);
-    color: #c8a96e;
+    background: rgba(var(--btn-bg-rgb), .15);
+    color: var(--accent);
 }
 .faq-btn::after {
     filter: invert(1) brightness(.6);
@@ -546,7 +546,7 @@ $faq_items = $config['faq'] ?? [];
     font-size: .93rem;
     line-height: 1.7;
     background: rgba(0,0,0,.2);
-    border-top: 1px solid rgba(139,69,19,.15);
+    border-top: 1px solid rgba(var(--btn-bg-rgb), .15);
     padding: 1.2rem 1.3rem;
 }
 </style>

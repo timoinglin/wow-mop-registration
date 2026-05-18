@@ -118,7 +118,7 @@ return [
   'forum_new_thread_btn'       => 'Nuevo Hilo',
   'forum_login_to_post'        => 'Inicia sesión para publicar',
   'forum_login_to_reply'       => 'Inicia sesión para responder.',
-  'forum_login_to_reply_link'  => '<a href="%s" style="color:#c8a96e">Inicia sesión</a> para responder.',
+  'forum_login_to_reply_link'  => '<a href="%s" style="color:var(--accent)">Inicia sesión</a> para responder.',
   'forum_field_thread_title'   => 'Título *',
   'forum_field_body'           => 'Cuerpo * (Markdown)',
   'forum_title_placeholder'    => 'Un título corto y descriptivo…',
@@ -807,12 +807,12 @@ return [
   'dash_view_my_armory'            => 'Mi Perfil en la Armería',
 
   // ─── Página de tickets ──────────────────────────────────────────────────────
-  'tickets_intro_html'             => 'Describe tu problema — nuestro equipo te responderá a <strong style="color:#c8a96e">%s</strong>',
+  'tickets_intro_html'             => 'Describe tu problema — nuestro equipo te responderá a <strong style="color:var(--accent)">%s</strong>',
   'tickets_tab_new'                => 'Nuevo Ticket',
   'tickets_tab_my'                 => 'Mis Tickets',
   'tickets_subject_placeholder'    => 'Resumen breve de tu problema…',
   'tickets_message_placeholder'    => 'Describe tu problema en detalle…',
-  'tickets_drop_zone_text'         => 'Arrastra y suelta archivos aquí, o <strong style="color:#c8a96e">selecciónalos</strong>',
+  'tickets_drop_zone_text'         => 'Arrastra y suelta archivos aquí, o <strong style="color:var(--accent)">selecciónalos</strong>',
   'tickets_cat_account'            => 'Problemas de Cuenta',
   'tickets_cat_bug'                => 'Reportar Error',
   'tickets_cat_player'             => 'Reportar Jugador',

@@ -297,6 +297,17 @@ if (!function_exists('theme_darken')) {
     }
 }
 
+if (!function_exists('theme_rgb_triplet')) {
+    /** "#rrggbb" → "r, g, b" (for the --accent-rgb custom property). */
+    function theme_rgb_triplet(string $hex): string
+    {
+        if (!theme_hex_ok($hex)) $hex = THEME_ACCENT_DEFAULT;
+        return hexdec(substr($hex, 1, 2)) . ', '
+             . hexdec(substr($hex, 3, 2)) . ', '
+             . hexdec(substr($hex, 5, 2));
+    }
+}
+
 if (!function_exists('theme_rgba')) {
     /** "#rrggbb" + alpha → "rgba(r, g, b, a)" (for --accent-glow). */
     function theme_rgba(string $hex, float $a = 0.55): string
@@ -406,10 +417,17 @@ if (!function_exists('theme_css')) {
     {
         if (theme_is_default($t)) return '';
         $acc  = theme_hex_ok($t['accent']) ? $t['accent'] : THEME_ACCENT_DEFAULT;
+        $dim  = theme_darken($acc);
         $vars = [
             '--accent: ' . $acc,
-            '--accent-dim: ' . theme_darken($acc),
+            '--accent-dim: ' . $dim,
             '--accent-glow: ' . theme_rgba($acc, 0.55),
+            // so rgba(var(--accent-rgb), a) borders/glows recolour too
+            '--accent-rgb: ' . theme_rgb_triplet($acc),
+            // shipped wood buttons follow the accent once a theme is set
+            '--btn-bg: ' . $dim,
+            '--btn-bg-hover: ' . $acc,
+            '--btn-bg-rgb: ' . theme_rgb_triplet($dim),
         ];
         if (theme_hex_ok($t['bg_dark'])) $vars[] = '--bg-dark: ' . $t['bg_dark'];
         if (theme_hex_ok($t['bg_card'])) {

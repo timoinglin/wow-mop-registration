@@ -51,7 +51,7 @@ if (!$ticket) {
     require_once __DIR__ . '/../templates/header.php';
     ?>
     <div class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center">
-        <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['ticket_not_found_title'] ?? 'Ticket not found') ?></h2>
+        <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['ticket_not_found_title'] ?? 'Ticket not found') ?></h2>
         <p style="color:#8899aa"><?= htmlspecialchars($TEXT['ticket_not_found_hint'] ?? 'This ticket does not exist or is not yours.') ?></p>
         <a href="/tickets" class="btn btn-gold mt-2">← <?= htmlspecialchars($TEXT['tickets_tab_my'] ?? 'My Tickets') ?></a>
     </div>
@@ -205,11 +205,11 @@ require_once __DIR__ . '/../templates/header.php';
 <style>
 .tv-wrap { padding-top: 90px; padding-bottom: 3rem; max-width: 920px; margin: 0 auto; }
 .tv-back { color: #8899aa; text-decoration: none; font-size: .88rem; }
-.tv-back:hover { color: #c8a96e; }
+.tv-back:hover { color: var(--accent); }
 
 .tv-header {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
     margin: 1rem 0 1.5rem;
@@ -239,7 +239,7 @@ require_once __DIR__ . '/../templates/header.php';
 
 .tv-thread {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), .25);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
     margin-bottom: 1.5rem;
@@ -254,7 +254,7 @@ require_once __DIR__ . '/../templates/header.php';
 .tv-bubble:last-child { margin-bottom: 0; }
 .tv-bubble.user {
     background: rgba(255,255,255,0.03);
-    border-left: 3px solid rgba(200,169,110,0.5);
+    border-left: 3px solid rgba(var(--accent-rgb), 0.5);
 }
 .tv-bubble.admin {
     background: rgba(93,216,124,0.06);
@@ -268,7 +268,7 @@ require_once __DIR__ . '/../templates/header.php';
     color: #8899aa;
     display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
 }
-.tv-bubble.user  .tv-bubble-meta { color: #c8a96e; }
+.tv-bubble.user  .tv-bubble-meta { color: var(--accent); }
 .tv-bubble.admin .tv-bubble-meta { color: #5dd87c; }
 .tv-bubble-body { color: #e2e8f0; word-wrap: break-word; }
 .tv-bubble-body p { margin: 0 0 .6rem; }
@@ -284,7 +284,7 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .tv-bubble-body pre code { background: none; padding: 0; color: #e2e8f0; }
 .tv-bubble-body blockquote {
-    border-left: 3px solid rgba(200,169,110,.4); padding-left: 1rem;
+    border-left: 3px solid rgba(var(--accent-rgb), .4); padding-left: 1rem;
     margin: 0 0 .6rem; color: #c0c8d8; font-style: italic;
 }
 .tv-bubble-body a { color: #69ccf0; }
@@ -304,7 +304,7 @@ require_once __DIR__ . '/../templates/header.php';
     cursor: zoom-in;
     max-width: 220px;
 }
-.tv-attachment:hover { border-color: rgba(200,169,110,.5); transform: translateY(-2px); }
+.tv-attachment:hover { border-color: rgba(var(--accent-rgb), .5); transform: translateY(-2px); }
 .tv-attachment img { width: 100%; height: 140px; object-fit: cover; display: block; }
 .tv-attachment .tv-att-name {
     font-size: .72rem; color: #8899aa; padding: .35rem .55rem;
@@ -327,13 +327,13 @@ require_once __DIR__ . '/../templates/header.php';
 /* Reply form */
 .tv-reply {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), .25);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
 }
 .tv-reply h3 {
     font-size: .82rem;
-    color: #c8a96e;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 1.2px;
     font-weight: 700;
@@ -356,8 +356,8 @@ require_once __DIR__ . '/../templates/header.php';
     font-family: inherit;
 }
 .tv-reply textarea:focus {
-    border-color: rgba(200,169,110,0.5);
-    box-shadow: 0 0 0 3px rgba(139,69,19,0.15);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 0 3px rgba(var(--btn-bg-rgb), 0.15);
 }
 .tv-md-hint {
     display: flex; align-items: center; gap: .5rem;
@@ -365,10 +365,10 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .tv-md-hint code {
     background: rgba(0,0,0,.3); padding: .05rem .3rem; border-radius: 3px;
-    color: #c8a96e; font-size: .9em;
+    color: var(--accent); font-size: .9em;
 }
 .tv-md-toggle {
-    color: #c8a96e; cursor: pointer; text-decoration: underline;
+    color: var(--accent); cursor: pointer; text-decoration: underline;
     text-decoration-style: dotted; user-select: none;
 }
 .tv-md-help {
@@ -391,7 +391,7 @@ require_once __DIR__ . '/../templates/header.php';
     cursor: pointer;
     position: relative;
 }
-.tv-attach-row:hover { border-color: rgba(200,169,110,.4); background: rgba(139,69,19,.05); }
+.tv-attach-row:hover { border-color: rgba(var(--accent-rgb), .4); background: rgba(var(--btn-bg-rgb), .05); }
 .tv-attach-row input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .tv-attach-row .placeholder { color: #8899aa; font-size: .85rem; }
 .tv-attach-row .placeholder i { margin-right: .35rem; }
@@ -413,14 +413,14 @@ require_once __DIR__ . '/../templates/header.php';
     gap: .4rem;
 }
 .tv-btn-primary {
-    background: linear-gradient(135deg, #8B4513, #A0522D);
-    border-color: #A0522D;
+    background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover));
+    border-color: var(--btn-bg-hover);
     color: #fff;
 }
 .tv-btn-primary:hover {
-    background: linear-gradient(135deg, #A0522D, #c8a96e);
+    background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent));
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(139,69,19,.35);
+    box-shadow: 0 6px 18px rgba(var(--btn-bg-rgb), .35);
 }
 .tv-btn-danger {
     background: rgba(220,53,69,0.08);
@@ -597,7 +597,7 @@ function updateFileList(input) {
         ph.innerHTML = '<i class="bi bi-paperclip"></i><?= htmlspecialchars(addslashes($TEXT['tickets_attach_files'] ?? 'Attach images')) ?>';
         return;
     }
-    ph.innerHTML = '<i class="bi bi-paperclip-fill" style="color:#c8a96e"></i> ' +
+    ph.innerHTML = '<i class="bi bi-paperclip-fill" style="color:var(--accent)"></i> ' +
         files.map(f => f.name + ' (' + Math.round(f.size/1024) + ' KB)').join(', ');
 }
 
