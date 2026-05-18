@@ -53,10 +53,15 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ## Preview
 
-> 💡 Screenshots below — or [**view it running live at wow-legends.eu →**](https://wow-legends.eu/)
+> ▶ **[See it running live → wow-legends.eu](https://wow-legends.eu/)** — the live demo tracks the latest `develop`, so it's always the most accurate look (themed accent, custom home-page sections, current UI). The shots below are just a snapshot; admin tooling is covered in **[docs/ADMIN.md](docs/ADMIN.md)**.
 
 ### Home Page
-![Home Page](assets/img/screenshots/home.png)
+![Home Page](assets/img/screenshots/home.webp)
+
+### Customization — no-code, update-safe
+*One GM-only page (`/admin_customization`): **Theme & branding** (accent / preset palettes / logos / favicon / hero background + live preview), a **section-based home-page designer** (drag-reorder, toggle, add card-grid / text / CTA / Q&A), an editable **footer**, **languages**, and the presentational **site settings** — all DB-stored and survives updates.*
+
+![Customization](assets/img/screenshots/customization.webp)
 
 ### User Dashboard
 ![User Dashboard](assets/img/screenshots/user.png)
@@ -72,34 +77,25 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![Public Shop](assets/img/screenshots/shop_public.png)
 
+### Community Forum
+*Threads on `/forum/{category}/{thread}` — categories, stickies/announcements, per-category posting policy, and (for GM 9+) inline Mod tools. Full forum admin lives in **[docs/ADMIN.md](docs/ADMIN.md)**.*
+
+![Community Forum](assets/img/screenshots/forum_user.png)
+
 ### Custom 404 Page
 *"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
 
 ![404 Page](assets/img/404-spirit-healer.png)
 
-### Forum — Thread Page
-*A thread on `/forum/{category}/{thread}` — same page everyone sees, but viewed as a GM 9+ admin so the **Mod tools** row (Approve / Sticky / Lock / Delete) appears in the hero, alongside per-post Edit and Delete links.*
+<!-- Screenshot policy (keep this list lean): ~8 public-facing shots max.
+     A new feature gets a bullet in Features + the live demo, and at most
+     REPLACES the most relevant shot here — do NOT append a new ### per
+     feature. Admin deep-dives = docs/ + live demo, not the README. New/
+     replacement shots: .webp, ≤ ~500 KB. The 5 admin PNGs removed from
+     this list (forum_admin, shop_management, admin1, admin-accounts,
+     admin-tickets) can be deleted from assets/img/screenshots/ in a
+     cleanup commit if nothing else references them. -->
 
-![Forum Thread Page](assets/img/screenshots/forum_user.png)
-
-### Forum — Admin Configuration
-*The full forum admin page at `/admin_forum` — Moderation Queue (pending threads + replies with Approve / Reject), Settings (enable toggle + auto-approve threshold), Categories CRUD, and Forum Bans.*
-
-![Forum Admin Configuration](assets/img/screenshots/forum_admin.png)
-
-### In-Game Shop Management
-*The GM-only `/admin_shop` — full CRUD over the repack's Battle Pay store (categories, item tiles, prices, reorder, move, Wowhead previews) plus the Battle Coins exchange-rate setting, all feature-flagged and repack-portable.*
-
-![In-Game Shop Management](assets/img/screenshots/shop_management.png)
-
-### Admin Dashboard - Overview
-![Admin Overview](assets/img/screenshots/admin1.png)
-
-### Admin Dashboard - Accounts
-![Admin Accounts](assets/img/screenshots/admin-accounts.png)
-
-### Admin Dashboard - Tickets
-![Admin Tickets](assets/img/screenshots/admin-tickets.png)
 
 ---
 
