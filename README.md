@@ -32,8 +32,9 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 🗝️ **Auth** — SHA-1 password hashing matching the TrinityCore format
 - 📧 **Email** — SMTP password recovery and ticket notifications via PHPMailer
 - 📊 **Live Stats** — Real-time server status, player counts, and animated counters
-- 🌍 **Multilingual** — English and Spanish included; easy to add more
-- 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design
+- 🌍 **Multilingual** — English and Spanish included; **adding a language is no-code** (drop `lang/<code>.php`, enable it in the admin)
+- 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design; the accent recolours the whole site
+- 🛠️ **Site Customization (no-code, update-safe)** — one GM-only `/admin_customization` page: **Theme & branding** (accent / preset palettes / logos / favicon / hero background, live preview), a **drag-and-drop home-page designer** (reorder & toggle built-ins, add card-grid / text / CTA / Q&A sections), an editable **footer**, **languages**, and the presentational **site settings** (titles, social links, Ko-fi/playtime/vote config). All DB-stored — `config.php` stays the untouched fallback, so changes survive updates.
 - ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, and maintenance mode from config
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
 - 🔍 **Public Armory** — Search any character on the realm; profile pages with equipped gear (Wowhead tooltips), stats, achievements, and account-mate links
@@ -53,10 +54,15 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ## Preview
 
-> 💡 Screenshots below — or [**view it running live at wow-legends.eu →**](https://wow-legends.eu/)
+> ▶ **[See it running live → wow-legends.eu](https://wow-legends.eu/)** — the live demo tracks the latest `develop`, so it's always the most accurate look (themed accent, custom home-page sections, current UI). The shots below are just a snapshot; admin tooling is covered in **[docs/ADMIN.md](docs/ADMIN.md)**.
 
 ### Home Page
-![Home Page](assets/img/screenshots/home.png)
+![Home Page](assets/img/screenshots/home.webp)
+
+### Customization — no-code, update-safe
+*One GM-only page (`/admin_customization`): **Theme & branding** (accent / preset palettes / logos / favicon / hero background + live preview), a **section-based home-page designer** (drag-reorder, toggle, add card-grid / text / CTA / Q&A), an editable **footer**, **languages**, and the presentational **site settings** — all DB-stored and survives updates.*
+
+![Customization](assets/img/screenshots/customization.webp)
 
 ### User Dashboard
 ![User Dashboard](assets/img/screenshots/user.png)
@@ -72,34 +78,25 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 
 ![Public Shop](assets/img/screenshots/shop_public.png)
 
+### Community Forum
+*Threads on `/forum/{category}/{thread}` — categories, stickies/announcements, per-category posting policy, and (for GM 9+) inline Mod tools. Full forum admin lives in **[docs/ADMIN.md](docs/ADMIN.md)**.*
+
+![Community Forum](assets/img/screenshots/forum_user.png)
+
 ### Custom 404 Page
 *"You died." — your players will never feel less lost. With a hidden murloc easter egg.*
 
 ![404 Page](assets/img/404-spirit-healer.png)
 
-### Forum — Thread Page
-*A thread on `/forum/{category}/{thread}` — same page everyone sees, but viewed as a GM 9+ admin so the **Mod tools** row (Approve / Sticky / Lock / Delete) appears in the hero, alongside per-post Edit and Delete links.*
+<!-- Screenshot policy (keep this list lean): ~8 public-facing shots max.
+     A new feature gets a bullet in Features + the live demo, and at most
+     REPLACES the most relevant shot here — do NOT append a new ### per
+     feature. Admin deep-dives = docs/ + live demo, not the README. New/
+     replacement shots: .webp, ≤ ~500 KB. The 5 admin PNGs removed from
+     this list (forum_admin, shop_management, admin1, admin-accounts,
+     admin-tickets) can be deleted from assets/img/screenshots/ in a
+     cleanup commit if nothing else references them. -->
 
-![Forum Thread Page](assets/img/screenshots/forum_user.png)
-
-### Forum — Admin Configuration
-*The full forum admin page at `/admin_forum` — Moderation Queue (pending threads + replies with Approve / Reject), Settings (enable toggle + auto-approve threshold), Categories CRUD, and Forum Bans.*
-
-![Forum Admin Configuration](assets/img/screenshots/forum_admin.png)
-
-### In-Game Shop Management
-*The GM-only `/admin_shop` — full CRUD over the repack's Battle Pay store (categories, item tiles, prices, reorder, move, Wowhead previews) plus the Battle Coins exchange-rate setting, all feature-flagged and repack-portable.*
-
-![In-Game Shop Management](assets/img/screenshots/shop_management.png)
-
-### Admin Dashboard - Overview
-![Admin Overview](assets/img/screenshots/admin1.png)
-
-### Admin Dashboard - Accounts
-![Admin Accounts](assets/img/screenshots/admin-accounts.png)
-
-### Admin Dashboard - Tickets
-![Admin Tickets](assets/img/screenshots/admin-tickets.png)
 
 ---
 
@@ -185,6 +182,9 @@ Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold i
 - **Donation disclaimer on `/shop`** — a clear, always-visible note that donations are a voluntary tip (not a purchase) and Battle Coins are a complimentary thank-you gift, non-refundable. Protects the operator from refund/chargeback/consumer-rights claims.
 - **Customizable footer** — new admin **Customization** page (`/admin_customization`): toggle the built-in footer quick-links and add your own (e.g. a donations-disclaimer link). Stored in the DB so it survives updates; `config.php` stays the fallback. Foundation for future home-page/theming customization.
 - **Languages section** (Customization) — **adding a language is now no-code**: drop a `lang/<code>.php` (copy `lang/en.php`, translate) and it's auto-discovered. Admin can enable/disable which languages show in the site menu (English always on); built-in instructions explain the copy/translate flow. Missing keys still fall back to English.
+- **Theme & branding** (Customization) — **recolour and re-brand the site with no code edits**: pick an accent colour (custom `#rrggbb` or a preset palette) with a live preview, optionally override the base dark tone, and upload your own **main logo**, **top-left logo**, **favicon** and **header background** (image *or* looping video). Optional advanced custom-CSS escape hatch (sanitised). All DB-stored under `uploads/branding/` + `site_settings`, so it **survives updates** — no more hand-editing `style.css` and losing it on the next update.
+- **Site settings** (Customization) — the presentational `config.php` values are now editable in the admin with **no file edit**: site/browser title, realm name & description, social links, the Ko-fi page URL / currency / minimum, playtime-reward tunables (DP/hour, daily cap), and the vote-site list. Every field is *blank = use the `config.php` default* (config is never overwritten — it stays the seed). Secrets & bootstrap (Ko-fi webhook token, `db`/`smtp`/`recaptcha`, `site.base_url`, **all `features.*`** incl. `playtime_reward.enabled`) deliberately stay file-only.
+- **Home page designer** (Customization) — a **section-based homepage editor**: drag to reorder, toggle on/off, and add your own sections — **Card grid** (responsive 2/3/4 cols), **Text block** (Markdown), **Call to action**, **Q&A accordion**. Built-in sections (hero, news, forum, how-to-connect, counters, features, FAQ) keep their live content and are just toggled/reordered; the hero stays pinned at the top. Predefined types + structured fields only (no raw HTML), DB-stored — the nav and footer are untouched, and an un-customized install renders exactly as before.
 
 *Empty = the latest tagged release is fully current.*
 
@@ -198,7 +198,7 @@ Full guides live in the [`docs/`](docs/) folder so this README stays focused on 
 |---|---|
 | **[Installation](docs/INSTALL.md)** | Requirements, manual setup, database, the configuration steps, feature flags, `mod_rewrite` |
 | **[Updating](docs/UPDATE.md)** | The one-click updater, Git & manual paths, and every version-specific upgrade guide |
-| **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, changing text & images |
+| **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, and the no-code **Customization** suite (theme & branding, home-page designer, footer, languages, site settings) |
 | **[Security Notes](docs/SECURITY.md)** | What's protected out of the box and what you must configure |
 | **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and their fixes |
 | **[Shop DB Schema](docs/SHOP_SCHEMA.md)** | Reverse-engineered `battle_pay_*` reference for debugging / hand-editing the in-game shop |

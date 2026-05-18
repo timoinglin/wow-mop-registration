@@ -172,7 +172,8 @@ if ($edit_id > 0) {
     $post = ['id'=>0,'slug'=>'','title'=>'','excerpt'=>'','body'=>'','icon'=>'bi-megaphone','status'=>'draft','published_at'=>null];
 }
 
-$page_title = ($TEXT['news_admin_title'] ?? 'Manage News') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['news_admin_title'] ?? 'Manage News') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 
 // Load EasyMDE only on the edit/create form
 if ($mode === 'edit') {
@@ -188,36 +189,36 @@ $csrf = generate_csrf_token();
 
 <style>
 .news-admin-wrap { padding-top:120px; padding-bottom:3rem; }
-.news-admin-card { background:linear-gradient(145deg,#15151f,#0e0e17); border:1px solid rgba(139,69,19,.3); border-radius:8px; padding:1.5rem; margin-bottom:1.5rem; }
+.news-admin-card { background:linear-gradient(145deg,#15151f,#0e0e17); border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:8px; padding:1.5rem; margin-bottom:1.5rem; }
 .news-admin-input,
 .news-admin-textarea,
 .news-admin-select {
-    width:100%; padding:.6rem .8rem; background:#0a0a0f; border:1px solid rgba(139,69,19,.3);
+    width:100%; padding:.6rem .8rem; background:#0a0a0f; border:1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius:4px; color:#fff; font-size:.95rem; font-family:inherit;
 }
 .news-admin-textarea { font-family: 'SFMono-Regular',Consolas,monospace; font-size:.9rem; line-height:1.5; }
-.news-admin-input:focus, .news-admin-textarea:focus, .news-admin-select:focus { outline:none; border-color:#c8a96e; }
+.news-admin-input:focus, .news-admin-textarea:focus, .news-admin-select:focus { outline:none; border-color:var(--accent); }
 .news-admin-label { display:block; font-size:.78rem; color:#8899aa; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.3rem; }
 .news-admin-btn { padding:.5rem 1.1rem; border-radius:4px; border:1px solid; cursor:pointer; font-size:.9rem; transition:all .15s ease; text-decoration:none; display:inline-block; }
-.news-admin-btn-primary { background:#8B4513; color:#fff; border-color:#A0522D; }
-.news-admin-btn-primary:hover { background:#A0522D; color:#fff; }
-.news-admin-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(139,69,19,.3); }
-.news-admin-btn-ghost:hover { color:#c8a96e; border-color:#c8a96e; }
+.news-admin-btn-primary { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
+.news-admin-btn-primary:hover { background:var(--btn-bg-hover); color:#fff; }
+.news-admin-btn-ghost { background:transparent; color:#8899aa; border-color:rgba(var(--btn-bg-rgb), .3); }
+.news-admin-btn-ghost:hover { color:var(--accent); border-color:var(--accent); }
 .news-admin-btn-danger { background:#5a1f1f; color:#fff; border-color:#7a2a2a; }
 .news-admin-btn-danger:hover { background:#7a2a2a; }
 .news-tbl { width:100%; border-collapse:collapse; color:#dee2e6; font-size:.9rem; }
-.news-tbl th { text-align:left; padding:.7rem .8rem; border-bottom:1px solid rgba(139,69,19,.3); color:#8899aa; font-weight:600; text-transform:uppercase; font-size:.72rem; letter-spacing:.5px; }
-.news-tbl td { padding:.7rem .8rem; border-bottom:1px solid rgba(139,69,19,.1); vertical-align:middle; }
-.news-tbl tr:hover td { background:rgba(139,69,19,.06); }
+.news-tbl th { text-align:left; padding:.7rem .8rem; border-bottom:1px solid rgba(var(--btn-bg-rgb), .3); color:#8899aa; font-weight:600; text-transform:uppercase; font-size:.72rem; letter-spacing:.5px; }
+.news-tbl td { padding:.7rem .8rem; border-bottom:1px solid rgba(var(--btn-bg-rgb), .1); vertical-align:middle; }
+.news-tbl tr:hover td { background:rgba(var(--btn-bg-rgb), .06); }
 .news-status-pill { display:inline-block; padding:.15rem .55rem; border-radius:10px; font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; }
 .news-status-pub { background:rgba(46,204,113,.15); color:#5dd87c; border:1px solid rgba(46,204,113,.3); }
 .news-status-draft { background:rgba(139,139,139,.15); color:#8899aa; border:1px solid rgba(139,139,139,.3); }
-.preview-pane { background:#0a0a0f; border:1px solid rgba(139,69,19,.3); border-radius:4px; padding:1rem; min-height:200px; color:rgba(255,255,255,.85); line-height:1.7; }
-.preview-pane h1,.preview-pane h2,.preview-pane h3,.preview-pane h4 { color:#c8a96e; }
+.preview-pane { background:#0a0a0f; border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:4px; padding:1rem; min-height:200px; color:rgba(255,255,255,.85); line-height:1.7; }
+.preview-pane h1,.preview-pane h2,.preview-pane h3,.preview-pane h4 { color:var(--accent); }
 .preview-pane a { color:#69CCF0; }
 .preview-pane code { background:rgba(255,255,255,.06); padding:.1rem .35rem; border-radius:3px; }
 .preview-pane pre { background:rgba(0,0,0,.4); padding:.7rem; border-radius:4px; overflow-x:auto; }
-.preview-pane blockquote { border-left:3px solid #c8a96e; padding-left:1rem; color:#8899aa; }
+.preview-pane blockquote { border-left:3px solid var(--accent); padding-left:1rem; color:#8899aa; }
 .preview-pane img { max-width:100%; height:auto; }
 .alert-news-success { background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.3); color:#5dd87c; padding:.8rem 1rem; border-radius:4px; margin-bottom:1rem; }
 .alert-news-error { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); color:#e74c3c; padding:.8rem 1rem; border-radius:4px; margin-bottom:1rem; }
@@ -238,7 +239,7 @@ $csrf = generate_csrf_token();
     <?php if ($mode === 'list'): ?>
 
         <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-            <h1 style="color:#c8a96e;margin:0;font-weight:700"><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['news_admin_title'] ?? 'Manage News') ?></h1>
+            <h1 style="color:var(--accent);margin:0;font-weight:700"><i class="bi bi-newspaper me-2"></i><?= htmlspecialchars($TEXT['news_admin_title'] ?? 'Manage News') ?></h1>
             <div class="d-flex gap-2">
                 <a href="/admin_dashboard" class="news-admin-btn news-admin-btn-ghost"><i class="bi bi-arrow-left me-1"></i><?= htmlspecialchars($TEXT['news_admin_back'] ?? 'Back to Admin') ?></a>
                 <a href="/admin_news?new=1" class="news-admin-btn news-admin-btn-primary"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['news_admin_new'] ?? 'New Post') ?></a>
@@ -269,7 +270,7 @@ $csrf = generate_csrf_token();
                     <tbody>
                         <?php foreach ($all as $row): ?>
                             <tr>
-                                <td><strong style="color:#c8a96e"><?= htmlspecialchars($row['title']) ?></strong></td>
+                                <td><strong style="color:var(--accent)"><?= htmlspecialchars($row['title']) ?></strong></td>
                                 <td style="color:#8899aa;font-family:monospace;font-size:.85rem"><?= htmlspecialchars($row['slug']) ?></td>
                                 <td>
                                     <?php if ($row['status'] === 'published'): ?>
@@ -309,7 +310,7 @@ $csrf = generate_csrf_token();
     <?php else: /* edit/create form */ ?>
 
         <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-            <h1 style="color:#c8a96e;margin:0;font-weight:700">
+            <h1 style="color:var(--accent);margin:0;font-weight:700">
                 <i class="bi bi-<?= $post['id'] ? 'pencil-square' : 'plus-square' ?> me-2"></i>
                 <?= $post['id']
                     ? htmlspecialchars($TEXT['news_admin_editing'] ?? 'Editing Post')
@@ -386,45 +387,45 @@ $csrf = generate_csrf_token();
 <style>
 .EasyMDEContainer .editor-toolbar {
     background: #15151f;
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-bottom: none;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
     opacity: 1;
 }
 .EasyMDEContainer .editor-toolbar button {
-    color: #c8a96e !important;
+    color: var(--accent) !important;
     border-color: transparent !important;
 }
 .EasyMDEContainer .editor-toolbar button:hover,
 .EasyMDEContainer .editor-toolbar button.active {
     background: #2a1f10 !important;
-    border-color: rgba(139,69,19,.3) !important;
+    border-color: rgba(var(--btn-bg-rgb), .3) !important;
     color: #fff !important;
 }
 .EasyMDEContainer .editor-toolbar i.separator {
-    border-left-color: rgba(139,69,19,.2);
-    border-right-color: rgba(139,69,19,.2);
+    border-left-color: rgba(var(--btn-bg-rgb), .2);
+    border-right-color: rgba(var(--btn-bg-rgb), .2);
 }
 .EasyMDEContainer .CodeMirror {
     background: #0a0a0f;
     color: #dee2e6;
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 0 0 4px 4px;
     font-family: 'SFMono-Regular',Consolas,monospace;
     font-size: .9rem;
     line-height: 1.55;
     min-height: 420px;
 }
-.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid #c8a96e !important; }
-.EasyMDEContainer .CodeMirror-selected { background: rgba(200,169,110,.18); }
-.EasyMDEContainer .CodeMirror-gutters { background: #0a0a0f; border-right-color: rgba(139,69,19,.2); }
+.EasyMDEContainer .CodeMirror-cursor { border-left: 2px solid var(--accent) !important; }
+.EasyMDEContainer .CodeMirror-selected { background: rgba(var(--accent-rgb), .18); }
+.EasyMDEContainer .CodeMirror-gutters { background: #0a0a0f; border-right-color: rgba(var(--btn-bg-rgb), .2); }
 .EasyMDEContainer .CodeMirror-linenumber { color: #4a5568; }
 .EasyMDEContainer .editor-preview,
 .EasyMDEContainer .editor-preview-side {
     background: #0a0a0f;
     color: rgba(255,255,255,.85);
-    border-color: rgba(139,69,19,.3);
+    border-color: rgba(var(--btn-bg-rgb), .3);
     line-height: 1.7;
 }
 .EasyMDEContainer .editor-preview h1,
@@ -434,7 +435,7 @@ $csrf = generate_csrf_token();
 .EasyMDEContainer .editor-preview-side h1,
 .EasyMDEContainer .editor-preview-side h2,
 .EasyMDEContainer .editor-preview-side h3,
-.EasyMDEContainer .editor-preview-side h4 { color: #c8a96e; }
+.EasyMDEContainer .editor-preview-side h4 { color: var(--accent); }
 .EasyMDEContainer .editor-preview a,
 .EasyMDEContainer .editor-preview-side a { color: #69CCF0; }
 .EasyMDEContainer .editor-preview code,
@@ -453,13 +454,13 @@ $csrf = generate_csrf_token();
 .EasyMDEContainer .editor-preview-side img { max-width: 100%; height: auto; border-radius: 6px; }
 .EasyMDEContainer .editor-preview blockquote,
 .EasyMDEContainer .editor-preview-side blockquote {
-    border-left: 3px solid #c8a96e;
+    border-left: 3px solid var(--accent);
     padding-left: 1rem;
     color: #8899aa;
 }
 .EasyMDEContainer .editor-statusbar {
     color: #4a5568;
-    border: 1px solid rgba(139,69,19,.15);
+    border: 1px solid rgba(var(--btn-bg-rgb), .15);
     border-top: none;
     background: #12121f;
     padding: .35rem .8rem;

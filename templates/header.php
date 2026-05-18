@@ -35,6 +35,41 @@ try {
     error_log('header forum-enabled check failed: ' . $e->getMessage());
 }
 
+// Language switcher + theme. Both come from admin Customization (site_settings)
+// and must never break the public header — hard literal fallbacks first, then
+// override only if the helpers loaded cleanly.
+$nav_langs = [$lang => strtoupper($lang)];
+$theme = [
+    'accent' => '#c89b3c', 'bg_dark' => '', 'bg_card' => '', 'text' => '',
+    'preset' => '', 'custom_css' => '', 'custom_css_on' => 0,
+    'logo_main' => '', 'logo_top' => '', 'favicon' => '',
+    'header_bg' => '', 'header_bg_kind' => '',
+];
+try {
+    @require_once __DIR__ . '/../includes/site_settings.php';
+    if (function_exists('languages_enabled')) {
+        $nav_langs = languages_enabled($pdo_auth ?? null);
+        if (empty($nav_langs)) $nav_langs = ['en' => 'English'];
+    }
+    if (function_exists('theme_get')) {
+        $theme = theme_get($pdo_auth ?? null);
+    }
+} catch (Throwable $e) {
+    error_log('header language/theme load failed: ' . $e->getMessage());
+}
+// Effective presentational settings (admin override → config.php fallback).
+$eff_site_title = $config['site']['title'] ?? 'WoW';
+$eff_realm_name = $config['realm']['name'] ?? 'WoW';
+if (function_exists('settings_get')) {
+    $__s = settings_get($pdo_auth ?? null, $config);
+    $eff_site_title = $__s['site_title'];
+    $eff_realm_name = $__s['realm_name'];
+}
+// Resolved branding URLs (override → shipped default), cache-busted.
+$brand_favicon  = function_exists('theme_asset_url') ? theme_asset_url($theme, 'favicon',   '/favicon.ico')               : '/favicon.ico';
+$brand_logo_top = function_exists('theme_asset_url') ? theme_asset_url($theme, 'logo_top',  '/assets/img/top-logo.webp')  : '/assets/img/top-logo.webp';
+$brand_logo_main= function_exists('theme_asset_url') ? theme_asset_url($theme, 'logo_main', '/assets/img/logo.webp')      : '/assets/img/logo.webp';
+
 // Public shop nav-link visibility — gated by its own features.shop flag AND
 // a reachable world DB with battle_pay_* tables (don't link to a broken page).
 // shop_public_availability() short-circuits on the flag, so zero DB cost when off.
@@ -69,8 +104,8 @@ if (!empty($config['features']['maintenance'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($config['site']['title']) ?></title>
-    <link rel="icon" href="/favicon.ico">
+    <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($eff_site_title) ?></title>
+    <link rel="icon" href="<?= htmlspecialchars($brand_favicon) ?>">
 
     <?php
     // ── OpenGraph / Twitter Card meta ──────────────────────────────────────────
@@ -80,14 +115,18 @@ if (!empty($config['features']['maintenance'])) {
     $_og_host   = $_SERVER['HTTP_HOST'] ?? parse_url($config['site']['base_url'] ?? '', PHP_URL_HOST) ?? 'localhost';
     $_og_base   = $_og_scheme . '://' . $_og_host;
 
-    $_og_title       = $og_title       ?? ($page_title ?? ($config['realm']['name'] ?? $config['site']['title']));
-    // realm.description supports plain string OR per-language array
-    $_raw_realm_desc = $config['realm']['description'] ?? 'World of Warcraft: Mists of Pandaria private server.';
+    $_og_title       = $og_title       ?? ($page_title ?? ($eff_realm_name ?: $eff_site_title));
+    // realm.description: admin override → config (string OR per-language array)
+    $_raw_realm_desc = function_exists('settings_realm_description')
+        ? settings_realm_description($pdo_auth ?? null, $config, $lang)
+        : ($config['realm']['description'] ?? '');
     if (is_array($_raw_realm_desc)) {
         $_raw_realm_desc = $_raw_realm_desc[$lang] ?? ($_raw_realm_desc['en'] ?? reset($_raw_realm_desc) ?: '');
     }
+    if ($_raw_realm_desc === '') $_raw_realm_desc = 'World of Warcraft: Mists of Pandaria private server.';
     $_og_description = $og_description ?? $_raw_realm_desc;
-    $_og_image       = $og_image       ?? ($_og_base . '/assets/img/logo.webp');
+    // OG image: admin's main-logo override when set, else the shipped logo.
+    $_og_image       = $og_image       ?? ($_og_base . (strpos($brand_logo_main, '/') === 0 ? $brand_logo_main : '/assets/img/logo.webp'));
     $_og_type        = $og_type        ?? 'website';
     $_og_url         = $og_url         ?? ($_og_base . ($_SERVER['REQUEST_URI'] ?? '/'));
 
@@ -98,18 +137,18 @@ if (!empty($config['features']['maintenance'])) {
     ?>
     <meta name="description"        content="<?= htmlspecialchars($_og_description) ?>">
     <meta property="og:type"        content="<?= htmlspecialchars($_og_type) ?>">
-    <meta property="og:site_name"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:site_name"   content="<?= htmlspecialchars($eff_realm_name) ?>">
     <meta property="og:title"       content="<?= htmlspecialchars($_og_title) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($_og_description) ?>">
     <meta property="og:url"         content="<?= htmlspecialchars($_og_url) ?>">
     <meta property="og:image"       content="<?= htmlspecialchars($_og_image) ?>">
-    <meta property="og:image:alt"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:image:alt"   content="<?= htmlspecialchars($eff_realm_name) ?>">
     <meta property="og:locale"      content="<?= $lang === 'es' ? 'es_ES' : 'en_US' ?>">
     <meta name="twitter:card"        content="summary_large_image">
     <meta name="twitter:title"       content="<?= htmlspecialchars($_og_title) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($_og_description) ?>">
     <meta name="twitter:image"       content="<?= htmlspecialchars($_og_image) ?>">
-    <meta name="theme-color" content="#c8a96e">
+    <meta name="theme-color" content="<?= htmlspecialchars(preg_match('/^#[0-9a-fA-F]{6}$/', $theme['accent'] ?? '') ? $theme['accent'] : '#c8a96e') ?>">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Custom CSS -->
@@ -146,8 +185,8 @@ if (!empty($config['features']['maintenance'])) {
         .nav-tabs .nav-item.show .nav-link {
             /* Style for the active tab - matching custom btn-primary */
             color: #fff; /* White text */
-            background-color: #8B4513; /* Custom brownish-orange from button image */
-            border-color: #A0522D; /* Match background color */
+            background-color: var(--btn-bg); /* themeable (shipped brownish-orange) */
+            border-color: var(--btn-bg-hover); /* Match background color */
             font-weight: 500; /* Slightly bolder text */
         }
 
@@ -158,12 +197,23 @@ if (!empty($config['features']['maintenance'])) {
             height: 28px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1.5px solid rgba(200,169,110,.5);
+            border: 1.5px solid rgba(var(--accent-rgb),.5);
             box-shadow: 0 2px 6px rgba(0,0,0,.4);
             display: inline-block;
             vertical-align: middle;
         }
     </style>
+    <?php
+    // Admin theme override — comes AFTER style.css so the :root custom-prop
+    // overrides win. Empty string on a stock theme, so a non-customized
+    // install ships byte-identical markup (zero overhead).
+    if (function_exists('theme_css')) {
+        $__theme_css = theme_css($theme);
+        if ($__theme_css !== '') {
+            echo "<style id=\"site-theme\">\n" . $__theme_css . "\n</style>\n";
+        }
+    }
+    ?>
     <?php if (!empty($extra_head)) { echo $extra_head; } ?>
 </head>
 <body class="bg-dark text-light">
@@ -171,7 +221,7 @@ if (!empty($config['features']['maintenance'])) {
 <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top py-3 py-md-4 transition-all">
     <div class="container-fluid px-md-5">
         <a class="navbar-brand d-flex align-items-center" href="/">
-            <img src="/assets/img/top-logo.webp" alt="<?= $TEXT['nav_logo_alt'] ?>" style="height: 28px;">
+            <img src="<?= htmlspecialchars($brand_logo_top) ?>" alt="<?= $TEXT['nav_logo_alt'] ?>" style="height: 28px;">
         </a>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -251,16 +301,19 @@ if (!empty($config['features']['maintenance'])) {
                         <?php endif; ?>
                     </ul>
                 </li>
-                <!-- Language Dropdown -->
+                <!-- Language Dropdown (enabled languages only; hidden when just one) -->
+                <?php if (count($nav_langs) >= 2): ?>
                 <li class="nav-item dropdown ms-2">
                     <a class="nav-link dropdown-toggle btn btn-sm btn-outline-secondary text-white border-0" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="border-radius: 20px; padding: 0.4rem 1rem;">
-                        <i class="bi bi-globe me-1"></i> <?= strtoupper($lang) ?>
+                        <i class="bi bi-globe me-1"></i> <?= strtoupper(htmlspecialchars($lang)) ?>
                     </a>
                     <ul class="dropdown-menu game-dropdown dropdown-menu-end" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item py-2 <?= ($lang === 'en') ? 'active' : '' ?>" href="?lang=en">EN <span class="text-white-50 ms-2">(English)</span></a></li>
-                        <li><a class="dropdown-item py-2 <?= ($lang === 'es') ? 'active' : '' ?>" href="?lang=es">ES <span class="text-white-50 ms-2">(Español)</span></a></li>
+                        <?php foreach ($nav_langs as $lc => $lname): ?>
+                        <li><a class="dropdown-item py-2 <?= ($lang === $lc) ? 'active' : '' ?>" href="?lang=<?= htmlspecialchars(rawurlencode($lc)) ?>"><?= htmlspecialchars(strtoupper($lc)) ?> <span class="text-white-50 ms-2">(<?= htmlspecialchars($lname) ?>)</span></a></li>
+                        <?php endforeach; ?>
                     </ul>
                 </li>
+                <?php endif; ?>
             </div>
         </div>
     </div>

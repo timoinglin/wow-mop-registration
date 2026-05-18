@@ -24,7 +24,7 @@ require_once __DIR__ . '/../includes/donation.php';
 // so the donate panel renders even when features.shop is off or the world DB
 // is down. Gated solely by features.donations + a configured Ko-fi token.
 $donate_ready = donation_enabled($config);
-$don_cfg      = $donate_ready ? donation_config($config) : null;
+$don_cfg      = $donate_ready ? donation_config($config, $pdo_auth) : null;
 // Effective rate = admin's /admin_shop override, else config default.
 $don_rate     = $donate_ready ? donation_rate($pdo_auth, $config) : 0;
 
@@ -55,7 +55,8 @@ if ($don_cfg) {
                ?? ($cur . ' ');
 }
 
-$page_title = ($TEXT['shop_nav'] ?? 'Shop') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['shop_nav'] ?? 'Shop') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 require_once __DIR__ . '/../templates/header.php';
 ?>
 
@@ -66,46 +67,46 @@ require_once __DIR__ . '/../templates/header.php';
     display:flex; align-items:center; justify-content:space-between; gap:1.2rem;
     flex-wrap:wrap; margin-bottom:1.25rem;
 }
-.shp-topbar h1 { color:#c8a96e; margin:0; font-weight:700; letter-spacing:1px; font-size:1.55rem; }
+.shp-topbar h1 { color:var(--accent); margin:0; font-weight:700; letter-spacing:1px; font-size:1.55rem; }
 .shp-topbar .sub { color:#8899aa; font-size:.88rem; margin-top:.2rem; }
 .shp-bal { text-align:right; }
 .shp-bal .lbl { font-size:.68rem; color:#8899aa; text-transform:uppercase; letter-spacing:.6px; }
 .shp-bal .val { color:#69ccf0; font-weight:700; font-size:1.55rem; line-height:1.1; }
 
 .shp-donate {
-    background: linear-gradient(145deg,#1f1b10,#241608); border:1px solid rgba(240,192,64,.4);
+    background: linear-gradient(145deg,#1f1b10,#241608); border:1px solid rgba(var(--accent-rgb), .4);
     border-radius:10px 10px 0 0; padding:.95rem 1.3rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
 }
 .shp-donate.solo { border-radius:10px; margin-bottom:1.25rem; }
-.shp-donate .t { color:#f0c040; font-weight:700; }
+.shp-donate .t { color:var(--accent); font-weight:700; }
 .shp-donate .s { color:#8899aa; font-size:.84rem; margin-top:.15rem; }
-.shp-donate .s b { color:#f0c040; }
+.shp-donate .s b { color:var(--accent); }
 .shp-btn { padding:.55rem 1.2rem; border-radius:6px; border:1px solid; font-size:.9rem; text-decoration:none; display:inline-block; font-family:inherit; transition:background .14s ease; }
-.shp-btn-kofi { background:#8B4513; color:#fff; border-color:#A0522D; }
-.shp-btn-kofi:hover { background:#A0522D; color:#fff; }
+.shp-btn-kofi { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
+.shp-btn-kofi:hover { background:var(--btn-bg-hover); color:#fff; }
 
 /* Attribution-code box (sits directly under the donate bar) */
 .shp-code-box {
-    background: rgba(0,0,0,.30); border:1px solid rgba(240,192,64,.3); border-top:none;
+    background: rgba(0,0,0,.30); border:1px solid rgba(var(--accent-rgb), .3); border-top:none;
     border-radius:0 0 10px 10px; padding:1rem 1.3rem; margin-bottom:1.25rem;
 }
 .shp-code-box.muted {
     color:#9aa7b4; font-size:.9rem; display:flex; align-items:center; gap:.5rem;
 }
-.shp-code-box.muted a { color:#f0c040; text-decoration:none; font-weight:600; }
-.shp-code-cap { color:#c8a96e; font-size:.85rem; font-weight:600; margin-bottom:.55rem; }
+.shp-code-box.muted a { color:var(--accent); text-decoration:none; font-weight:600; }
+.shp-code-cap { color:var(--accent); font-size:.85rem; font-weight:600; margin-bottom:.55rem; }
 .shp-code-row { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.9rem; }
 .shp-code {
     font-family:'Courier New',monospace; font-size:1.45rem; font-weight:700; letter-spacing:2px;
-    color:#f0c040; background:linear-gradient(145deg,#241608,#15100a);
-    border:1px dashed rgba(240,192,64,.55); border-radius:7px; padding:.4rem 1rem;
+    color:var(--accent); background:linear-gradient(145deg,#241608,#15100a);
+    border:1px dashed rgba(var(--accent-rgb), .55); border-radius:7px; padding:.4rem 1rem;
 }
 .shp-copy {
-    background:#8B4513; color:#fff; border:1px solid #A0522D; border-radius:6px;
+    background:var(--btn-bg); color:#fff; border:1px solid var(--btn-bg-hover); border-radius:6px;
     padding:.45rem .9rem; font-size:.82rem; cursor:pointer; font-family:inherit; transition:background .14s ease;
 }
-.shp-copy:hover { background:#A0522D; }
+.shp-copy:hover { background:var(--btn-bg-hover); }
 .shp-copy.ok { background:#2e7d32; border-color:#388e3c; }
 .shp-warn {
     display:flex; align-items:flex-start; gap:.6rem;
@@ -119,17 +120,25 @@ require_once __DIR__ . '/../templates/header.php';
     color:#ffe08a; background:rgba(0,0,0,.35); padding:.03rem .4rem; border-radius:4px;
     font-family:'Courier New',monospace; font-weight:700;
 }
+.shp-tipnote {
+    display:flex; align-items:flex-start; gap:.55rem;
+    background:rgba(255,255,255,.03); border:1px solid rgba(var(--btn-bg-rgb), .35);
+    border-left:4px solid var(--accent); border-radius:8px;
+    padding:.65rem .9rem; margin:0 0 1.25rem; color:#9aa7b4; font-size:.8rem; line-height:1.55;
+}
+.shp-tipnote i { color:var(--accent); font-size:1rem; margin-top:.05rem; flex-shrink:0; }
+.shp-tipnote b { color:var(--accent); }
 .shp-steps { margin:0; padding-left:1.2rem; color:#9aa7b4; font-size:.85rem; line-height:1.75; }
 .shp-steps code, .shp-code-cap code {
-    color:#f0c040; background:rgba(240,192,64,.12); padding:.03rem .35rem; border-radius:4px;
+    color:var(--accent); background:rgba(var(--accent-rgb), .12); padding:.03rem .35rem; border-radius:4px;
     font-family:'Courier New',monospace;
 }
 .shp-steps li.key { color:#ffd9d4; font-weight:600; }
 .shp-recent {
-    margin-top:.85rem; padding-top:.7rem; border-top:1px solid rgba(139,69,19,.3);
+    margin-top:.85rem; padding-top:.7rem; border-top:1px solid rgba(var(--btn-bg-rgb), .3);
     font-size:.8rem; color:#8899aa;
 }
-.shp-recent .ti { color:#c8a96e; font-weight:600; margin-bottom:.3rem; }
+.shp-recent .ti { color:var(--accent); font-weight:600; margin-bottom:.3rem; }
 .shp-recent .rr { display:flex; justify-content:space-between; gap:1rem; padding:.12rem 0; }
 .shp-recent .rr b { color:#69ccf0; font-weight:700; }
 
@@ -137,31 +146,31 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-shell {
     display:flex; gap:1rem; align-items:flex-start;
     background: linear-gradient(160deg, rgba(20,17,11,.92), rgba(10,10,15,.96));
-    border:1px solid rgba(139,69,19,.45);
+    border:1px solid rgba(var(--btn-bg-rgb), .45);
     border-radius:14px; padding:1rem; box-shadow:0 8px 40px rgba(0,0,0,.4);
 }
 .shp-rail {
     width:230px; flex-shrink:0; display:flex; flex-direction:column; gap:.35rem;
-    border-right:1px solid rgba(139,69,19,.3); padding-right:1rem;
+    border-right:1px solid rgba(var(--btn-bg-rgb), .3); padding-right:1rem;
 }
 .shp-rail-btn {
     display:flex; align-items:center; gap:.7rem; width:100%;
     background:linear-gradient(145deg,#1a1a26,#12121b);
-    border:1px solid rgba(139,69,19,.3); border-radius:8px;
-    color:#c8a96e; padding:.7rem .9rem; cursor:pointer; font-family:inherit;
+    border:1px solid rgba(var(--btn-bg-rgb), .3); border-radius:8px;
+    color:var(--accent); padding:.7rem .9rem; cursor:pointer; font-family:inherit;
     font-size:.92rem; font-weight:600; text-align:left; transition:all .14s ease;
 }
-.shp-rail-btn:hover { border-color:rgba(200,169,110,.6); color:#fff; }
+.shp-rail-btn:hover { border-color:rgba(var(--accent-rgb), .6); color:#fff; }
 .shp-rail-btn.active {
     background:linear-gradient(145deg,#3a2410,#241608);
-    border-color:rgba(240,192,64,.6); color:#f0c040;
-    box-shadow:inset 3px 0 0 #f0c040;
+    border-color:rgba(var(--accent-rgb), .6); color:var(--accent);
+    box-shadow:inset 3px 0 0 var(--accent);
 }
 .shp-rail-btn .ri {
     width:30px; height:30px; flex-shrink:0; border-radius:50%;
     background:linear-gradient(145deg,#2a1f10,#1a1206);
-    border:1px solid rgba(139,69,19,.4);
-    display:flex; align-items:center; justify-content:center; color:#c8a96e; font-size:.95rem;
+    border:1px solid rgba(var(--btn-bg-rgb), .4);
+    display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:.95rem;
 }
 .shp-rail-btn .rc { margin-left:auto; font-size:.72rem; color:#6c7a8c; font-weight:400; }
 .shp-rail-note { color:#4a5568; font-size:.72rem; text-align:center; margin-top:.6rem; font-style:italic; }
@@ -170,32 +179,32 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-pane { display:none; }
 .shp-pane.active { display:block; animation:shpfade .18s ease; }
 @keyframes shpfade { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-.shp-pane-h { color:#c8a96e; font-weight:700; font-size:1.15rem; margin:.2rem 0 1rem; padding:0 .25rem; }
+.shp-pane-h { color:var(--accent); font-weight:700; font-size:1.15rem; margin:.2rem 0 1rem; padding:0 .25rem; }
 
 .shp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:.9rem; }
 .shp-tile {
     background:linear-gradient(160deg,#17131f,#0d0d15);
-    border:1px solid rgba(139,69,19,.35); border-radius:10px;
+    border:1px solid rgba(var(--btn-bg-rgb), .35); border-radius:10px;
     padding:1rem .9rem; text-align:center; transition:border-color .14s ease, transform .14s ease;
 }
-.shp-tile:hover { border-color:rgba(200,169,110,.6); transform:translateY(-2px); }
+.shp-tile:hover { border-color:rgba(var(--accent-rgb), .6); transform:translateY(-2px); }
 .shp-ico {
     width:64px; height:64px; margin:0 auto .7rem; border-radius:10px;
-    border:1px solid rgba(200,169,110,.35);
+    border:1px solid rgba(var(--accent-rgb), .35);
     background:
-        radial-gradient(circle at 35% 30%, rgba(200,169,110,.18), transparent 60%),
+        radial-gradient(circle at 35% 30%, rgba(var(--accent-rgb), .18), transparent 60%),
         linear-gradient(135deg,#1a1f2e,#0a0d18);
     background-size:cover; background-position:center;
     display:flex; align-items:center; justify-content:center;
 }
-.shp-ico.icon-loaded { border-color:rgba(200,169,110,.6); }
-.shp-ico .qm { color:rgba(200,169,110,.5); font-size:1.9rem; }
+.shp-ico.icon-loaded { border-color:rgba(var(--accent-rgb), .6); }
+.shp-ico .qm { color:rgba(var(--accent-rgb), .5); font-size:1.9rem; }
 .shp-ico.icon-loaded .qm { display:none; }
 /* Icon doubles as the item-preview target (Wowhead tooltip on hover). */
 .shp-ico[data-wowhead] { cursor:help; }
 .shp-tile:hover .shp-ico[data-wowhead] { box-shadow:0 0 0 2px rgba(105,204,240,.45); }
 .shp-tile .tt {
-    color:#c8a96e; font-weight:700; font-size:.92rem; line-height:1.3; margin-bottom:.35rem;
+    color:var(--accent); font-weight:700; font-size:.92rem; line-height:1.3; margin-bottom:.35rem;
     min-height:2.4em; display:flex; align-items:center; justify-content:center;
 }
 .shp-tile .gi { font-size:.78rem; color:#8899aa; margin-bottom:.55rem; min-height:1.1em; }
@@ -204,20 +213,20 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-tile .gi .sep { color:#4a5568; }
 .shp-tile .gi .miss { color:#f87e8a; font-style:italic; }
 .shp-tile .pr {
-    color:#f0c040; font-weight:700; font-size:1rem;
-    border-top:1px solid rgba(139,69,19,.2); padding-top:.55rem; margin-top:.3rem;
+    color:var(--accent); font-weight:700; font-size:1rem;
+    border-top:1px solid rgba(var(--btn-bg-rgb), .2); padding-top:.55rem; margin-top:.3rem;
     display:flex; align-items:center; justify-content:center; gap:.3rem;
 }
 .shp-tile .pr small { color:#8899aa; font-weight:400; font-size:.7rem; }
 
-.shp-notice { background:rgba(240,192,64,.1); border:1px solid rgba(240,192,64,.3); color:#f0c040; padding:1rem 1.2rem; border-radius:8px; }
+.shp-notice { background:rgba(var(--accent-rgb), .1); border:1px solid rgba(var(--accent-rgb), .3); color:var(--accent); padding:1rem 1.2rem; border-radius:8px; }
 .shp-empty { color:#4a5568; text-align:center; padding:2.5rem 1rem; }
 
 @media (max-width: 820px) {
     .shp-shell { flex-direction:column; }
     .shp-rail {
         width:100%; flex-direction:row; overflow-x:auto; gap:.4rem;
-        border-right:none; border-bottom:1px solid rgba(139,69,19,.3);
+        border-right:none; border-bottom:1px solid rgba(var(--btn-bg-rgb), .3);
         padding-right:0; padding-bottom:.8rem;
     }
     .shp-rail-btn { width:auto; white-space:nowrap; }
@@ -246,18 +255,26 @@ require_once __DIR__ . '/../templates/header.php';
         // (a "log in" prompt). Only a bare donate bar (".solo") shows in the
         // rare logged-in-but-code-mint-failed case.
         $show_code_box = ($uid > 0 && $don_code !== null) || $uid === 0;
-        $rate_hint = '1' . $cur_sym . ' = ' . number_format($don_rate)
-                   . ' ' . ($TEXT['shop_coins'] ?? 'Battle Coins');
+        // Phrased as a thank-you ratio, NOT "1€ = X" — a price equation
+        // would read like a sale, contradicting the not-a-purchase note below.
+        $rate_hint = sprintf(
+            $TEXT['shop_donate_rate'] ?? '%1$s %2$s per 1%3$s',
+            number_format($don_rate), $TEXT['shop_coins'] ?? 'Battle Coins', $cur_sym
+        );
         ?>
         <div class="shp-donate<?= $show_code_box ? '' : ' solo' ?>">
             <div>
                 <div class="t"><i class="bi bi-heart-fill me-1"></i><?= htmlspecialchars($TEXT['shop_donate_title'] ?? 'Support the server — get Battle Coins') ?></div>
-                <div class="s"><?= htmlspecialchars($TEXT['shop_donate_desc'] ?? 'Donate via Ko-fi and Battle Coins are added to your account automatically.') ?>
-                    <b><?= htmlspecialchars($rate_hint) ?></b></div>
+                <div class="s"><?= htmlspecialchars($TEXT['shop_donate_desc'] ?? "Donate via Ko-fi to help keep the server running — as a thank-you you're credited") ?>
+                    <b><?= htmlspecialchars($rate_hint) ?></b>.</div>
             </div>
             <a href="<?= htmlspecialchars($don_cfg['kofi_url'] !== '' ? $don_cfg['kofi_url'] : '#') ?>" target="_blank" rel="noopener noreferrer" class="shp-btn shp-btn-kofi">
                 <i class="bi bi-cup-hot me-1"></i><?= htmlspecialchars($TEXT['shop_donate_btn'] ?? 'Donate on Ko-fi') ?>
             </a>
+        </div>
+        <div class="shp-tipnote">
+            <i class="bi bi-info-circle-fill"></i>
+            <span><b><?= htmlspecialchars($TEXT['shop_donate_disclaimer_lead'] ?? 'This is a voluntary donation, not a purchase.') ?></b> <?= htmlspecialchars($TEXT['shop_donate_disclaimer'] ?? "It helps cover the server's running costs. Battle Coins are a complimentary thank-you gift — not goods or a service for sale — and donations are non-refundable.") ?></span>
         </div>
         <?php if ($uid > 0 && $don_code !== null): ?>
             <div class="shp-code-box">

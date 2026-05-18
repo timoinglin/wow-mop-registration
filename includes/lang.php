@@ -4,9 +4,22 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// Define allowed languages
-$allowed_langs = ['en', 'es'];
+// Allowed languages = every lang/<code>.php on disk (drop a file in and it
+// works — no code change). Kept dependency-free on purpose: this runs first
+// on every request, before the DB is available. Which of these is *offered*
+// to visitors is controlled in the admin Customization → Languages section
+// (it filters the header switcher); EN is always the fallback.
 $default_lang = 'en';
+$allowed_langs = [];
+foreach (glob(__DIR__ . '/../lang/*.php') ?: [] as $_lf) {
+    $code = strtolower(basename($_lf, '.php'));
+    if (preg_match('/^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/', $code)) {
+        $allowed_langs[] = $code;
+    }
+}
+if (!in_array($default_lang, $allowed_langs, true)) {
+    $allowed_langs[] = $default_lang; // en must always be loadable
+}
 $lang = $default_lang; // Start with default
 
 // 1. Check for language cookie first (for returning visitors)

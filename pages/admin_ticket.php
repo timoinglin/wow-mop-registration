@@ -51,7 +51,7 @@ if (!$ticket) {
     require_once __DIR__ . '/../templates/header.php';
     ?>
     <div class="container" style="padding-top:120px;padding-bottom:3rem;text-align:center">
-        <h2 style="color:#c8a96e"><?= htmlspecialchars($TEXT['ticket_not_found_title'] ?? 'Ticket not found') ?></h2>
+        <h2 style="color:var(--accent)"><?= htmlspecialchars($TEXT['ticket_not_found_title'] ?? 'Ticket not found') ?></h2>
         <p style="color:#8899aa">#<?= $ticket_id ?></p>
         <a href="/admin_dashboard#tab-tickets" class="btn btn-gold mt-2">← <?= htmlspecialchars($TEXT['admin_support_tickets'] ?? 'Support Tickets') ?></a>
     </div>
@@ -149,11 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!empty($ticket['email'])) {
                         require_once __DIR__ . '/../includes/email.php';
                         $server_name = htmlspecialchars($config['realm']['name'] ?? 'WoW Server');
-                        $inner = "<h2 style='color:#c8a96e;margin-top:0'>📋 Ticket Reply</h2>
+                        $inner = "<h2 style='color:var(--accent);margin-top:0'>📋 Ticket Reply</h2>
                             <p style='color:#8899aa'>Your ticket <strong style='color:#e2e8f0'>\"" . htmlspecialchars($ticket['subject']) . "\"</strong> has received a reply:</p>
-                            <div style='background:#1a1a2e;border-left:3px solid #c8a96e;padding:16px;border-radius:6px;white-space:pre-line;color:#e2e8f0'>"
+                            <div style='background:#1a1a2e;border-left:3px solid var(--accent);padding:16px;border-radius:6px;white-space:pre-line;color:#e2e8f0'>"
                             . htmlspecialchars($reply_text) . "</div>
-                            <p style='color:#8899aa;margin-top:16px;font-size:13px'>Status: <strong style='color:#c8a96e'>" . ucfirst(str_replace('_', ' ', $new_status)) . "</strong></p>";
+                            <p style='color:#8899aa;margin-top:16px;font-size:13px'>Status: <strong style='color:var(--accent)'>" . ucfirst(str_replace('_', ' ', $new_status)) . "</strong></p>";
                         @send_email($ticket['email'], "[$server_name] Ticket Reply: " . $ticket['subject'], email_template($inner, "Ticket reply: " . $ticket['subject']));
                     }
 
@@ -221,11 +221,11 @@ require_once __DIR__ . '/../templates/header.php';
 <style>
 .tv-wrap { padding-top: 90px; padding-bottom: 3rem; max-width: 1000px; margin: 0 auto; }
 .tv-back { color: #8899aa; text-decoration: none; font-size: .88rem; }
-.tv-back:hover { color: #c8a96e; }
+.tv-back:hover { color: var(--accent); }
 
 .tv-header {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
     margin: 1rem 0 1.5rem;
@@ -244,7 +244,7 @@ require_once __DIR__ . '/../templates/header.php';
     text-transform: uppercase; letter-spacing: .5px;
 }
 .tv-status.status-open        { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.tv-status.status-in_progress { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.tv-status.status-in_progress { background: rgba(245,158,11,0.15); color: var(--accent); border: 1px solid rgba(245,158,11,0.3); }
 .tv-status.status-closed      { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
 
 .tv-user-info {
@@ -255,26 +255,26 @@ require_once __DIR__ . '/../templates/header.php';
 }
 .tv-user-info .label { color: #6c7a8c; font-size: .72rem; text-transform: uppercase; letter-spacing: .8px; }
 .tv-user-info .value { color: #e2e8f0; }
-.tv-user-info .username { color: #c8a96e; font-weight: 700; }
+.tv-user-info .username { color: var(--accent); font-weight: 700; }
 
 /* Thread + bubbles + lightbox + reply form: shared with user side */
 .tv-thread {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), .25);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
     margin-bottom: 1.5rem;
 }
 .tv-bubble { margin-bottom: 1rem; padding: 1rem 1.1rem; border-radius: 10px; font-size: .92rem; line-height: 1.6; }
 .tv-bubble:last-child { margin-bottom: 0; }
-.tv-bubble.user  { background: rgba(255,255,255,0.03); border-left: 3px solid rgba(200,169,110,0.5); }
+.tv-bubble.user  { background: rgba(255,255,255,0.03); border-left: 3px solid rgba(var(--accent-rgb), 0.5); }
 .tv-bubble.admin { background: rgba(93,216,124,0.06); border-left: 3px solid #5dd87c; }
 .tv-bubble .tv-bubble-meta {
     font-size: .72rem; text-transform: uppercase; letter-spacing: .8px;
     margin-bottom: .55rem; color: #8899aa;
     display: flex; align-items: center; flex-wrap: wrap; gap: .5rem;
 }
-.tv-bubble.user  .tv-bubble-meta { color: #c8a96e; }
+.tv-bubble.user  .tv-bubble-meta { color: var(--accent); }
 .tv-bubble.admin .tv-bubble-meta { color: #5dd87c; }
 .tv-bubble-body { color: #e2e8f0; word-wrap: break-word; }
 .tv-bubble-body p { margin: 0 0 .6rem; }
@@ -282,7 +282,7 @@ require_once __DIR__ . '/../templates/header.php';
 .tv-bubble-body code { background: rgba(0,0,0,.3); padding: .15rem .4rem; border-radius: 4px; color: #f4d390; font-size: .88em; }
 .tv-bubble-body pre { background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.05); padding: .75rem 1rem; border-radius: 6px; overflow-x: auto; font-size: .85rem; }
 .tv-bubble-body pre code { background: none; padding: 0; color: #e2e8f0; }
-.tv-bubble-body blockquote { border-left: 3px solid rgba(200,169,110,.4); padding-left: 1rem; margin: 0 0 .6rem; color: #c0c8d8; font-style: italic; }
+.tv-bubble-body blockquote { border-left: 3px solid rgba(var(--accent-rgb), .4); padding-left: 1rem; margin: 0 0 .6rem; color: #c0c8d8; font-style: italic; }
 .tv-bubble-body a { color: #69ccf0; }
 .tv-bubble-body a:hover { color: #cfe9f6; }
 .tv-bubble-body ul, .tv-bubble-body ol { margin: 0 0 .6rem 1.4rem; }
@@ -293,7 +293,7 @@ require_once __DIR__ . '/../templates/header.php';
     border-radius: 8px; overflow: hidden; transition: all .2s ease;
     cursor: zoom-in; max-width: 220px;
 }
-.tv-attachment:hover { border-color: rgba(200,169,110,.5); transform: translateY(-2px); }
+.tv-attachment:hover { border-color: rgba(var(--accent-rgb), .5); transform: translateY(-2px); }
 .tv-attachment img { width: 100%; height: 140px; object-fit: cover; display: block; }
 .tv-attachment .tv-att-name { font-size: .72rem; color: #8899aa; padding: .35rem .55rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -302,21 +302,21 @@ require_once __DIR__ . '/../templates/header.php';
 .tv-lightbox img { max-width: 100%; max-height: 100%; box-shadow: 0 0 40px rgba(0,0,0,.6); }
 .tv-lightbox-close { position: absolute; top: 1rem; right: 1.5rem; color: #fff; font-size: 2rem; background: none; border: none; cursor: pointer; }
 
-.tv-reply { background: linear-gradient(145deg, #12121f, #1a1a2e); border: 1px solid rgba(139,69,19,.25); border-radius: 14px; padding: 1.4rem 1.6rem; }
-.tv-reply h3 { font-size: .82rem; color: #c8a96e; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin: 0 0 1rem; }
+.tv-reply { background: linear-gradient(145deg, #12121f, #1a1a2e); border: 1px solid rgba(var(--btn-bg-rgb), .25); border-radius: 14px; padding: 1.4rem 1.6rem; }
+.tv-reply h3 { font-size: .82rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700; margin: 0 0 1rem; }
 .tv-reply textarea {
     width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 10px; color: #e2e8f0; padding: .85rem 1rem; font-size: .95rem; line-height: 1.5;
     transition: border-color .2s ease; outline: none; resize: vertical; min-height: 110px;
     box-sizing: border-box; font-family: inherit;
 }
-.tv-reply textarea:focus { border-color: rgba(200,169,110,0.5); box-shadow: 0 0 0 3px rgba(139,69,19,0.15); }
+.tv-reply textarea:focus { border-color: rgba(var(--accent-rgb), 0.5); box-shadow: 0 0 0 3px rgba(var(--btn-bg-rgb), 0.15); }
 
 .tv-md-hint { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: #6c7a8c; margin-top: .4rem; flex-wrap: wrap; }
-.tv-md-hint code { background: rgba(0,0,0,.3); padding: .05rem .3rem; border-radius: 3px; color: #c8a96e; font-size: .9em; }
+.tv-md-hint code { background: rgba(0,0,0,.3); padding: .05rem .3rem; border-radius: 3px; color: var(--accent); font-size: .9em; }
 
 .tv-attach-row { border: 2px dashed rgba(255,255,255,0.1); border-radius: 10px; padding: .9rem; margin-top: .9rem; transition: all .2s ease; cursor: pointer; position: relative; }
-.tv-attach-row:hover { border-color: rgba(200,169,110,.4); background: rgba(139,69,19,.05); }
+.tv-attach-row:hover { border-color: rgba(var(--accent-rgb), .4); background: rgba(var(--btn-bg-rgb), .05); }
 .tv-attach-row input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .tv-attach-row .placeholder { color: #8899aa; font-size: .85rem; }
 
@@ -333,13 +333,13 @@ require_once __DIR__ . '/../templates/header.php';
 
 .tv-actions { display: flex; gap: .6rem; margin-top: 1rem; flex-wrap: wrap; }
 .tv-btn { padding: .65rem 1.3rem; border-radius: 8px; font-weight: 700; font-size: .88rem; letter-spacing: .4px; cursor: pointer; border: 1px solid; transition: all .2s ease; display: inline-flex; align-items: center; gap: .4rem; text-decoration: none; }
-.tv-btn-primary { background: linear-gradient(135deg, #8B4513, #A0522D); border-color: #A0522D; color: #fff; }
-.tv-btn-primary:hover { background: linear-gradient(135deg, #A0522D, #c8a96e); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(139,69,19,.35); }
+.tv-btn-primary { background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover)); border-color: var(--btn-bg-hover); color: #fff; }
+.tv-btn-primary:hover { background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent)); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--btn-bg-rgb), .35); }
 .tv-btn-danger { background: rgba(220,53,69,0.08); border-color: rgba(220,53,69,0.4); color: #f87e8a; }
 .tv-btn-danger:hover { background: rgba(220,53,69,0.18); border-color: rgba(220,53,69,0.6); color: #fff; }
 .tv-btn-secondary { background: rgba(105,204,240,0.08); border-color: rgba(105,204,240,0.4); color: #69ccf0; }
 .tv-btn-secondary:hover { background: rgba(105,204,240,0.18); border-color: rgba(105,204,240,0.6); color: #cfe9f6; }
-.tv-btn-warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.4); color: #fbbf24; }
+.tv-btn-warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.4); color: var(--accent); }
 .tv-btn-warn:hover { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.6); color: #fff; }
 
 .tv-toast { border-radius: 10px; padding: .8rem 1.1rem; margin-bottom: 1rem; background: rgba(93,216,124,0.12); border: 1px solid rgba(93,216,124,0.4); color: #5dd87c; font-size: .9rem; animation: tv-toast-in .35s ease; }

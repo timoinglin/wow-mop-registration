@@ -143,7 +143,7 @@ foreach ($characters as $char) {
     if ((int)$char['totaltime'] > 0) {
         $chart_labels[]     = htmlspecialchars($char['name']);
         $chart_data[]       = (int)$char['totaltime'];
-        $chart_colors_arr[] = $class_colors[(int)$char['class']] ?? '#8B4513';
+        $chart_colors_arr[] = $class_colors[(int)$char['class']] ?? '#8B4513'; // Chart.js canvas — literal, not a CSS var
     }
 }
 
@@ -167,9 +167,9 @@ if ($pr_just_claimed > 0 && isset($user)) {
     padding: 3rem 2rem 2.5rem;
     margin-bottom: 2rem;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(139,69,19,0.35) 0%, rgba(10,10,20,0.85) 60%),
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), 0.35) 0%, rgba(10,10,20,0.85) 60%),
                 url('/assets/img/wow-bg/4-1.webp') center/cover no-repeat;
-    border: 1px solid rgba(139,69,19,0.4);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.4);
     overflow: hidden;
 }
 .dash-hero::before {
@@ -183,12 +183,12 @@ if ($pr_just_claimed > 0 && isset($user)) {
     font-size: 2.2rem;
     font-weight: 700;
     letter-spacing: 2px;
-    background: linear-gradient(90deg, #c8a96e, #fff 60%, #c8a96e);
+    background: linear-gradient(90deg, var(--accent), #fff 60%, var(--accent));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.dash-hero .hero-sub { font-size: .95rem; color: rgba(200,169,110,.75); letter-spacing: 1px; }
+.dash-hero .hero-sub { font-size: .95rem; color: rgba(var(--accent-rgb), .75); letter-spacing: 1px; }
 
 /* ── Hero avatar ─────────────────────────────────────────────────────────── */
 .dash-hero .hero-row {
@@ -255,7 +255,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
 .av-modal-back.show { display: flex; }
 .av-modal {
     background: linear-gradient(145deg,#16161f,#0d0d14);
-    border: 1px solid rgba(139,69,19,.4);
+    border: 1px solid rgba(var(--btn-bg-rgb), .4);
     border-radius: 12px;
     padding: 1.75rem;
     width: 90%; max-width: 460px;
@@ -264,7 +264,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
     position: relative;
 }
 .av-modal h3 {
-    color: #c8a96e;
+    color: var(--accent);
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: 1px;
@@ -287,27 +287,27 @@ if ($pr_just_claimed > 0 && isset($user)) {
     font-size: .88rem;
     cursor: pointer;
     background: transparent;
-    color: #c8a96e;
-    border-color: rgba(200,169,110,.4);
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb), .4);
     transition: all .15s ease;
     font-family: inherit;
 }
-.av-btn:hover { background:rgba(200,169,110,.12); color:#fff; border-color:#c8a96e; }
-.av-btn-primary { background:#8B4513; color:#fff; border-color:#A0522D; }
-.av-btn-primary:hover { background:#A0522D; color:#fff; border-color:#c8a96e; }
+.av-btn:hover { background:rgba(var(--accent-rgb), .12); color:#fff; border-color:var(--accent); }
+.av-btn-primary { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
+.av-btn-primary:hover { background:var(--btn-bg-hover); color:#fff; border-color:var(--accent); }
 .av-btn-danger { color:#f87e8a; border-color:rgba(231,76,60,.35); }
 .av-btn-danger:hover { background:rgba(231,76,60,.1); color:#fff; border-color:#f87e8a; }
 .av-modal input[type="file"] {
     width: 100%;
     background: #0a0a0f;
-    border: 1px dashed rgba(139,69,19,.4);
+    border: 1px dashed rgba(var(--btn-bg-rgb), .4);
     border-radius: 6px;
     padding: .8rem;
     color: #dee2e6;
     font-size: .85rem;
 }
 .av-modal input[type="file"]::file-selector-button {
-    background: #2a1f10; color: #c8a96e; border: 1px solid rgba(139,69,19,.4);
+    background: #2a1f10; color: var(--accent); border: 1px solid rgba(var(--btn-bg-rgb), .4);
     border-radius: 4px; padding: .35rem .8rem; cursor: pointer; margin-right: .8rem;
     font-size: .82rem;
 }
@@ -322,19 +322,19 @@ if ($pr_just_claimed > 0 && isset($user)) {
 }
 .status-active  { background: rgba(40,167,69,.2);  color: #5dd87c; border: 1px solid rgba(40,167,69,.4); }
 .status-banned  { background: rgba(220,53,69,.2);  color: #f87e8a; border: 1px solid rgba(220,53,69,.4); }
-.status-gm      { background: rgba(139,69,19,.3);  color: #c8a96e; border: 1px solid rgba(200,169,110,.4); }
+.status-gm      { background: rgba(var(--btn-bg-rgb), .3);  color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .4); }
 
 .stat-card {
     background: linear-gradient(145deg, #1a1a2e, #16213e);
-    border: 1px solid rgba(139,69,19,0.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.3);
     border-radius: 14px;
     padding: 1.4rem 1.6rem;
     transition: transform .2s ease, border-color .2s ease;
     height: 100%;
 }
-.stat-card:hover { transform: translateY(-3px); border-color: rgba(200,169,110,0.5); }
+.stat-card:hover { transform: translateY(-3px); border-color: rgba(var(--accent-rgb), 0.5); }
 .stat-card .stat-icon  { font-size: 1.8rem; margin-bottom: .5rem; opacity: .9; }
-.stat-card .stat-value { font-size: 1.7rem; font-weight: 700; color: #c8a96e; line-height: 1; }
+.stat-card .stat-value { font-size: 1.7rem; font-weight: 700; color: var(--accent); line-height: 1; }
 .stat-card .stat-label { font-size: .78rem; color: #8899aa; text-transform: uppercase; letter-spacing: .8px; margin-top: .25rem; }
 /* Battle Pay accent — subtle teal glow to differentiate from gold */
 .stat-card-bp { border-color: rgba(105,204,240,.25); }
@@ -355,10 +355,10 @@ if ($pr_just_claimed > 0 && isset($user)) {
     border: none;
     text-decoration: none;
 }
-.action-btn-primary { background: linear-gradient(135deg, #8B4513, #A0522D); color: #fff; }
-.action-btn-primary:hover { background: linear-gradient(135deg, #A0522D, #c8a96e); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139,69,19,.4); }
-.action-btn-secondary { background: rgba(255,255,255,0.05); color: #c8a96e; border: 1px solid rgba(200,169,110,0.3); }
-.action-btn-secondary:hover { background: rgba(200,169,110,0.12); border-color: rgba(200,169,110,0.6); color: #e8c87e; transform: translateY(-2px); }
+.action-btn-primary { background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover)); color: #fff; }
+.action-btn-primary:hover { background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent)); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(var(--btn-bg-rgb), .4); }
+.action-btn-secondary { background: rgba(255,255,255,0.05); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3); }
+.action-btn-secondary:hover { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.6); color: var(--accent); transform: translateY(-2px); }
 
 .info-row {
     display: flex;
@@ -374,20 +374,20 @@ if ($pr_just_claimed > 0 && isset($user)) {
 
 .dash-panel {
     background: linear-gradient(145deg, #12121f, #1a1a2e);
-    border: 1px solid rgba(139,69,19,0.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), 0.25);
     border-radius: 14px;
     padding: 1.6rem;
     height: 100%;
 }
 .dash-panel .panel-title {
     font-size: .75rem;
-    color: #c8a96e;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     font-weight: 700;
     margin-bottom: 1.2rem;
     padding-bottom: .6rem;
-    border-bottom: 1px solid rgba(139,69,19,0.3);
+    border-bottom: 1px solid rgba(var(--btn-bg-rgb), 0.3);
 }
 
 /* Character cards (clickable → opens public Armory profile) */
@@ -406,7 +406,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
     text-decoration: none;
     color: inherit;
 }
-.char-card:hover { background: rgba(200,169,110,0.06); border-color: rgba(200,169,110,0.35); transform: translateX(3px); color: inherit; }
+.char-card:hover { background: rgba(var(--accent-rgb), 0.06); border-color: rgba(var(--accent-rgb), 0.35); transform: translateX(3px); color: inherit; }
 .char-online-dot {
     display: inline-block;
     width: 8px; height: 8px;
@@ -422,8 +422,8 @@ if ($pr_just_claimed > 0 && isset($user)) {
 .char-name  { font-weight: 700; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .char-meta  { font-size: .78rem; color: #8899aa; margin-top: 2px; }
 .char-stats { text-align: right; flex-shrink: 0; }
-.char-level-badge { display: inline-block; background: rgba(139,69,19,.35); color: #c8a96e; font-weight: 700; font-size: .85rem; padding: .2rem .6rem; border-radius: 6px; margin-bottom: 4px; }
-.achiev-badge { display: inline-block; background: rgba(255,215,0,.1); color: #ffd700; font-size: .75rem; padding: .15rem .5rem; border-radius: 6px; border: 1px solid rgba(255,215,0,.2); }
+.char-level-badge { display: inline-block; background: rgba(var(--btn-bg-rgb), .35); color: var(--accent); font-weight: 700; font-size: .85rem; padding: .2rem .6rem; border-radius: 6px; margin-bottom: 4px; }
+.achiev-badge { display: inline-block; background: rgba(var(--accent-rgb), .1); color: var(--accent); font-size: .75rem; padding: .15rem .5rem; border-radius: 6px; border: 1px solid rgba(var(--accent-rgb), .2); }
 
 /* Login History */
 .login-row {
@@ -598,7 +598,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
     transition: transform .2s;
 }
 .pr-history[open] > summary::before { transform: rotate(90deg); }
-.pr-history > summary:hover { color: #c8a96e; }
+.pr-history > summary:hover { color: var(--accent); }
 .pr-history-empty { color: #4a5568; font-size: .85rem; padding: .75rem 0 .25rem; font-style: italic; }
 .pr-history-tbl { width: 100%; font-size: .85rem; margin-top: .5rem; }
 .pr-history-tbl th {
@@ -683,7 +683,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
         <div class="av-current">
             <?= render_avatar($user['username'] ?? 'A', $user_avatar ?? null, 72) ?>
             <div>
-                <div style="color:#c8a96e;font-weight:600"><?= htmlspecialchars($user['username'] ?? '') ?></div>
+                <div style="color:var(--accent);font-weight:600"><?= htmlspecialchars($user['username'] ?? '') ?></div>
                 <div class="av-hint" style="font-size:.8rem">
                     <?php if ($user_avatar): ?>
                         <?= htmlspecialchars($TEXT['avatar_current'] ?? 'Custom avatar') ?>
@@ -755,7 +755,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
         <div class="stat-card">
             <div class="stat-icon">🏆</div>
             <?php if ($most_played_char): ?>
-                <div class="stat-value" style="font-size:1.05rem;color:<?= $class_colors[(int)$most_played_char['class']] ?? '#c8a96e' ?>">
+                <div class="stat-value" style="font-size:1.05rem;color:<?= $class_colors[(int)$most_played_char['class']] ?? 'var(--accent)' ?>">
                     <?= htmlspecialchars($most_played_char['name']) ?>
                 </div>
             <?php else: ?>
@@ -928,9 +928,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
                 <?php endif; ?>
             </div>
             <?php if ($most_played_char): ?>
-            <div class="mt-3 p-2 rounded" style="background:rgba(139,69,19,.12);border:1px solid rgba(139,69,19,.3);font-size:.82rem;color:#c8a96e;">
+            <div class="mt-3 p-2 rounded" style="background:rgba(var(--btn-bg-rgb), .12);border:1px solid rgba(var(--btn-bg-rgb), .3);font-size:.82rem;color:var(--accent);">
                 <i class="bi bi-star me-1"></i> <?= htmlspecialchars($TEXT['dash_most_time_on'] ?? 'Most time on') ?>
-                <strong style="color:<?= $class_colors[(int)$most_played_char['class']] ?? '#c8a96e' ?>">
+                <strong style="color:<?= $class_colors[(int)$most_played_char['class']] ?? 'var(--accent)' ?>">
                     <?= htmlspecialchars($most_played_char['name']) ?>
                 </strong>
                 (<?= format_playtime((int)$most_played_char['totaltime']) ?>)
@@ -1005,7 +1005,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
                 <div class="d-flex flex-column gap-2">
                 <?php foreach ($characters as $char):
                     $cls    = (int)$char['class'];
-                    $clr    = $class_colors[$cls] ?? '#c8a96e';
+                    $clr    = $class_colors[$cls] ?? 'var(--accent)';
                     $guid   = (int)$char['guid'];
                     $ach    = $achievement_counts[$guid] ?? null;
                     $online = (int)$char['online'] === 1;
@@ -1069,7 +1069,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
         <div class="dash-panel">
             <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?></div>
 
-            <?php $vote_sites = $config['vote_sites'] ?? []; ?>
+            <?php $vote_sites = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['vote_sites'] : ($config['vote_sites'] ?? []); ?>
             <?php if (!empty($vote_sites)): ?>
                 <?php foreach ($vote_sites as $site): ?>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem;margin-bottom:.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;transition:all .2s">
@@ -1080,7 +1080,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
                     <a href="<?= htmlspecialchars($site['url'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" style="
                         display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;
                         border-radius:8px;font-weight:600;font-size:.82rem;text-decoration:none;
-                        background:linear-gradient(135deg,#8B4513,#A0522D);color:#fff;
+                        background:linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));color:#fff;
                         transition:all .2s ease;
                     ">
                         <i class="bi bi-box-arrow-up-right"></i> <?= htmlspecialchars($TEXT['dash_vote_button'] ?? 'Vote') ?>
@@ -1109,7 +1109,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
                     <i class="bi bi-trophy-fill"></i> <?= htmlspecialchars($TEXT['leaderboards'] ?? 'Leaderboards') ?>
                 </a>
                 <?php if ($most_played_char): ?>
-                <a href="/armory/<?= rawurlencode($most_played_char['name']) ?>" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem;border-color:<?= ($class_colors[(int)$most_played_char['class']] ?? '#c8a96e') ?>;color:<?= ($class_colors[(int)$most_played_char['class']] ?? '#c8a96e') ?>">
+                <a href="/armory/<?= rawurlencode($most_played_char['name']) ?>" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem;border-color:<?= ($class_colors[(int)$most_played_char['class']] ?? 'var(--accent)') ?>;color:<?= ($class_colors[(int)$most_played_char['class']] ?? 'var(--accent)') ?>">
                     <i class="bi bi-person-fill"></i> <?= htmlspecialchars($TEXT['dash_view_my_armory'] ?? 'My Armory Profile') ?>
                 </a>
                 <?php endif; ?>

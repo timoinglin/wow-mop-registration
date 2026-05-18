@@ -39,8 +39,8 @@ try {
     error_log("Counter fetch error: " . $e->getMessage());
 }
 
-// Social links
-$social = $config['social'] ?? [];
+// Social links (admin override → config fallback)
+$social = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['social'] : ($config['social'] ?? []);
 $discord_url   = !empty($social['discord'])   ? $social['discord']   : '';
 $youtube_url   = !empty($social['youtube'])    ? $social['youtube']   : '';
 $twitter_url   = !empty($social['twitter'])    ? $social['twitter']   : '';
@@ -89,21 +89,48 @@ if (!empty($nav_forum_enabled) && function_exists('forum_recent_threads')) {
 $faq_items = $config['faq'] ?? [];
 ?>
 
+<?php
+// ── Customizable home page ─────────────────────────────────────────────────
+// Built-in sections keep their exact markup (captured below via output
+// buffering → zero visual change); the saved layout only toggles/reorders
+// them and interleaves custom sections. Default layout = shipped order.
+require_once __DIR__ . '/includes/homepage.php';
+$hp_layout = homepage_layout_get($pdo_auth ?? null, $config);
+$hp_ctx    = ['TEXT' => $TEXT, 'lang' => $lang, 'config' => $config];
+$hp_blocks = [];
+ob_start(); ?>
 <!-- Background Video Container -->
 <div class="video-container position-relative">
-    <!-- Background Video -->
+    <!-- Background: admin Theme override (image or video) → shipped video -->
+    <?php
+    $hero_bg   = function_exists('theme_asset_url') ? theme_asset_url($theme ?? [], 'header_bg', '') : '';
+    $hero_kind = $theme['header_bg_kind'] ?? '';
+    if ($hero_bg !== '' && $hero_kind === 'image'):
+    ?>
+    <img src="<?= htmlspecialchars($hero_bg) ?>" alt="" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
+    <?php
+    elseif ($hero_bg !== '' && $hero_kind === 'video'):
+        $hero_ext  = strtolower((string)pathinfo((string)parse_url($hero_bg, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $hero_type = $hero_ext === 'webm' ? 'video/webm' : 'video/mp4';
+    ?>
+    <video playsinline="playsinline" autoplay="autoplay" muted="muted" loop="loop" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
+        <source src="<?= htmlspecialchars($hero_bg) ?>" type="<?= $hero_type ?>">
+        <p class="visually-hidden">Your browser does not support HTML5 video.</p>
+    </video>
+    <?php else: ?>
     <video playsinline="playsinline" autoplay="autoplay" muted="muted" loop="loop" id="bg-video" class="position-absolute w-100 h-100 object-fit-cover">
         <source src="/assets/bg-video-mop.mp4" type="video/mp4">
         <p class="visually-hidden">Your browser does not support HTML5 video.</p>
     </video>
+    <?php endif; ?>
 
     <!-- Video Header Content Section -->
     <div class="video-header">
         <div class="container">
             <div class="overlay-content text-center">
-                <!-- Logo -->
+                <!-- Logo (admin Theme override → shipped logo.webp) -->
                 <div class="logo-container">
-                    <img src="/assets/img/logo.webp" alt="<?= $TEXT['wow_logo_alt'] ?>" class="img-fluid">
+                    <img src="<?= htmlspecialchars($brand_logo_main ?? '/assets/img/logo.webp') ?>" alt="<?= $TEXT['wow_logo_alt'] ?>" class="img-fluid">
                 </div>
 
                 <h1 class="hero-title mb-3"><?= $TEXT['welcome'] ?></h1>
@@ -129,10 +156,16 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </div>
 </div>
+<?php
+$hp_blocks['hero'] = ob_get_clean();
+$hp_hero_on = true;
+foreach ($hp_layout as $hp_s) { if ($hp_s['type'] === 'hero') { $hp_hero_on = !empty($hp_s['on']); break; } }
+if ($hp_hero_on) echo $hp_blocks['hero'];
+?>
 
 <!-- Main Content Area (Starts After Full-Screen Header) -->
 <main class="container content-section">
-
+<?php ob_start(); ?>
     <!-- ═══════════════ NEWS SECTION ═══════════════ -->
     <?php if (!empty($news_items)): ?>
     <section id="news" class="content-section py-5 my-4 rounded">
@@ -152,7 +185,7 @@ $faq_items = $config['faq'] ?? [];
                                     <i class="bi <?= htmlspecialchars($news['icon'] ?? 'bi-megaphone') ?>"></i>
                                 </div>
                                 <div>
-                                    <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem"><?= htmlspecialchars($news['title']) ?></h5>
+                                    <h5 style="color:var(--accent);margin:0;font-weight:700;font-size:1rem"><?= htmlspecialchars($news['title']) ?></h5>
                                     <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($news['date']) ?></span>
                                 </div>
                             </div>
@@ -172,6 +205,7 @@ $faq_items = $config['faq'] ?? [];
     </section>
     <?php endif; ?>
 
+<?php $hp_blocks['news'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ FROM THE COMMUNITY (FORUM) ═══════════════ -->
     <?php if (!empty($forum_items)): ?>
     <section id="forum-latest" class="content-section py-5 my-4 rounded">
@@ -188,7 +222,7 @@ $faq_items = $config['faq'] ?? [];
                                 <div class="d-flex align-items-center gap-3 mb-3">
                                     <div class="news-icon-circle"><i class="bi <?= htmlspecialchars($fi['icon']) ?>"></i></div>
                                     <div style="min-width:0">
-                                        <h5 style="color:#c8a96e;margin:0;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fi['title']) ?></h5>
+                                        <h5 style="color:var(--accent);margin:0;font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= htmlspecialchars($fi['title']) ?></h5>
                                         <span style="color:#4a5568;font-size:.78rem"><?= htmlspecialchars($fi['cat']) ?> &middot; <?= (int)$fi['replies'] ?> <?= htmlspecialchars($TEXT['forum_replies'] ?? 'replies') ?></span>
                                     </div>
                                 </div>
@@ -208,6 +242,7 @@ $faq_items = $config['faq'] ?? [];
     </section>
     <?php endif; ?>
 
+<?php $hp_blocks['forum'] = ob_get_clean(); ob_start(); ?>
     <!-- How to Connect Section -->
     <section id="how-to-connect" class="content-section py-5 my-4 rounded">
         <div class="container">
@@ -250,7 +285,7 @@ $faq_items = $config['faq'] ?? [];
                 <div class="col-lg-3 col-md-6">
                     <div class="game-card h-100 text-center">
                         <div class="card-body d-flex flex-column p-4">
-                            <div class="step-icon"><i class="bi bi-pencil-square" style="color:#f0c040"></i></div>
+                            <div class="step-icon"><i class="bi bi-pencil-square" style="color:var(--accent)"></i></div>
                             <h4 class="text-accent mb-3"><?= $TEXT['step3_title'] ?></h4>
                             <p style="color:var(--text-muted)"><?= $TEXT['step3_desc'] ?></p>
                             <div class="realmlist-badge mt-auto">SET realmlist <?= htmlspecialchars($config['realm']['realmlist']) ?></div>
@@ -272,6 +307,7 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['steps'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ ANIMATED COUNTER BAR ═══════════════ -->
     <section id="stats-counter" class="content-section py-5 my-4 rounded">
         <div class="container">
@@ -301,23 +337,28 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['counters'] = ob_get_clean(); ob_start(); ?>
     <!-- Server Info & Status Section -->
     <section id="server-info-status" class="content-section py-5 my-4 rounded">
         <div class="container">
             <div class="section-title text-center mb-5">
-                <h2><?= htmlspecialchars($config['realm']['name']) ?> <?= $TEXT['server_status'] ?></h2>
+                <h2><?= htmlspecialchars(function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['realm_name'] : ($config['realm']['name'] ?? 'WoW')) ?> <?= $TEXT['server_status'] ?></h2>
             </div>
 
             <?php
-            // Realm description supports either a plain string (used as-is)
-            // or a per-language array, e.g.:
-            //   'description' => ['en' => 'Mists of Pandaria...', 'es' => 'Mists of Pandaria...']
-            $realm_desc = $config['realm']['description'] ?? '';
-            if (is_array($realm_desc)) {
-                $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
+            // Realm description: admin override → config (string OR
+            // per-language array). settings_realm_description() encapsulates
+            // both; degrades to the raw config value if the resolver is absent.
+            if (function_exists('settings_realm_description')) {
+                $realm_desc = settings_realm_description($pdo_auth ?? null, $config, $lang);
+            } else {
+                $realm_desc = $config['realm']['description'] ?? '';
+                if (is_array($realm_desc)) {
+                    $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
+                }
             }
             ?>
-            <p class="text-center lead mb-4 text-warning" style="font-size: 1.3rem;"><?= htmlspecialchars($realm_desc) ?></p>
+            <p class="text-center lead mb-4" style="font-size: 1.3rem; color: var(--accent);"><?= htmlspecialchars($realm_desc) ?></p>
             <div class="row text-center justify-content-center g-4">
                 <div class="col-md-6 col-lg-4">
                     <div class="game-card h-100">
@@ -394,6 +435,7 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
 
+<?php $hp_blocks['features'] = ob_get_clean(); ob_start(); ?>
     <!-- ═══════════════ FAQ SECTION ═══════════════ -->
     <?php if (!empty($faq_items)): ?>
     <section id="faq" class="content-section py-5 my-4 rounded">
@@ -406,7 +448,7 @@ $faq_items = $config['faq'] ?? [];
                 <div class="accordion-item faq-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed faq-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq-<?= $i ?>" aria-expanded="false">
-                            <i class="bi bi-patch-question me-2" style="color:#c8a96e"></i>
+                            <i class="bi bi-patch-question me-2" style="color:var(--accent)"></i>
                             <?= htmlspecialchars($faq['q']) ?>
                         </button>
                     </h2>
@@ -421,7 +463,16 @@ $faq_items = $config['faq'] ?? [];
         </div>
     </section>
     <?php endif; ?>
-
+<?php
+$hp_blocks['faq'] = ob_get_clean();
+// Emit the non-hero sections in the saved order; unknown types = custom.
+foreach ($hp_layout as $hp_s) {
+    if (empty($hp_s['on']) || $hp_s['type'] === 'hero') continue;
+    echo isset($hp_blocks[$hp_s['type']])
+        ? $hp_blocks[$hp_s['type']]
+        : homepage_render_custom($hp_s, $hp_ctx);
+}
+?>
 </main>
 
 <style>
@@ -452,19 +503,19 @@ $faq_items = $config['faq'] ?? [];
 }
 .news-card:hover {
     transform: translateY(-4px);
-    border-color: rgba(200,169,110,.5);
+    border-color: rgba(var(--accent-rgb), .5);
 }
 .news-icon-circle {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(139,69,19,.3), rgba(200,169,110,.15));
-    border: 1px solid rgba(200,169,110,.25);
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), .3), rgba(var(--accent-rgb), .15));
+    border: 1px solid rgba(var(--accent-rgb), .25);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.3rem;
-    color: #c8a96e;
+    color: var(--accent);
     flex-shrink: 0;
 }
 
@@ -474,13 +525,13 @@ $faq_items = $config['faq'] ?? [];
 }
 .counter-icon {
     font-size: 2.5rem;
-    color: #c8a96e;
+    color: var(--accent);
     margin-bottom: .75rem;
 }
 .counter-value {
     font-size: 2.8rem;
     font-weight: 800;
-    color: #c8a96e;
+    color: var(--accent);
     line-height: 1;
     margin-bottom: .3rem;
     font-variant-numeric: tabular-nums;
@@ -496,7 +547,7 @@ $faq_items = $config['faq'] ?? [];
 /* FAQ Accordion */
 .faq-item {
     background: transparent;
-    border: 1px solid rgba(139,69,19,.2);
+    border: 1px solid rgba(var(--btn-bg-rgb), .2);
     border-radius: 12px !important;
     margin-bottom: .75rem;
     overflow: hidden;
@@ -512,8 +563,8 @@ $faq_items = $config['faq'] ?? [];
     transition: all .2s ease;
 }
 .faq-btn:not(.collapsed) {
-    background: rgba(139,69,19,.15);
-    color: #c8a96e;
+    background: rgba(var(--btn-bg-rgb), .15);
+    color: var(--accent);
 }
 .faq-btn::after {
     filter: invert(1) brightness(.6);
@@ -529,7 +580,7 @@ $faq_items = $config['faq'] ?? [];
     font-size: .93rem;
     line-height: 1.7;
     background: rgba(0,0,0,.2);
-    border-top: 1px solid rgba(139,69,19,.15);
+    border-top: 1px solid rgba(var(--btn-bg-rgb), .15);
     padding: 1.2rem 1.3rem;
 }
 </style>

@@ -4,7 +4,24 @@ require_once __DIR__ . '/../includes/lang.php';
 // Generate a random number between 1 and 5 for the background image (since we have 5 images)
 $random_bg = rand(1, 5);
 $bg_image = "/assets/img/wow-bg/4-{$random_bg}.webp";
-$social = $config['social'] ?? [];
+// Footer quick-links + social + © realm name: admin-customizable (DB
+// override), config fallback. $pdo_auth is set by header.php's defensive
+// db include on every page; null-safe resolvers degrade to config.
+require_once __DIR__ . '/../includes/site_settings.php';
+$footer_cfg = footer_links_get($pdo_auth ?? null);
+$_set       = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config) : null;
+$social     = $_set['social'] ?? ($config['social'] ?? []);
+$footer_realm_name = $_set['realm_name'] ?? ($config['realm']['name'] ?? 'WoW');
+$footer_quick = [];
+if (!empty($footer_cfg['builtin']['home']))     $footer_quick[] = ['/', $TEXT['home'] ?? 'Home'];
+if (!empty($footer_cfg['builtin']['register'])) $footer_quick[] = ['/register', $TEXT['register'] ?? 'Register'];
+if (!empty($footer_cfg['builtin']['login']))    $footer_quick[] = ['/login', $TEXT['login'] ?? 'Login'];
+if (!empty($footer_cfg['builtin']['support']) && !empty($config['features']['tickets'])) {
+    $footer_quick[] = ['/tickets', $TEXT['footer_support'] ?? 'Support'];
+}
+foreach ($footer_cfg['custom'] as $row) {
+    $footer_quick[] = [$row['url'], $row['label']];
+}
 ?>
 <footer class="footer text-center" style="padding-top: 140px; padding-bottom: 140px; background-image: url('<?= $bg_image ?>'); background-size: cover; background-position: center top; background-repeat: no-repeat; margin-top: 100px; position: relative;">
     <!-- Add a dark overlay to ensure text readability -->
@@ -37,24 +54,21 @@ $social = $config['social'] ?? [];
         </div>
         <?php endif; ?>
 
-        <!-- Quick Links -->
+        <!-- Quick Links (admin-customizable via /admin_customization) -->
+        <?php if (!empty($footer_quick)): ?>
         <div class="mb-3" style="font-size:.85rem">
-            <a href="/" class="footer-link"><?= htmlspecialchars($TEXT['home'] ?? 'Home') ?></a>
-            <span class="footer-sep">·</span>
-            <a href="/register" class="footer-link"><?= htmlspecialchars($TEXT['register'] ?? 'Register') ?></a>
-            <span class="footer-sep">·</span>
-            <a href="/login" class="footer-link"><?= htmlspecialchars($TEXT['login'] ?? 'Login') ?></a>
-            <?php if (!empty($config['features']['tickets'])): ?>
-            <span class="footer-sep">·</span>
-            <a href="/tickets" class="footer-link"><?= htmlspecialchars($TEXT['footer_support'] ?? 'Support') ?></a>
-            <?php endif; ?>
+            <?php foreach ($footer_quick as $i => $ql): ?>
+                <?php if ($i > 0): ?><span class="footer-sep">·</span><?php endif; ?>
+                <a href="<?= htmlspecialchars($ql[0]) ?>" class="footer-link"><?= htmlspecialchars($ql[1]) ?></a>
+            <?php endforeach; ?>
         </div>
+        <?php endif; ?>
 
         <div class="mb-3" style="font-size:.85rem; color: rgba(255,255,255,.6);">
             <?= htmlspecialchars($TEXT['footer_disclaimer'] ?? 'Notice: This is a private fan server. We are not affiliated with Blizzard Entertainment.') ?>
         </div>
 
-        <span class="text-light">&copy; <?= date('Y') ?> <?= htmlspecialchars($config['realm']['name']) ?>. All rights reserved.</span>
+        <span class="text-light">&copy; <?= date('Y') ?> <?= htmlspecialchars($footer_realm_name) ?>. All rights reserved.</span>
     </div>
 </footer>
 
@@ -75,7 +89,7 @@ $social = $config['social'] ?? [];
     text-decoration: none;
     transition: color .2s;
 }
-.footer-link:hover { color: #c8a96e; }
+.footer-link:hover { color: var(--accent); }
 .footer-sep { color: rgba(255,255,255,.2); margin: 0 .5rem; }
 </style>
 

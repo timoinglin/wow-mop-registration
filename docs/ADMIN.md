@@ -60,6 +60,13 @@ The Forum tab in `/admin_dashboard` shows status tiles and a **Configure Forum**
 
 **Categories** — one level only (no sub-categories by design). Each has a slug, name, description, Bootstrap-Icons class, and sort order. Deleting a category cascades to its threads + posts (confirmation-gated).
 
+Each category also has a **posting policy** (two independent toggles on the add/edit form):
+
+- **Only GMs can start threads** (`admin_only`) — turns it into an announcement category: regular users can read it but can't create threads. It shows an "Announcements" badge on the forum index. GMs (gmlevel ≥ 9) post as normal.
+- **Allow user replies** (`allow_replies`) — uncheck for a fully read-only category (only GMs can reply). Combine the two for News/Patch-notes (GM threads, users discuss) or pure read-only announcements (GM threads, no replies).
+
+Both default to fully open (anyone posts & replies), so existing categories are unchanged after the upgrade. Enforced server-side, not just hidden in the UI.
+
 **Forum Bans** — forum-only mute. Banned users can still log in and play; they just can't post or reply. Add by username + reason + optional expiry datetime. GM 9+ accounts cannot be banned.
 
 **Moderation Queue** — pending threads + replies waiting for approval. Each shows the body (collapsed by default), author, category, time, and Approve / Reject buttons. Approve flips the row to published and bumps the right counters; Reject hard-deletes. Threads are also approvable inline from the thread page itself (see below).
@@ -134,6 +141,54 @@ Two **independent** feature flags drive the player-facing side — neither impli
 ---
 
 ## Customization
+
+### Site Customization page (admin, no code)
+
+`/admin_dashboard` → **Customization** tab → **Customize Site** (GM 9+), or go straight to `/admin_customization`.
+
+**Footer links** (first section): toggle which built-in quick-links show (Home / Register / Login / Support — "Support" also needs the tickets feature on), and add your own **custom label + URL rows** (e.g. a donations-disclaimer page). A live preview of the saved footer is shown.
+
+- Stored in the `site_settings` table (DB), **not** `config.php` — so it survives updates (like avatars/news/forum), and `config.php` stays the bootstrap/fallback. No migration needed: until you save here, the built-in defaults apply.
+- Custom URLs are sanitised on save — only `https://` / `http://` or a site path starting with `/` are kept; anything else (e.g. `javascript:`, protocol-relative `//host`) is dropped.
+- Audit-logged (`site_footer_update`).
+
+**Languages**: every `lang/<code>.php` file is **auto-discovered** and listed here — drop a new file in and it appears (no code change). Tick to enable/disable which languages show in the site's language menu; **English is always on** (the fallback for any untranslated key). The section includes step-by-step instructions to add a custom language:
+
+1. Copy `lang/en.php` → `lang/<code>.php` (2-letter code, e.g. `lang/fr.php`).
+2. Translate the values; keep the key names unchanged.
+3. It appears in the list automatically — enable it and Save.
+4. Missing keys fall back to English automatically (`$TEXT[...] ?? '...'`), so a partial translation is safe.
+
+Disabling hides a language from the menu (not deleted — re-enable anytime). Stored in `site_settings` (`site_languages_update`, audit-logged). `lang.php` discovers files from the filesystem and stays DB-free.
+
+**Theme & branding**: recolour the whole site and swap the branding without editing files — all DB-stored, so it **survives updates** (the stylesheet stays the shipped fallback).
+
+- **Accent colour** — set any `#rrggbb` (typed or via the colour picker), or click a **preset palette** (Gold / Azure / Verdant / Crimson / Arcane / Teal). One value drives the accent everywhere: `--accent` is overridden and `--accent-dim` / `--accent-glow` are auto-derived. A live preview updates as you type.
+- **Base tone** (optional, advanced) — override page / card background and body-text colours. Left blank = the shipped dark theme. A warning flags that a poor choice can hurt readability.
+- **Branding uploads** — **Main logo** (homepage hero), **Top-left logo** (navbar, every page), **Favicon**, and **Header background** (the full-screen homepage hero — an image *or* a looping `mp4`/`webm` video). Each shows the current asset with a one-click *Remove (revert to default)*. Limits: logos ≤ 3 MB, favicon ≤ 512 KB, header background ≤ 25 MB. **SVG is rejected** (XSS surface). Files are stored under `uploads/branding/` (updater-preserved, like avatars).
+- **Advanced: custom CSS** — an opt-in textarea injected site-wide *after* the theme variables. Tags, `@import`, `expression()` and `javascript:` are stripped on save, but it can still break your layout — you own any breakage.
+
+Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). The override `<style>` is emitted only when the theme is *not* stock, so a default install ships byte-identical markup. How the operator on a live deployment hand-edited `style.css` and lost it on the next update is exactly what this removes.
+
+**Site settings**: the presentational values that used to require editing `config.php` — no file edit, survives updates. **Every field is blank = use the `config.php` default**; config is never overwritten, it stays the seed/fallback.
+
+- **Site identity** — browser/site title, realm name (© line, headings, OG tags), realm description (homepage subtitle / OG). A description set here applies to all languages; leave it blank to keep a per-language array in `config.php`.
+- **Social links** — Discord / YouTube / X / Instagram (full `https://` URLs; blank hides the link).
+- **Donation (display only)** — Ko-fi page URL, currency, minimum amount. The Battle-Coins-per-1.00 **rate** is still set in **Shop Management**; the **Ko-fi webhook token stays in `config.php`** and is never web-editable. These overrides are presentational — the Ko-fi webhook keeps validating against `config.php` so the money path never changes.
+- **Playtime reward** — `DP per hour` and `daily cap` (server-clamped to 0–10000 / 0–1,000,000). The **master on/off stays a `config.php` feature flag** (`playtime_reward.enabled`) and is shown read-only here.
+- **Vote sites** — name / URL / cooldown-hours rows. An empty list hides the Vote & Reward block.
+
+Stored as one `site_settings['settings']` row (`site_settings_update`, audit-logged), resolved everywhere through `settings_get()` (DB → `config.php`). **Stays file-only (locked):** `donation.kofi_verification_token`, `db.*`, `smtp.*`, `recaptcha.*`, `security.*`, `site.base_url`, realm connection fields, and **all `features.*`** including `playtime_reward.enabled`.
+
+**Home page**: a section-based designer for the homepage **body** (the global nav bar and footer are *not* touched — they have their own tools). The default layout = the shipped order, so an un-customized install is pixel-identical.
+
+- **Built-in sections** (`hero`, `news`, `forum`, `steps`, `counters`, `features`, `faq`) — **toggle on/off + drag to reorder only**; their content keeps coming from its live source (news posts, forum, i18n/config). The **hero is pinned as the top section** (full-bleed banner) — you can hide it but not move it below the fold.
+- **Custom sections** — add your own, from safe predefined types: **Card grid** (heading + cards + 2/3/4 responsive column picker, themed `.game-card` style), **Text block** (Markdown via the same safe renderer as tickets/news), **Call to action** (heading + text + button), **Q&A accordion**. Drag to position them anywhere among the built-ins; Edit / Delete per section.
+- Reordering is drag-and-drop (SortableJS); “View homepage” opens it in a new tab.
+
+Stored as one `site_settings['homepage']` row (`site_homepage_update`, audit-logged), resolved through `homepage_layout_get()` (DB → shipped default). Safety: predefined types only, structured fields, Markdown via `render_markdown()` (Parsedown safe-mode), URLs via `footer_link_url_ok()`, icons allow-listed (`bi-*`), section/card/Q&A counts capped — **no raw HTML/CSS** (the Theme tab's custom-CSS box is the separate, sanitised escape hatch). Built-in markup is captured verbatim via output buffering, so toggling/reordering can't change how a section looks.
+
+> Foundation complete — client download + the `config.php` FAQ can later become custom Card-grid/Q&A sections here; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 
 ### Changing Text and Labels
 

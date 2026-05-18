@@ -136,10 +136,13 @@ if (!function_exists('forum_category_save')) {
     /**
      * Insert or update a category. Returns the (new or existing) id on success.
      */
-    function forum_category_save(PDO $pdo, ?int $id, string $name, string $description, string $icon, int $sort_order, ?string $slug_override = null): ?int
+    function forum_category_save(PDO $pdo, ?int $id, string $name, string $description, string $icon, int $sort_order, ?string $slug_override = null, int $admin_only = 0, int $allow_replies = 1): ?int
     {
         $name = trim($name);
         if ($name === '') return null;
+
+        $admin_only    = $admin_only ? 1 : 0;
+        $allow_replies = $allow_replies ? 1 : 0;
 
         $base = $slug_override !== null && trim($slug_override) !== ''
             ? forum_slugify($slug_override)
@@ -152,22 +155,25 @@ if (!function_exists('forum_category_save')) {
             if ($id) {
                 $stmt = $pdo->prepare(
                     "UPDATE forum_categories
-                     SET slug = :slug, name = :name, description = :desc, icon = :icon, sort_order = :sort
+                     SET slug = :slug, name = :name, description = :desc, icon = :icon,
+                         sort_order = :sort, admin_only = :ao, allow_replies = :ar
                      WHERE id = :id"
                 );
                 $stmt->execute([
                     'slug' => $slug, 'name' => $name, 'desc' => $description !== '' ? $description : null,
-                    'icon' => $icon, 'sort' => $sort_order, 'id' => $id,
+                    'icon' => $icon, 'sort' => $sort_order,
+                    'ao' => $admin_only, 'ar' => $allow_replies, 'id' => $id,
                 ]);
                 return $id;
             } else {
                 $stmt = $pdo->prepare(
-                    "INSERT INTO forum_categories (slug, name, description, icon, sort_order)
-                     VALUES (:slug, :name, :desc, :icon, :sort)"
+                    "INSERT INTO forum_categories (slug, name, description, icon, sort_order, admin_only, allow_replies)
+                     VALUES (:slug, :name, :desc, :icon, :sort, :ao, :ar)"
                 );
                 $stmt->execute([
                     'slug' => $slug, 'name' => $name, 'desc' => $description !== '' ? $description : null,
                     'icon' => $icon, 'sort' => $sort_order,
+                    'ao' => $admin_only, 'ar' => $allow_replies,
                 ]);
                 return (int)$pdo->lastInsertId();
             }
@@ -350,6 +356,7 @@ if (!function_exists('forum_categories_with_stats')) {
         try {
             return $pdo->query(
                 "SELECT c.id, c.slug, c.name, c.description, c.icon, c.sort_order,
+                        c.admin_only, c.allow_replies,
                         (SELECT COUNT(*) FROM forum_threads t
                          WHERE t.category_id = c.id AND t.status = 'published') AS thread_count,
                         latest.title          AS latest_title,
@@ -483,7 +490,8 @@ if (!function_exists('forum_thread_get_by_slug')) {
                     $where .= " AND t.status = 'published'";
                 }
             }
-            $sql = "SELECT t.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
+            $sql = "SELECT t.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
+                           c.admin_only AS category_admin_only, c.allow_replies AS category_allow_replies
                     FROM forum_threads t
                     JOIN forum_categories c ON c.id = t.category_id
                     WHERE $where LIMIT 1";
@@ -673,12 +681,26 @@ if (!function_exists('forum_can_user_post')) {
      * Quick allow-check before showing the composer. Returns [bool $ok, string $reason_key].
      * $reason_key is one of: 'not_logged_in', 'forum_disabled', 'banned', 'locked', 'ok'.
      */
-    function forum_can_user_post(PDO $pdo, ?int $account_id, int $gm_level, array $settings, ?array $thread = null): array
+    function forum_can_user_post(PDO $pdo, ?int $account_id, int $gm_level, array $settings, ?array $thread = null, ?array $category = null): array
     {
         if (!$settings['enabled'] && $gm_level < 9) return [false, 'forum_disabled'];
         if (!$account_id)                          return [false, 'not_logged_in'];
         if (forum_is_user_banned($pdo, $account_id)) return [false, 'banned'];
         if ($thread && !empty($thread['is_locked']) && $gm_level < 9) return [false, 'locked'];
+
+        // Per-category posting policy. GMs (9+) bypass both.
+        if ($gm_level < 9) {
+            if ($thread) {
+                // Replying: category may be fully read-only for non-GMs.
+                if (array_key_exists('category_allow_replies', $thread)
+                    && (int)$thread['category_allow_replies'] === 0) {
+                    return [false, 'replies_closed'];
+                }
+            } elseif ($category && !empty($category['admin_only'])) {
+                // Starting a thread in an announcement (GM-only) category.
+                return [false, 'admin_only'];
+            }
+        }
         return [true, 'ok'];
     }
 }

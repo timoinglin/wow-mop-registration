@@ -240,11 +240,44 @@ CREATE TABLE IF NOT EXISTS forum_categories (
   description VARCHAR(500) DEFAULT NULL,
   icon VARCHAR(60) DEFAULT 'bi-chat-square-text',
   sort_order INT NOT NULL DEFAULT 0,
+  -- admin_only: only GMs (gmlevel >= 9) may start threads here (announcements).
+  -- allow_replies: when 0, non-GMs cannot reply (fully read-only). Defaults
+  -- keep existing categories fully open, so this migration is non-breaking.
+  admin_only TINYINT NOT NULL DEFAULT 0,
+  allow_replies TINYINT NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_cat_slug (slug),
   INDEX idx_sort (sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Idempotent column adds for installs whose forum_categories predates the
+-- per-category posting policy (same INFORMATION_SCHEMA pattern as above).
+SET @col_exists := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'forum_categories'
+    AND COLUMN_NAME  = 'admin_only'
+);
+SET @ddl := IF(@col_exists = 0,
+  'ALTER TABLE forum_categories ADD COLUMN admin_only TINYINT NOT NULL DEFAULT 0 AFTER sort_order',
+  'SELECT 1');
+PREPARE add_col FROM @ddl;
+EXECUTE add_col;
+DEALLOCATE PREPARE add_col;
+
+SET @col_exists := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'forum_categories'
+    AND COLUMN_NAME  = 'allow_replies'
+);
+SET @ddl := IF(@col_exists = 0,
+  'ALTER TABLE forum_categories ADD COLUMN allow_replies TINYINT NOT NULL DEFAULT 1 AFTER admin_only',
+  'SELECT 1');
+PREPARE add_col FROM @ddl;
+EXECUTE add_col;
+DEALLOCATE PREPARE add_col;
 
 -- 11. Forum Threads — a topic under a category. First post in forum_posts is
 -- the thread body (is_op=1); subsequent rows are replies.
@@ -348,6 +381,19 @@ CREATE TABLE IF NOT EXISTS donation_log (
 CREATE TABLE IF NOT EXISTS shop_settings (
   id TINYINT NOT NULL PRIMARY KEY,
   eur_to_dp_rate INT NOT NULL DEFAULT 1000,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 17. Site Settings — generic key → JSON store for admin-editable site
+-- customization (footer links now; home-page sections / theming later).
+-- NO seed: when a key is absent the resolver falls back to config.php /
+-- built-in defaults, so config.php stays the bootstrap and the DB row is
+-- purely the admin override (same pattern as the donation-rate override).
+-- Secrets/bootstrap (db, smtp, recaptcha, base_url, feature flags) are NEVER
+-- stored here — they remain file-only in config.php.
+CREATE TABLE IF NOT EXISTS site_settings (
+  k VARCHAR(64) NOT NULL PRIMARY KEY,
+  v MEDIUMTEXT NOT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

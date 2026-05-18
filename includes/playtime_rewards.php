@@ -11,14 +11,29 @@
 
 /**
  * Reads config with sensible defaults; treats missing config as DISABLED.
+ *
+ * `enabled` is always the config.php file flag (a feature switch — never
+ * web-editable, by design). The `dp_per_hour` / `daily_cap_dp` tunables
+ * are admin-overridable via Customization → Settings when a $pdo is given;
+ * settings_get() already clamps them and falls back to these config values.
  */
-function pr_config(array $config): array
+function pr_config(array $config, ?PDO $pdo = null): array
 {
     $cfg = $config['playtime_reward'] ?? [];
+    $dph = (int)($cfg['dp_per_hour']  ?? 10);
+    $cap = (int)($cfg['daily_cap_dp'] ?? 50);
+    if ($pdo) {
+        @require_once __DIR__ . '/site_settings.php';
+        if (function_exists('settings_get')) {
+            $s   = settings_get($pdo, $config);
+            $dph = (int)$s['dp_per_hour'];
+            $cap = (int)$s['daily_cap_dp'];
+        }
+    }
     return [
         'enabled'      => !empty($cfg['enabled']),
-        'dp_per_hour'  => (int)($cfg['dp_per_hour']  ?? 10),
-        'daily_cap_dp' => (int)($cfg['daily_cap_dp'] ?? 50),
+        'dp_per_hour'  => $dph,
+        'daily_cap_dp' => $cap,
     ];
 }
 
@@ -45,7 +60,7 @@ function pr_total_seconds(int $account_id, ?PDO $pdo_chars): int
  */
 function pr_get_status(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config): array
 {
-    $cfg   = pr_config($config);
+    $cfg   = pr_config($config, $pdo_auth);
     $today = date('Y-m-d');
 
     $current_total = pr_total_seconds($account_id, $pdo_chars);
@@ -122,7 +137,7 @@ function pr_get_status(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $c
  */
 function pr_claim(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config): int
 {
-    $cfg = pr_config($config);
+    $cfg = pr_config($config, $pdo_auth);
     if (!$cfg['enabled']) return 0;
     if ($cfg['dp_per_hour'] <= 0) return 0;
 

@@ -55,7 +55,8 @@ $page_title = ($TEXT['leaderboards'] ?? 'Leaderboards')
     . ' — ' . ($TEXT[$tabs[$type]['key']] ?? ucfirst($type));
 
 // OG tags
-$og_title       = ($TEXT['leaderboards'] ?? 'Leaderboards') . ' — ' . ($config['realm']['name'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$og_title       = ($TEXT['leaderboards'] ?? 'Leaderboards') . ' — ' . settings_get($pdo_auth ?? null, $config)['realm_name'];
 $og_description = $TEXT['lb_subtitle'] ?? 'See who is dominating the realm — top players by level, playtime, gold, PvP and more.';
 $og_type        = 'website';
 
@@ -226,15 +227,15 @@ function lb_rank_badge(int $rank): string {
     padding: 2.4rem 1.8rem 2rem;
     margin-bottom: 1.4rem;
     background:
-        linear-gradient(135deg, rgba(139,69,19,.4), rgba(10,10,20,.92) 65%),
+        linear-gradient(135deg, rgba(var(--btn-bg-rgb), .4), rgba(10,10,20,.92) 65%),
         url('/assets/img/wow-bg/4-3.webp') center/cover no-repeat;
-    border: 1px solid rgba(200,169,110,.35);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     overflow: hidden;
 }
 .lb-banner h1 {
     font-size: clamp(1.8rem, 3.5vw, 2.6rem);
     font-weight: 800;
-    background: linear-gradient(90deg,#c8a96e,#fff 60%,#c8a96e);
+    background: linear-gradient(90deg,var(--accent),#fff 60%,var(--accent));
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0 0 .35rem;
@@ -247,7 +248,7 @@ function lb_rank_badge(int $rank): string {
     margin-bottom: 1.2rem;
     padding: .35rem;
     background: linear-gradient(145deg,#12121f,#1a1a2e);
-    border: 1px solid rgba(139,69,19,.25);
+    border: 1px solid rgba(var(--btn-bg-rgb), .25);
     border-radius: 14px;
 }
 .lb-tab {
@@ -265,11 +266,11 @@ function lb_rank_badge(int $rank): string {
     white-space: nowrap;
     min-width: 120px;
 }
-.lb-tab:hover { color: #c8a96e; background: rgba(200,169,110,.08); }
+.lb-tab:hover { color: var(--accent); background: rgba(var(--accent-rgb), .08); }
 .lb-tab.active {
-    background: linear-gradient(135deg, rgba(139,69,19,.4), rgba(139,69,19,.18));
-    border-color: rgba(200,169,110,.45);
-    color: #c8a96e;
+    background: linear-gradient(135deg, rgba(var(--btn-bg-rgb), .4), rgba(var(--btn-bg-rgb), .18));
+    border-color: rgba(var(--accent-rgb), .45);
+    color: var(--accent);
 }
 .lb-tab i { font-size: 1rem; }
 
@@ -278,16 +279,16 @@ function lb_rank_badge(int $rank): string {
 .lb-faction-pill {
     padding: .35rem 1rem; border-radius: 50px;
     background: rgba(255,255,255,.04);
-    border: 1px solid rgba(200,169,110,.2);
+    border: 1px solid rgba(var(--accent-rgb), .2);
     color: #8899aa;
     text-decoration: none;
     font-size: .82rem; font-weight: 600;
     transition: all .2s ease;
 }
-.lb-faction-pill:hover { background: rgba(200,169,110,.1); color: #c8a96e; }
+.lb-faction-pill:hover { background: rgba(var(--accent-rgb), .1); color: var(--accent); }
 .lb-faction-pill.active {
-    background: linear-gradient(135deg,#8B4513,#A0522D);
-    border-color: #A0522D;
+    background: linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));
+    border-color: var(--btn-bg-hover);
     color: #fff;
 }
 .lb-faction-pill.alliance.active { background: linear-gradient(135deg,#0070DE,#1d4ed8); border-color: #1d4ed8; }
@@ -296,20 +297,20 @@ function lb_rank_badge(int $rank): string {
 /* Table */
 .lb-table-wrap {
     background: linear-gradient(145deg,#12121f,#1a1a2e);
-    border: 1px solid rgba(139,69,19,.3);
+    border: 1px solid rgba(var(--btn-bg-rgb), .3);
     border-radius: 14px;
     overflow: hidden;
 }
 .lb-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .lb-table thead th {
-    background: rgba(139,69,19,.12);
-    color: #c8a96e;
+    background: rgba(var(--btn-bg-rgb), .12);
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 1.2px;
     font-size: .7rem;
     font-weight: 700;
     padding: .9rem 1rem;
-    border-bottom: 1px solid rgba(200,169,110,.2);
+    border-bottom: 1px solid rgba(var(--accent-rgb), .2);
     text-align: left;
 }
 .lb-table thead th.right { text-align: right; }
@@ -320,7 +321,7 @@ function lb_rank_badge(int $rank): string {
 }
 .lb-table tbody tr:last-child td { border-bottom: none; }
 .lb-table tbody tr:hover td { background: rgba(255,255,255,.025); }
-.lb-table tbody tr.top-1 td { background: linear-gradient(90deg, rgba(255,215,0,.08), transparent 60%); }
+.lb-table tbody tr.top-1 td { background: linear-gradient(90deg, rgba(var(--accent-rgb), .08), transparent 60%); }
 .lb-table tbody tr.top-2 td { background: linear-gradient(90deg, rgba(192,192,192,.06), transparent 60%); }
 .lb-table tbody tr.top-3 td { background: linear-gradient(90deg, rgba(205,127,50,.06), transparent 60%); }
 
@@ -333,7 +334,7 @@ function lb_rank_badge(int $rank): string {
     color: #6c7a8c;
     background: rgba(255,255,255,.04);
 }
-.rank-gold   { background: linear-gradient(135deg, rgba(255,215,0,.25), rgba(255,215,0,.08)); border: 1px solid rgba(255,215,0,.35); font-size: 1.4rem; }
+.rank-gold   { background: linear-gradient(135deg, rgba(var(--accent-rgb), .25), rgba(var(--accent-rgb), .08)); border: 1px solid rgba(var(--accent-rgb), .35); font-size: 1.4rem; }
 .rank-silver { background: linear-gradient(135deg, rgba(192,192,192,.25), rgba(192,192,192,.08)); border: 1px solid rgba(192,192,192,.35); font-size: 1.4rem; }
 .rank-bronze { background: linear-gradient(135deg, rgba(205,127,50,.25), rgba(205,127,50,.08)); border: 1px solid rgba(205,127,50,.35); font-size: 1.4rem; }
 
@@ -346,8 +347,8 @@ function lb_rank_badge(int $rank): string {
 
 .lvl-pill {
     display: inline-block;
-    background: rgba(139,69,19,.35);
-    color: #c8a96e;
+    background: rgba(var(--btn-bg-rgb), .35);
+    color: var(--accent);
     font-weight: 700;
     font-size: .78rem;
     padding: .25rem .6rem;
@@ -355,7 +356,7 @@ function lb_rank_badge(int $rank): string {
 }
 .metric-val {
     font-weight: 700;
-    color: #e8c87e;
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
@@ -365,7 +366,7 @@ function lb_rank_badge(int $rank): string {
 }
 .faction-mini.alliance { color: #69ccf0; }
 .faction-mini.horde    { color: #f87e8a; }
-.faction-mini.neutral  { color: #c8a96e; }
+.faction-mini.neutral  { color: var(--accent); }
 
 .lb-empty {
     text-align: center;
@@ -377,7 +378,7 @@ function lb_rank_badge(int $rank): string {
 /* Guild rows */
 .guild-cell {
     font-weight: 700;
-    color: #c8a96e;
+    color: var(--accent);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .guild-cell .gleader {
@@ -456,7 +457,7 @@ function lb_rank_badge(int $rank): string {
         <div class="lb-table-wrap">
             <div class="lb-empty">
                 <i class="bi bi-bar-chart"></i>
-                <h3 style="color:#c8a96e"><?= htmlspecialchars($TEXT['lb_empty_title'] ?? 'No data yet') ?></h3>
+                <h3 style="color:var(--accent)"><?= htmlspecialchars($TEXT['lb_empty_title'] ?? 'No data yet') ?></h3>
                 <p><?= htmlspecialchars($TEXT['lb_empty_hint'] ?? 'Once players start their journey, the leaderboards fill up here.') ?></p>
             </div>
         </div>
@@ -527,7 +528,7 @@ function lb_rank_badge(int $rank): string {
                     $rank = $i + 1;
                     $cid = (int)$row['class'];
                     $rid = (int)$row['race'];
-                    $clr = $class_colors[$cid] ?? '#c8a96e';
+                    $clr = $class_colors[$cid] ?? 'var(--accent)';
                     $faction = lb_faction($rid, $alliance_races, $horde_races);
                 ?>
                     <tr class="<?= $rank <= 3 ? 'top-' . $rank : '' ?>">

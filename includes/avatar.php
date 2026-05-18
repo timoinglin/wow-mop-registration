@@ -116,7 +116,7 @@ if (!function_exists('render_avatar')) {
     {
         $size = max(16, min(512, $size));
         $base_style = 'width:' . $size . 'px;height:' . $size . 'px;border-radius:50%;'
-                    . 'flex-shrink:0;border:2px solid rgba(200,169,110,.5);'
+                    . 'flex-shrink:0;border:2px solid rgba(var(--accent-rgb), .5);'
                     . 'box-shadow:0 4px 12px rgba(0,0,0,.4);overflow:hidden;'
                     . 'display:inline-flex;align-items:center;justify-content:center;';
 
