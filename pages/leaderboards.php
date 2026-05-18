@@ -55,7 +55,8 @@ $page_title = ($TEXT['leaderboards'] ?? 'Leaderboards')
     . ' — ' . ($TEXT[$tabs[$type]['key']] ?? ucfirst($type));
 
 // OG tags
-$og_title       = ($TEXT['leaderboards'] ?? 'Leaderboards') . ' — ' . ($config['realm']['name'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$og_title       = ($TEXT['leaderboards'] ?? 'Leaderboards') . ' — ' . settings_get($pdo_auth ?? null, $config)['realm_name'];
 $og_description = $TEXT['lb_subtitle'] ?? 'See who is dominating the realm — top players by level, playtime, gold, PvP and more.';
 $og_type        = 'website';
 

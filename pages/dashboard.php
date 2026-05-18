@@ -1069,7 +1069,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
         <div class="dash-panel">
             <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?></div>
 
-            <?php $vote_sites = $config['vote_sites'] ?? []; ?>
+            <?php $vote_sites = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['vote_sites'] : ($config['vote_sites'] ?? []); ?>
             <?php if (!empty($vote_sites)): ?>
                 <?php foreach ($vote_sites as $site): ?>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem;margin-bottom:.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;transition:all .2s">

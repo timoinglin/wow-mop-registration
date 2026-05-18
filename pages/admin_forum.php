@@ -199,7 +199,8 @@ $pending_posts = forum_pending_posts_list($pdo_auth);
 $edit_cat_id   = (int)($_GET['edit_cat'] ?? 0);
 $edit_cat      = $edit_cat_id > 0 ? forum_category_get($pdo_auth, $edit_cat_id) : null;
 
-$page_title = ($TEXT['forum_admin_title'] ?? 'Forum Configuration') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['forum_admin_title'] ?? 'Forum Configuration') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 
 require_once __DIR__ . '/../templates/header.php';
 $csrf = generate_csrf_token();

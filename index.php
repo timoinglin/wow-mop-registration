@@ -39,8 +39,8 @@ try {
     error_log("Counter fetch error: " . $e->getMessage());
 }
 
-// Social links
-$social = $config['social'] ?? [];
+// Social links (admin override → config fallback)
+$social = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['social'] : ($config['social'] ?? []);
 $discord_url   = !empty($social['discord'])   ? $social['discord']   : '';
 $youtube_url   = !empty($social['youtube'])    ? $social['youtube']   : '';
 $twitter_url   = !empty($social['twitter'])    ? $social['twitter']   : '';
@@ -322,16 +322,20 @@ $faq_items = $config['faq'] ?? [];
     <section id="server-info-status" class="content-section py-5 my-4 rounded">
         <div class="container">
             <div class="section-title text-center mb-5">
-                <h2><?= htmlspecialchars($config['realm']['name']) ?> <?= $TEXT['server_status'] ?></h2>
+                <h2><?= htmlspecialchars(function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['realm_name'] : ($config['realm']['name'] ?? 'WoW')) ?> <?= $TEXT['server_status'] ?></h2>
             </div>
 
             <?php
-            // Realm description supports either a plain string (used as-is)
-            // or a per-language array, e.g.:
-            //   'description' => ['en' => 'Mists of Pandaria...', 'es' => 'Mists of Pandaria...']
-            $realm_desc = $config['realm']['description'] ?? '';
-            if (is_array($realm_desc)) {
-                $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
+            // Realm description: admin override → config (string OR
+            // per-language array). settings_realm_description() encapsulates
+            // both; degrades to the raw config value if the resolver is absent.
+            if (function_exists('settings_realm_description')) {
+                $realm_desc = settings_realm_description($pdo_auth ?? null, $config, $lang);
+            } else {
+                $realm_desc = $config['realm']['description'] ?? '';
+                if (is_array($realm_desc)) {
+                    $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
+                }
             }
             ?>
             <p class="text-center lead mb-4" style="font-size: 1.3rem; color: var(--accent);"><?= htmlspecialchars($realm_desc) ?></p>

@@ -27,17 +27,32 @@ const DONATION_CODE_LEN      = 8;
 
 /**
  * Normalised donation config with safe defaults. Always returns every key.
+ *
+ * Pass $pdo to fold in the admin's presentational overrides (currency,
+ * min_amount, kofi_url) from Customization → Settings. The token (webhook
+ * secret) and rate are NEVER overridden here; the Ko-fi webhook calls this
+ * without $pdo on purpose, so the money/validation path stays on config.php.
  */
-function donation_config(array $config): array
+function donation_config(array $config, ?PDO $pdo = null): array
 {
     $d = $config['donation'] ?? [];
-    return [
+    $out = [
         'token'      => (string)($d['kofi_verification_token'] ?? ''),
         'rate'       => (int)($d['eur_to_dp_rate'] ?? 1000),
         'currency'   => (string)($d['currency'] ?? 'EUR'),
         'min_amount' => (float)($d['min_amount'] ?? 0),
         'kofi_url'   => (string)($d['kofi_url'] ?? ''),
     ];
+    if ($pdo) {
+        @require_once __DIR__ . '/site_settings.php';
+        if (function_exists('settings_get')) {
+            $s = settings_get($pdo, $config);
+            $out['currency']   = $s['currency'];
+            $out['min_amount'] = (float)$s['min_amount'];
+            $out['kofi_url']   = $s['kofi_url'];
+        }
+    }
+    return $out;
 }
 
 /**

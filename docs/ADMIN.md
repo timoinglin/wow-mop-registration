@@ -170,7 +170,17 @@ Disabling hides a language from the menu (not deleted — re-enable anytime). St
 
 Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). The override `<style>` is emitted only when the theme is *not* stock, so a default install ships byte-identical markup. How the operator on a live deployment hand-edited `style.css` and lost it on the next update is exactly what this removes.
 
-> Foundation for a growing Customization page — home-page sections and presentational `config.php` migration are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
+**Site settings**: the presentational values that used to require editing `config.php` — no file edit, survives updates. **Every field is blank = use the `config.php` default**; config is never overwritten, it stays the seed/fallback.
+
+- **Site identity** — browser/site title, realm name (© line, headings, OG tags), realm description (homepage subtitle / OG). A description set here applies to all languages; leave it blank to keep a per-language array in `config.php`.
+- **Social links** — Discord / YouTube / X / Instagram (full `https://` URLs; blank hides the link).
+- **Donation (display only)** — Ko-fi page URL, currency, minimum amount. The Battle-Coins-per-1.00 **rate** is still set in **Shop Management**; the **Ko-fi webhook token stays in `config.php`** and is never web-editable. These overrides are presentational — the Ko-fi webhook keeps validating against `config.php` so the money path never changes.
+- **Playtime reward** — `DP per hour` and `daily cap` (server-clamped to 0–10000 / 0–1,000,000). The **master on/off stays a `config.php` feature flag** (`playtime_reward.enabled`) and is shown read-only here.
+- **Vote sites** — name / URL / cooldown-hours rows. An empty list hides the Vote & Reward block.
+
+Stored as one `site_settings['settings']` row (`site_settings_update`, audit-logged), resolved everywhere through `settings_get()` (DB → `config.php`). **Stays file-only (locked):** `donation.kofi_verification_token`, `db.*`, `smtp.*`, `recaptcha.*`, `security.*`, `site.base_url`, realm connection fields, and **all `features.*`** including `playtime_reward.enabled`.
+
+> Foundation for a growing Customization page — home-page sections (client download + FAQ become content blocks there) are planned as further sections on the same page; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 
 ### Changing Text and Labels
 

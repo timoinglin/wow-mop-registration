@@ -57,6 +57,14 @@ try {
 } catch (Throwable $e) {
     error_log('header language/theme load failed: ' . $e->getMessage());
 }
+// Effective presentational settings (admin override → config.php fallback).
+$eff_site_title = $config['site']['title'] ?? 'WoW';
+$eff_realm_name = $config['realm']['name'] ?? 'WoW';
+if (function_exists('settings_get')) {
+    $__s = settings_get($pdo_auth ?? null, $config);
+    $eff_site_title = $__s['site_title'];
+    $eff_realm_name = $__s['realm_name'];
+}
 // Resolved branding URLs (override → shipped default), cache-busted.
 $brand_favicon  = function_exists('theme_asset_url') ? theme_asset_url($theme, 'favicon',   '/favicon.ico')               : '/favicon.ico';
 $brand_logo_top = function_exists('theme_asset_url') ? theme_asset_url($theme, 'logo_top',  '/assets/img/top-logo.webp')  : '/assets/img/top-logo.webp';
@@ -96,7 +104,7 @@ if (!empty($config['features']['maintenance'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($config['site']['title']) ?></title>
+    <title><?= isset($page_title) ? htmlspecialchars($page_title) : htmlspecialchars($eff_site_title) ?></title>
     <link rel="icon" href="<?= htmlspecialchars($brand_favicon) ?>">
 
     <?php
@@ -107,12 +115,15 @@ if (!empty($config['features']['maintenance'])) {
     $_og_host   = $_SERVER['HTTP_HOST'] ?? parse_url($config['site']['base_url'] ?? '', PHP_URL_HOST) ?? 'localhost';
     $_og_base   = $_og_scheme . '://' . $_og_host;
 
-    $_og_title       = $og_title       ?? ($page_title ?? ($config['realm']['name'] ?? $config['site']['title']));
-    // realm.description supports plain string OR per-language array
-    $_raw_realm_desc = $config['realm']['description'] ?? 'World of Warcraft: Mists of Pandaria private server.';
+    $_og_title       = $og_title       ?? ($page_title ?? ($eff_realm_name ?: $eff_site_title));
+    // realm.description: admin override → config (string OR per-language array)
+    $_raw_realm_desc = function_exists('settings_realm_description')
+        ? settings_realm_description($pdo_auth ?? null, $config, $lang)
+        : ($config['realm']['description'] ?? '');
     if (is_array($_raw_realm_desc)) {
         $_raw_realm_desc = $_raw_realm_desc[$lang] ?? ($_raw_realm_desc['en'] ?? reset($_raw_realm_desc) ?: '');
     }
+    if ($_raw_realm_desc === '') $_raw_realm_desc = 'World of Warcraft: Mists of Pandaria private server.';
     $_og_description = $og_description ?? $_raw_realm_desc;
     // OG image: admin's main-logo override when set, else the shipped logo.
     $_og_image       = $og_image       ?? ($_og_base . (strpos($brand_logo_main, '/') === 0 ? $brand_logo_main : '/assets/img/logo.webp'));
@@ -126,12 +137,12 @@ if (!empty($config['features']['maintenance'])) {
     ?>
     <meta name="description"        content="<?= htmlspecialchars($_og_description) ?>">
     <meta property="og:type"        content="<?= htmlspecialchars($_og_type) ?>">
-    <meta property="og:site_name"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:site_name"   content="<?= htmlspecialchars($eff_realm_name) ?>">
     <meta property="og:title"       content="<?= htmlspecialchars($_og_title) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($_og_description) ?>">
     <meta property="og:url"         content="<?= htmlspecialchars($_og_url) ?>">
     <meta property="og:image"       content="<?= htmlspecialchars($_og_image) ?>">
-    <meta property="og:image:alt"   content="<?= htmlspecialchars($config['realm']['name'] ?? 'WoW') ?>">
+    <meta property="og:image:alt"   content="<?= htmlspecialchars($eff_realm_name) ?>">
     <meta property="og:locale"      content="<?= $lang === 'es' ? 'es_ES' : 'en_US' ?>">
     <meta name="twitter:card"        content="summary_large_image">
     <meta name="twitter:title"       content="<?= htmlspecialchars($_og_title) ?>">

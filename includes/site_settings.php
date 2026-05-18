@@ -459,3 +459,141 @@ if (!function_exists('theme_asset_url')) {
         return $default;
     }
 }
+
+// ─── Settings (presentational config.php → DB) ───────────────────────────────
+//
+// The admin can move the *presentational* config.php values into the DB so
+// they survive updates and need no file edit. Same model as footer/theme:
+// the DB row is the override, config.php is the untouched seed/fallback —
+// a missing/blank/invalid value transparently reverts to the config value.
+//
+// Secrets + bootstrap stay file-only and are deliberately NOT resolved here:
+// donation.kofi_verification_token, db/smtp/recaptcha/security, site.base_url,
+// realm connection fields, and ALL features.* incl. playtime_reward.enabled.
+
+if (!function_exists('settings_url_ok')) {
+    /** Social / Ko-fi / vote URLs must be an absolute http(s) URL (no site-relative). */
+    function settings_url_ok(string $url): bool
+    {
+        if ($url === '' || mb_strlen($url) > 300) return false;
+        return (bool)preg_match('#^https?://[^\s]+$#i', $url);
+    }
+}
+
+if (!function_exists('settings_clean_text')) {
+    /** Trim, strip tags/control chars, length-cap a free-text identity field. */
+    function settings_clean_text($v, int $max): string
+    {
+        $s = trim((string)$v);
+        $s = strip_tags($s);
+        $s = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $s) ?? '';
+        return mb_substr(trim($s), 0, $max);
+    }
+}
+
+if (!function_exists('settings_int_or_null')) {
+    /** '' → null (use config); otherwise an int clamped to [$min,$max]. */
+    function settings_int_or_null($v, int $min, int $max): ?int
+    {
+        if ($v === '' || $v === null) return null;
+        if (!is_numeric($v)) return null;
+        return max($min, min($max, (int)$v));
+    }
+}
+
+if (!function_exists('settings_get')) {
+    /**
+     * Effective presentational settings = DB override → config.php fallback,
+     * fully normalised (always the same shape). Null-/error-safe: any failure
+     * yields the pure-config values so the public site never breaks.
+     *
+     * `realm_description` here is the DB override string only ('' = none);
+     * use settings_realm_description() for the config-aware (string|array)
+     * fallback so per-language config descriptions keep working.
+     */
+    function settings_get(?PDO $pdo, array $config): array
+    {
+        $s = is_array($st = site_setting($pdo, 'settings', null)) ? $st : [];
+
+        $cfg_social = is_array($config['social'] ?? null) ? $config['social'] : [];
+        $social = [];
+        foreach (['discord', 'youtube', 'twitter', 'instagram'] as $k) {
+            $ov = isset($s['social'][$k]) ? trim((string)$s['social'][$k]) : '';
+            $social[$k] = ($ov !== '' && settings_url_ok($ov))
+                ? $ov
+                : (string)($cfg_social[$k] ?? '');
+        }
+
+        $title = isset($s['site_title']) ? settings_clean_text($s['site_title'], 80) : '';
+        $rname = isset($s['realm_name'])  ? settings_clean_text($s['realm_name'], 80)  : '';
+        $rdesc = isset($s['realm_description']) ? settings_clean_text($s['realm_description'], 300) : '';
+
+        $kofi = isset($s['kofi_url']) ? trim((string)$s['kofi_url']) : '';
+        $cur  = isset($s['currency']) ? strtoupper(trim((string)$s['currency'])) : '';
+        $min  = settings_int_or_null($s['min_amount'] ?? '', 0, 100000);
+        $dph  = settings_int_or_null($s['dp_per_hour'] ?? '', 0, 10000);
+        $cap  = settings_int_or_null($s['daily_cap_dp'] ?? '', 0, 1000000);
+
+        $don_cfg = is_array($config['donation'] ?? null) ? $config['donation'] : [];
+        $pr_cfg  = is_array($config['playtime_reward'] ?? null) ? $config['playtime_reward'] : [];
+
+        // vote_sites: once the settings form has been saved the DB list is
+        // authoritative (even when empty = "hide"); until then, config seeds it.
+        if (isset($s['vote_sites']) && is_array($s['vote_sites'])) {
+            $votes = [];
+            foreach ($s['vote_sites'] as $row) {
+                if (!is_array($row)) continue;
+                $n = settings_clean_text($row['name'] ?? '', 60);
+                $u = trim((string)($row['url'] ?? ''));
+                if ($n === '' || !settings_url_ok($u)) continue;
+                $cd = settings_int_or_null($row['cooldown_hours'] ?? 12, 1, 8760) ?? 12;
+                $votes[] = ['name' => $n, 'url' => $u, 'cooldown_hours' => $cd];
+                if (count($votes) >= 20) break;
+            }
+        } else {
+            $votes = is_array($config['vote_sites'] ?? null) ? $config['vote_sites'] : [];
+        }
+
+        return [
+            'site_title'        => $title !== '' ? $title : (string)($config['site']['title'] ?? 'WoW'),
+            'realm_name'        => $rname !== '' ? $rname : (string)($config['realm']['name'] ?? 'WoW'),
+            'realm_description' => $rdesc,                       // '' = no override
+            'social'            => $social,
+            'kofi_url'          => ($kofi !== '' && settings_url_ok($kofi)) ? $kofi : (string)($don_cfg['kofi_url'] ?? ''),
+            'currency'          => preg_match('/^[A-Z]{3}$/', $cur) ? $cur : (string)($don_cfg['currency'] ?? 'EUR'),
+            'min_amount'        => (float)($min ?? ($don_cfg['min_amount'] ?? 0)),
+            'dp_per_hour'       => (int)($dph ?? ($pr_cfg['dp_per_hour']  ?? 10)),
+            'daily_cap_dp'      => (int)($cap ?? ($pr_cfg['daily_cap_dp'] ?? 50)),
+            'vote_sites'        => $votes,
+            // raw stored values, for re-populating the admin form
+            '_raw'              => is_array($s) ? $s : [],
+        ];
+    }
+}
+
+if (!function_exists('settings_site_title')) {
+    /** Effective browser/site title (DB override → config.php). Convenience
+     *  wrapper so pages can build $page_title before header.php loads. */
+    function settings_site_title(?PDO $pdo, array $config): string
+    {
+        return settings_get($pdo, $config)['site_title'];
+    }
+}
+
+if (!function_exists('settings_realm_description')) {
+    /**
+     * Effective realm description with the legacy string|array config
+     * behaviour preserved: DB override (single string, all languages) wins;
+     * otherwise the config value, picking $lang out of a per-language array.
+     */
+    function settings_realm_description(?PDO $pdo, array $config, string $lang): string
+    {
+        $eff = settings_get($pdo, $config);
+        if ($eff['realm_description'] !== '') return $eff['realm_description'];
+        $raw = $config['realm']['description'] ?? '';
+        if (is_array($raw)) {
+            $raw = $raw[$lang] ?? ($raw['en'] ?? (reset($raw) ?: ''));
+        }
+        return (string)$raw;
+    }
+}

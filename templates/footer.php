@@ -4,13 +4,14 @@ require_once __DIR__ . '/../includes/lang.php';
 // Generate a random number between 1 and 5 for the background image (since we have 5 images)
 $random_bg = rand(1, 5);
 $bg_image = "/assets/img/wow-bg/4-{$random_bg}.webp";
-$social = $config['social'] ?? [];
-
-// Footer quick-links: admin-customizable (DB override), config/built-in
-// fallback. $pdo_auth is set by header.php's defensive db include on every
-// page; null-safe resolver returns built-in defaults if it isn't.
+// Footer quick-links + social + © realm name: admin-customizable (DB
+// override), config fallback. $pdo_auth is set by header.php's defensive
+// db include on every page; null-safe resolvers degrade to config.
 require_once __DIR__ . '/../includes/site_settings.php';
 $footer_cfg = footer_links_get($pdo_auth ?? null);
+$_set       = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config) : null;
+$social     = $_set['social'] ?? ($config['social'] ?? []);
+$footer_realm_name = $_set['realm_name'] ?? ($config['realm']['name'] ?? 'WoW');
 $footer_quick = [];
 if (!empty($footer_cfg['builtin']['home']))     $footer_quick[] = ['/', $TEXT['home'] ?? 'Home'];
 if (!empty($footer_cfg['builtin']['register'])) $footer_quick[] = ['/register', $TEXT['register'] ?? 'Register'];
@@ -67,7 +68,7 @@ foreach ($footer_cfg['custom'] as $row) {
             <?= htmlspecialchars($TEXT['footer_disclaimer'] ?? 'Notice: This is a private fan server. We are not affiliated with Blizzard Entertainment.') ?>
         </div>
 
-        <span class="text-light">&copy; <?= date('Y') ?> <?= htmlspecialchars($config['realm']['name']) ?>. All rights reserved.</span>
+        <span class="text-light">&copy; <?= date('Y') ?> <?= htmlspecialchars($footer_realm_name) ?>. All rights reserved.</span>
     </div>
 </footer>
 

@@ -107,9 +107,10 @@ if ($is_profile && (strlen($char_name) > 64 || !preg_match('/^[A-Za-zÀ-ÿ\'\-]{
     $invalid_name = true;
 }
 
+require_once __DIR__ . '/../includes/site_settings.php';
 $page_title = $is_profile
     ? htmlspecialchars($char_name) . ' — ' . ($TEXT['armory'] ?? 'Armory')
-    : ($TEXT['armory'] ?? 'Armory') . ' — ' . htmlspecialchars($config['site']['title'] ?? 'WoW');
+    : ($TEXT['armory'] ?? 'Armory') . ' — ' . htmlspecialchars(settings_site_title($pdo_auth ?? null, $config));
 
 // ─── Fetch profile data BEFORE the header so OG meta tags can use it ─────────
 $char = null;
@@ -136,8 +137,8 @@ if ($is_profile && $pdo_chars) {
 }
 
 // ─── OG / Twitter meta tag values ────────────────────────────────────────────
+$_og_realm = settings_get($pdo_auth ?? null, $config)['realm_name'];
 if ($is_profile && $char) {
-    $_og_realm = $config['realm']['name'] ?? 'WoW';
     $og_title       = $char['name'] . ' — ' . sprintf(
         $TEXT['armory_og_profile_title'] ?? 'Level %d %s %s',
         (int)$char['level'],
@@ -159,11 +160,11 @@ if ($is_profile && $char) {
     $og_type = 'profile';
 } elseif ($is_profile) {
     // Character not found — still render meaningful OG so shared bad links don't look broken
-    $og_title       = ($TEXT['armory_character_not_found'] ?? 'Character not found') . ' — ' . ($config['realm']['name'] ?? 'WoW');
+    $og_title       = ($TEXT['armory_character_not_found'] ?? 'Character not found') . ' — ' . $_og_realm;
     $og_description = $TEXT['armory_subtitle'] ?? 'Search any character on the realm — view gear, stats, achievements and more.';
     $og_type        = 'website';
 } else {
-    $og_title       = ($TEXT['armory_title'] ?? 'Public Armory') . ' — ' . ($config['realm']['name'] ?? 'WoW');
+    $og_title       = ($TEXT['armory_title'] ?? 'Public Armory') . ' — ' . $_og_realm;
     $og_description = $TEXT['armory_subtitle'] ?? 'Search any character on the realm — view gear, stats, achievements and more.';
     $og_type        = 'website';
 }

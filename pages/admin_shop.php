@@ -262,7 +262,7 @@ $dirty_ts   = shop_is_dirty();
 $don_flag_on   = !empty($config['features']['donations']);
 $don_stored    = donation_stored_rate($pdo_auth);          // null = no override
 $don_rate_eff  = donation_rate($pdo_auth, $config);        // effective value
-$don_cur_code  = strtoupper(donation_config($config)['currency']);
+$don_cur_code  = strtoupper(donation_config($config, $pdo_auth)['currency']);
 $don_cur_sym   = ['EUR' => '€', 'USD' => '$', 'GBP' => '£', 'AUD' => 'A$', 'CAD' => 'C$'][$don_cur_code]
                  ?? ($don_cur_code . ' ');
 // Real median in-game price → a concrete "for reference" anchor for the admin.
@@ -279,7 +279,8 @@ if ($shop_ok && $pdo_world) {
     }
 }
 
-$page_title = ($TEXT['shop_admin_title'] ?? 'Shop Management') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['shop_admin_title'] ?? 'Shop Management') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 require_once __DIR__ . '/../templates/header.php';
 $csrf = generate_csrf_token();
 ?>

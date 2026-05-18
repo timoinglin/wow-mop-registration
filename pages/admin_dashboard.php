@@ -104,7 +104,7 @@ if ($pdo_chars) {
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 $db_host    = $config['db']['host']         ?? '127.0.0.1';
-$realm_name = $config['realm']['name']      ?? 'WoW Server';
+$realm_name = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['realm_name'] : ($config['realm']['name'] ?? 'WoW Server');
 $auth_port  = $config['realm']['auth_port'] ?? 3724;
 $world_port = $config['realm']['world_port']?? 8085;
 $s_auth     = check_port_status($db_host, $auth_port);

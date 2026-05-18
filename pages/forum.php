@@ -816,7 +816,8 @@ if ($mode === 'category') {
 //  MODE: index (all categories)
 // ════════════════════════════════════════════════════════════════════════════
 $categories = forum_categories_with_stats($pdo_auth);
-$page_title = ($TEXT['forum_nav'] ?? 'Forum') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['forum_nav'] ?? 'Forum') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 require_once __DIR__ . '/../templates/header.php';
 echo $forum_css;
 ?>

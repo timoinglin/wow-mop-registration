@@ -107,7 +107,8 @@ $pages    = max(1, (int)ceil($total / $per_page));
 if ($page > $pages) $page = $pages;
 $posts    = news_published_page($pdo_auth, $page, $per_page);
 
-$page_title = ($TEXT['news_page_title'] ?? 'News') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['news_page_title'] ?? 'News') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 
 require_once __DIR__ . '/../templates/header.php';
 ?>

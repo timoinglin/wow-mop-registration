@@ -160,6 +160,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $redirect('err', 'save');
     }
+    if (($_POST['action'] ?? '') === 'save_settings') {
+        // Only the presentational keys. Blank = "no override" → config seed.
+        $new = [
+            'site_title'        => settings_clean_text($_POST['site_title'] ?? '', 80),
+            'realm_name'        => settings_clean_text($_POST['realm_name'] ?? '', 80),
+            'realm_description' => settings_clean_text($_POST['realm_description'] ?? '', 300),
+            'social'            => [],
+            'kofi_url'          => '',
+            'currency'          => '',
+            'min_amount'        => '',
+            'dp_per_hour'       => '',
+            'daily_cap_dp'      => '',
+            'vote_sites'        => [],
+        ];
+        foreach (['discord', 'youtube', 'twitter', 'instagram'] as $k) {
+            $u = trim((string)($_POST['social'][$k] ?? ''));
+            $new['social'][$k] = ($u === '' || settings_url_ok($u)) ? mb_substr($u, 0, 300) : '';
+        }
+        $ku = trim((string)($_POST['kofi_url'] ?? ''));
+        $new['kofi_url'] = ($ku === '' || settings_url_ok($ku)) ? mb_substr($ku, 0, 300) : '';
+        $cc = strtoupper(trim((string)($_POST['currency'] ?? '')));
+        $new['currency'] = preg_match('/^[A-Z]{3}$/', $cc) ? $cc : '';
+        // numeric tunables: '' kept as "use config", else clamped
+        $ma = trim((string)($_POST['min_amount'] ?? ''));
+        $new['min_amount'] = ($ma === '') ? '' : (string)(settings_int_or_null($ma, 0, 100000) ?? '');
+        $dh = trim((string)($_POST['dp_per_hour'] ?? ''));
+        $new['dp_per_hour'] = ($dh === '') ? '' : (string)(settings_int_or_null($dh, 0, 10000) ?? '');
+        $dc = trim((string)($_POST['daily_cap_dp'] ?? ''));
+        $new['daily_cap_dp'] = ($dc === '') ? '' : (string)(settings_int_or_null($dc, 0, 1000000) ?? '');
+
+        $vn = $_POST['v_name'] ?? [];
+        $vu = $_POST['v_url']  ?? [];
+        $vc = $_POST['v_cd']   ?? [];
+        if (is_array($vn)) {
+            foreach ($vn as $i => $nm) {
+                $n = settings_clean_text($nm, 60);
+                $u = trim((string)($vu[$i] ?? ''));
+                if ($n === '' || !settings_url_ok($u)) continue;
+                $new['vote_sites'][] = [
+                    'name'           => $n,
+                    'url'            => mb_substr($u, 0, 300),
+                    'cooldown_hours' => settings_int_or_null($vc[$i] ?? 12, 1, 8760) ?? 12,
+                ];
+                if (count($new['vote_sites']) >= 20) break;
+            }
+        }
+
+        if (site_setting_set($pdo_auth, 'settings', $new)) {
+            log_admin_action($pdo_auth, $admin_id, $admin_name, 'site_settings_update', null,
+                'identity=' . (($new['site_title'] !== '' || $new['realm_name'] !== '') ? '1' : '0')
+                . ' social=' . count(array_filter($new['social']))
+                . ' votes=' . count($new['vote_sites']), null);
+            $redirect('saved', 'settings');
+        }
+        $redirect('err', 'save');
+    }
     $redirect();
 }
 
@@ -175,6 +231,8 @@ if ($saved === 'footer') {
 } elseif (strncmp($saved, 'theme_', 6) === 0) {
     // saved, but one of the file uploads was rejected
     $flash = $TEXT['cz_saved_theme'] ?? 'Theme saved.';
+} elseif ($saved === 'settings') {
+    $flash = $TEXT['cz_saved_settings'] ?? 'Settings saved.';
 }
 $flash_err = '';
 if (strncmp($saved, 'theme_', 6) === 0) {
@@ -195,8 +253,10 @@ $footer = footer_links_get($pdo_auth);
 $langs_all      = languages_available();
 $langs_disabled = languages_disabled($pdo_auth);
 $theme          = theme_get($pdo_auth);
+$settings       = settings_get($pdo_auth, $config);
+$set_raw        = $settings['_raw'] ?? [];   // stored overrides, to repopulate the form blank-where-unset
 
-$page_title = ($TEXT['cz_title'] ?? 'Site Customization') . ' — ' . ($config['site']['title'] ?? 'WoW');
+$page_title = ($TEXT['cz_title'] ?? 'Site Customization') . ' — ' . $settings['site_title'];
 require_once __DIR__ . '/../templates/header.php';
 $csrf = generate_csrf_token();
 
@@ -292,6 +352,13 @@ $bi_labels = [
 .cz-reset, .cz-adv-toggle { display:flex; align-items:center; gap:.45rem; color:#f0a; font-size:.8rem; cursor:pointer; }
 .cz-reset { color:#f87e8a; }
 .cz-adv-toggle { color:#dee2e6; font-size:.88rem; }
+/* Settings card */
+.cz-set-grid { display:flex; flex-wrap:wrap; gap:1rem; }
+.cz-set-field { display:flex; flex-direction:column; gap:.3rem; font-size:.82rem; color:#9aa7b4; flex:1 1 280px; }
+.cz-set-field span { color:#9aa7b4; }
+.cz-vote-row { display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem; flex-wrap:wrap; }
+.cz-vote-row .cz-input { flex:1 1 160px; }
+.cz-vote-row .cz-vote-cd { flex:0 0 90px; max-width:90px; }
 </style>
 
 <div class="container cz-wrap" style="max-width:880px">
@@ -529,6 +596,123 @@ $bi_labels = [
             </div>
         </div>
     </form>
+
+    <?php
+    // Config defaults shown as placeholders so "blank = use config.php" is obvious.
+    $cfg_rdesc = $config['realm']['description'] ?? '';
+    if (is_array($cfg_rdesc)) $cfg_rdesc = $cfg_rdesc['en'] ?? (reset($cfg_rdesc) ?: '');
+    $cfg_social = is_array($config['social'] ?? null) ? $config['social'] : [];
+    $cfg_don    = is_array($config['donation'] ?? null) ? $config['donation'] : [];
+    $cfg_pr     = is_array($config['playtime_reward'] ?? null) ? $config['playtime_reward'] : [];
+    $pr_on      = !empty($cfg_pr['enabled']);
+    $def_ph = function ($v) use ($TEXT) {
+        $v = trim((string)$v);
+        return $v === '' ? ($TEXT['cz_set_no_default'] ?? '(no default)')
+                         : sprintf($TEXT['cz_set_default_fmt'] ?? 'Default: %s', $v);
+    };
+    // initial vote rows = effective (DB override if saved, else config seed)
+    $vote_rows = $settings['vote_sites'] ?: [];
+    ?>
+    <form method="post" action="/admin_customization">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+        <input type="hidden" name="action" value="save_settings">
+
+        <div class="cz-card">
+            <h2><i class="bi bi-sliders me-2"></i><?= htmlspecialchars($TEXT['cz_set_title'] ?? 'Site settings') ?></h2>
+            <div class="sub"><?= htmlspecialchars($TEXT['cz_set_sub'] ?? 'Edit the presentational bits that used to live in config.php. Leave a field blank to keep the config.php default — config is never overwritten, it stays the fallback.') ?></div>
+
+            <!-- Site identity -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_set_identity'] ?? 'Site identity') ?></span>
+            <div class="cz-set-grid">
+                <label class="cz-set-field">
+                    <span><?= htmlspecialchars($TEXT['cz_set_site_title'] ?? 'Browser/site title') ?></span>
+                    <input class="cz-input" type="text" name="site_title" maxlength="80" value="<?= htmlspecialchars($set_raw['site_title'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph($config['site']['title'] ?? '')) ?>">
+                </label>
+                <label class="cz-set-field">
+                    <span><?= htmlspecialchars($TEXT['cz_set_realm_name'] ?? 'Realm name (© / headings / OG)') ?></span>
+                    <input class="cz-input" type="text" name="realm_name" maxlength="80" value="<?= htmlspecialchars($set_raw['realm_name'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph($config['realm']['name'] ?? '')) ?>">
+                </label>
+            </div>
+            <label class="cz-set-field" style="margin-top:.7rem">
+                <span><?= htmlspecialchars($TEXT['cz_set_realm_desc'] ?? 'Realm description (homepage subtitle / OG)') ?></span>
+                <input class="cz-input" type="text" name="realm_description" maxlength="300" value="<?= htmlspecialchars($set_raw['realm_description'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph($cfg_rdesc)) ?>">
+            </label>
+            <div class="cz-hint"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['cz_set_desc_note'] ?? 'A value here applies to every language. For per-language descriptions, leave this blank and keep the array in config.php.') ?></div>
+
+            <!-- Social links -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_set_social'] ?? 'Social links') ?></span>
+            <div class="cz-set-grid">
+                <?php foreach ([
+                    'discord'   => ['Discord',     'bi-discord'],
+                    'youtube'   => ['YouTube',     'bi-youtube'],
+                    'twitter'   => ['X / Twitter', 'bi-twitter-x'],
+                    'instagram' => ['Instagram',   'bi-instagram'],
+                ] as $sk => $si): ?>
+                    <label class="cz-set-field">
+                        <span><i class="bi <?= $si[1] ?> me-1"></i><?= htmlspecialchars($si[0]) ?></span>
+                        <input class="cz-input" type="url" name="social[<?= $sk ?>]" maxlength="300" value="<?= htmlspecialchars($set_raw['social'][$sk] ?? '') ?>" placeholder="<?= htmlspecialchars(($cfg_social[$sk] ?? '') !== '' ? $def_ph($cfg_social[$sk]) : 'https://…') ?>">
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="cz-hint"><?= htmlspecialchars($TEXT['cz_set_url_hint'] ?? 'Full https:// URLs only; blank hides that link / uses the config default.') ?></div>
+
+            <!-- Donation (presentational) -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_set_donation'] ?? 'Donation (display only)') ?></span>
+            <div class="cz-set-grid">
+                <label class="cz-set-field">
+                    <span><?= htmlspecialchars($TEXT['cz_set_kofi_url'] ?? 'Ko-fi page URL') ?></span>
+                    <input class="cz-input" type="url" name="kofi_url" maxlength="300" value="<?= htmlspecialchars($set_raw['kofi_url'] ?? '') ?>" placeholder="<?= htmlspecialchars(($cfg_don['kofi_url'] ?? '') !== '' ? $def_ph($cfg_don['kofi_url']) : 'https://ko-fi.com/…') ?>">
+                </label>
+                <label class="cz-set-field" style="max-width:140px">
+                    <span><?= htmlspecialchars($TEXT['cz_set_currency'] ?? 'Currency (3-letter)') ?></span>
+                    <input class="cz-input" type="text" name="currency" maxlength="3" style="text-transform:uppercase" value="<?= htmlspecialchars($set_raw['currency'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph($cfg_don['currency'] ?? 'EUR')) ?>">
+                </label>
+                <label class="cz-set-field" style="max-width:160px">
+                    <span><?= htmlspecialchars($TEXT['cz_set_min_amount'] ?? 'Minimum amount') ?></span>
+                    <input class="cz-input" type="number" min="0" step="1" name="min_amount" value="<?= htmlspecialchars($set_raw['min_amount'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph((string)($cfg_don['min_amount'] ?? 0))) ?>">
+                </label>
+            </div>
+            <div class="cz-hint"><i class="bi bi-shield-lock me-1"></i><?= htmlspecialchars($TEXT['cz_set_donation_note'] ?? 'Display only. The Battle-Coins-per-1.00 rate lives in Shop Management; the Ko-fi webhook token stays in config.php (never web-editable).') ?> <a href="/admin_shop" class="cz-prev-a" style="color:var(--accent)">/admin_shop →</a></div>
+
+            <!-- Playtime reward tunables -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_set_playtime'] ?? 'Playtime reward') ?></span>
+            <div class="cz-hint" style="margin-top:0;margin-bottom:.6rem">
+                <?= htmlspecialchars($TEXT['cz_set_playtime_state'] ?? 'Master switch (config.php):') ?>
+                <strong style="color:<?= $pr_on ? '#5dd87c' : '#f87e8a' ?>"><?= $pr_on ? htmlspecialchars($TEXT['cz_set_on'] ?? 'ON') : htmlspecialchars($TEXT['cz_set_off'] ?? 'OFF') ?></strong>
+                — <?= htmlspecialchars($TEXT['cz_set_playtime_flag_note'] ?? 'enable/disable stays a file flag (playtime_reward.enabled).') ?>
+            </div>
+            <div class="cz-set-grid">
+                <label class="cz-set-field" style="max-width:180px">
+                    <span><?= htmlspecialchars($TEXT['cz_set_dp_hour'] ?? 'DP per hour') ?></span>
+                    <input class="cz-input" type="number" min="0" max="10000" step="1" name="dp_per_hour" value="<?= htmlspecialchars($set_raw['dp_per_hour'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph((string)($cfg_pr['dp_per_hour'] ?? 10))) ?>">
+                </label>
+                <label class="cz-set-field" style="max-width:180px">
+                    <span><?= htmlspecialchars($TEXT['cz_set_daily_cap'] ?? 'Daily cap (DP)') ?></span>
+                    <input class="cz-input" type="number" min="0" max="1000000" step="1" name="daily_cap_dp" value="<?= htmlspecialchars($set_raw['daily_cap_dp'] ?? '') ?>" placeholder="<?= htmlspecialchars($def_ph((string)($cfg_pr['daily_cap_dp'] ?? 50))) ?>">
+                </label>
+            </div>
+            <div class="cz-hint"><?= htmlspecialchars($TEXT['cz_set_playtime_bounds'] ?? 'Bounds enforced server-side: DP/hour 0–10000, daily cap 0–1,000,000.') ?></div>
+
+            <!-- Vote sites -->
+            <span class="cz-label"><?= htmlspecialchars($TEXT['cz_set_votes'] ?? 'Vote sites') ?></span>
+            <div id="czVoteRows">
+                <?php foreach ($vote_rows as $vr): ?>
+                    <div class="cz-vote-row">
+                        <input class="cz-input" type="text" name="v_name[]" maxlength="60" placeholder="<?= htmlspecialchars($TEXT['cz_set_vote_name'] ?? 'Site name') ?>" value="<?= htmlspecialchars($vr['name']) ?>">
+                        <input class="cz-input" type="url" name="v_url[]" maxlength="300" placeholder="https://…" value="<?= htmlspecialchars($vr['url']) ?>">
+                        <input class="cz-input cz-vote-cd" type="number" min="1" max="8760" step="1" name="v_cd[]" placeholder="12" value="<?= htmlspecialchars((string)$vr['cooldown_hours']) ?>" title="<?= htmlspecialchars($TEXT['cz_set_vote_cd'] ?? 'Cooldown (hours)') ?>">
+                        <button type="button" class="cz-btn cz-btn-sm cz-del" onclick="this.closest('.cz-vote-row').remove()"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost" id="czVoteAdd"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['cz_set_vote_add'] ?? 'Add vote site') ?></button>
+            <div class="cz-hint"><?= htmlspecialchars($TEXT['cz_set_votes_note'] ?? 'Empty list = the Vote & Reward block is hidden. Cooldown is hours between rewarded votes per site (1–8760).') ?></div>
+
+            <div style="margin-top:1.5rem">
+                <button type="submit" class="cz-btn"><i class="bi bi-save me-1"></i><?= htmlspecialchars($TEXT['cz_set_save'] ?? 'Save settings') ?></button>
+            </div>
+        </div>
+    </form>
 </div>
 
 <script>
@@ -588,6 +772,24 @@ $bi_labels = [
             cssWrap.style.display = cssOn.checked ? '' : 'none';
         });
     }
+})();
+
+// Settings card: add a blank vote-site row.
+(function () {
+    var add = document.getElementById('czVoteAdd');
+    var rows = document.getElementById('czVoteRows');
+    if (!add || !rows) return;
+    add.addEventListener('click', function () {
+        var d = document.createElement('div');
+        d.className = 'cz-vote-row';
+        d.innerHTML =
+            '<input class="cz-input" type="text" name="v_name[]" maxlength="60" placeholder="<?= htmlspecialchars($TEXT['cz_set_vote_name'] ?? 'Site name', ENT_QUOTES) ?>">' +
+            '<input class="cz-input" type="url" name="v_url[]" maxlength="300" placeholder="https://…">' +
+            '<input class="cz-input cz-vote-cd" type="number" min="1" max="8760" step="1" name="v_cd[]" placeholder="12">' +
+            '<button type="button" class="cz-btn cz-btn-sm cz-del"><i class="bi bi-x-lg"></i></button>';
+        d.querySelector('.cz-del').addEventListener('click', function () { d.remove(); });
+        rows.appendChild(d);
+    });
 })();
 </script>
 

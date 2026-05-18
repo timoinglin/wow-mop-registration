@@ -24,7 +24,7 @@ require_once __DIR__ . '/../includes/donation.php';
 // so the donate panel renders even when features.shop is off or the world DB
 // is down. Gated solely by features.donations + a configured Ko-fi token.
 $donate_ready = donation_enabled($config);
-$don_cfg      = $donate_ready ? donation_config($config) : null;
+$don_cfg      = $donate_ready ? donation_config($config, $pdo_auth) : null;
 // Effective rate = admin's /admin_shop override, else config default.
 $don_rate     = $donate_ready ? donation_rate($pdo_auth, $config) : 0;
 
@@ -55,7 +55,8 @@ if ($don_cfg) {
                ?? ($cur . ' ');
 }
 
-$page_title = ($TEXT['shop_nav'] ?? 'Shop') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['shop_nav'] ?? 'Shop') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 require_once __DIR__ . '/../templates/header.php';
 ?>
 

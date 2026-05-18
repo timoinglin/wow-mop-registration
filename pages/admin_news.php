@@ -172,7 +172,8 @@ if ($edit_id > 0) {
     $post = ['id'=>0,'slug'=>'','title'=>'','excerpt'=>'','body'=>'','icon'=>'bi-megaphone','status'=>'draft','published_at'=>null];
 }
 
-$page_title = ($TEXT['news_admin_title'] ?? 'Manage News') . ' — ' . ($config['site']['title'] ?? 'WoW');
+require_once __DIR__ . '/../includes/site_settings.php';
+$page_title = ($TEXT['news_admin_title'] ?? 'Manage News') . ' — ' . settings_site_title($pdo_auth ?? null, $config);
 
 // Load EasyMDE only on the edit/create form
 if ($mode === 'edit') {
