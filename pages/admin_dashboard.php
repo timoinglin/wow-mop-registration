@@ -1063,6 +1063,12 @@ function switchTab(name, btn) {
 (function(){
     const ctx = document.getElementById('regChart');
     if (!ctx || typeof Chart === 'undefined') return;
+    // Canvas can't use CSS var() — resolve the theme custom properties to real
+    // colour strings at runtime so the bars follow the admin accent too.
+    const cs       = getComputedStyle(document.documentElement);
+    const accent   = (cs.getPropertyValue('--accent').trim()      || '#c89b3c');
+    const accntRgb = (cs.getPropertyValue('--accent-rgb').trim()  || '200, 155, 60');
+    const btnRgb   = (cs.getPropertyValue('--btn-bg-rgb').trim()   || '139, 69, 19');
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1070,10 +1076,10 @@ function switchTab(name, btn) {
             datasets: [{
                 label: 'Registrations',
                 data: <?= json_encode($reg_vals) ?>,
-                backgroundColor: 'rgba(139,69,19,0.4)',
-                borderColor: '#c8a96e',
+                backgroundColor: 'rgba(' + btnRgb + ', 0.45)',
+                borderColor: accent,
                 borderWidth: 1, borderRadius: 4,
-                hoverBackgroundColor: 'rgba(200,169,110,0.5)'
+                hoverBackgroundColor: 'rgba(' + accntRgb + ', 0.55)'
             }]
         },
         options: {
