@@ -827,7 +827,7 @@ $bi_labels = [
                 <?php endforeach; ?>
             </div>
             <button type="button" class="cz-btn cz-btn-sm cz-btn-ghost hp-card-add"><i class="bi bi-plus-lg me-1"></i><?= htmlspecialchars($TEXT['cz_hp_card_add'] ?? 'Add card') ?></button>
-        <?php elseif ($type === 'faq'):
+        <?php elseif ($type === 'qa'):
             $items = $d['items'] ?? []; ?>
             <input class="cz-input" type="text" name="<?= $n('title') ?>" maxlength="120" placeholder="<?= htmlspecialchars($TEXT['cz_hp_f_title'] ?? 'Heading (optional)') ?>" value="<?= htmlspecialchars($d['title'] ?? '') ?>" style="margin-bottom:.5rem">
             <div class="hp-faqs">
