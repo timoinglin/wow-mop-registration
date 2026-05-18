@@ -56,15 +56,19 @@ mysql -u root -pascent auth < sql/setup.sql
 # 4. Restart Apache and you're done
 ```
 
-### Option C — Manual (release ZIP)
+### Option C — Clean install (release ZIP) — *cleanest, recommended for big updates*
 
-If you installed by extracting a release ZIP:
+A **clean install** = delete the old program files first, then extract the
+new release — keeping only `config.php`, `uploads/`, `cache/`. This is the
+tidiest path and the only one that also clears files a release **removes**
+(e.g. retired screenshots/assets). Overwrite-only updates leave those as
+harmless orphans; a clean install doesn't.
 
 1. **Stop Apache.**
-2. **Back up** `config.php` and the `uploads/` folder.
+2. **Back up** `config.php` and the `uploads/` folder (and zip the whole site folder — cheap rollback).
 3. **Delete** the old project files **except** `config.php`, `uploads/`, and `cache/`.
-4. **Extract** the new release ZIP into the same folder, letting it overwrite everything else (the ZIP includes `vendor/`).
-5. **Re-run** `sql/setup.sql` on your `auth` database — safe to run multiple times.
+4. **Extract** the new release ZIP into the same folder (the ZIP includes `vendor/`).
+5. **Re-run** `sql/setup.sql` on your `auth` database — idempotent, safe to run repeatedly.
 6. **Restart Apache.**
 
 ### What carries over automatically
@@ -72,14 +76,15 @@ If you installed by extracting a release ZIP:
 | File / Folder | Why it's preserved |
 |---|---|
 | `config.php` | DB credentials, realm info, social links, news, FAQ, vote sites, feature flags |
-| `uploads/` | User avatars, news/forum images, ticket attachments |
+| `uploads/` | User avatars, news/forum images, ticket attachments, site branding (logos / favicon / hero bg) |
 | `cache/` | Login history and rate-limit data |
 | `.git/` | Left intact for git-cloned installs (bonus rollback path) |
 
 ### Worth knowing
 
 - New features may add **new keys** to `lang/en.php` and `lang/es.php`. Missing keys fall back to English automatically — updating is non-breaking, but translations may show English until you copy in the new keys (or just update both `lang/` files from the new release).
-- New SQL columns or tables, when introduced, are added to `sql/setup.sql` with `IF NOT EXISTS` patterns, so re-running it is always safe.
+- New SQL columns or tables, when introduced, are added to `sql/setup.sql` with `IF NOT EXISTS` / `INFORMATION_SCHEMA` patterns, so re-running it is always safe.
+- A release may also **remove** bundled files (old screenshots, retired assets). The one-click updater and `git pull` handle this fine; an *overwrite-only* manual extract leaves the removed files behind as **harmless orphans**. If you want a spotless tree, do a **clean install** (Option C) — your full backup zip makes it risk-free.
 - Check the [release notes](https://github.com/timoinglin/wow-mop-registration/releases) for any version-specific upgrade steps.
 
 ---
@@ -275,6 +280,61 @@ Then in a browser:
 
 ---
 
+### Upgrading from v0.6.x → v0.7.0
+
+v0.7.0 is **The Customize release** — a full no-code, update-safe Site
+Customization suite (Theme & branding, the drag-and-drop home-page
+designer, Site settings, editable footer, no-code languages), plus the
+forum per-category posting policy and the `/shop` donation-framing text.
+**Everything is additive and backward-compatible** — nothing was removed,
+and an un-customized install looks and behaves exactly as before.
+
+#### 1. Pull the new code
+
+```bash
+# stop Apache first (XAMPP Control Panel → Stop)
+git checkout main && git pull
+# (or extract the v0.7.0 release ZIP, overwriting everything except
+#  config.php, uploads/, cache/)
+```
+
+#### 2. Run the SQL setup (required)
+
+```bash
+mysql -u root -pascent auth < sql/setup.sql
+```
+
+Idempotent (`CREATE TABLE IF NOT EXISTS`). It adds the `site_settings`
+table (the customization store) and the `forum_categories.admin_only` /
+`allow_replies` columns. **No existing data is changed**; until you save
+something in `/admin_customization`, every value falls back to
+`config.php`. (The one-click updater applies this for you with the
+bundled XAMPP PHP — no `mysql` client needed.)
+
+#### 3. Nothing else to do
+
+`uploads/branding/` (admin-uploaded logos / favicon / hero background) is
+**created automatically** on first save and is preserved by the updater
+like `uploads/avatars/`. `config.php` is never rewritten — it stays the
+seed/fallback. Secrets & bootstrap (Ko-fi webhook token, `db`/`smtp`/
+`recaptcha`, `site.base_url`, all `features.*` including
+`playtime_reward.enabled`) deliberately remain file-only.
+
+> v0.7.0 also trims some bundled screenshots from the repo. A `git pull`
+> or the one-click updater handles that automatically; if you update by
+> hand, a **clean install** (Option C) leaves the tidiest tree — old
+> screenshots left behind are harmless either way.
+
+#### What's new at a glance
+
+- **Customization** (`/admin_customization`, GM 9+): Theme & branding
+  (accent / presets / logos / favicon / hero bg, live preview, optional
+  sanitised custom CSS) · **Home page designer** (reorder & toggle the
+  built-in sections, add card-grid / text / CTA / Q&A) · **Site
+  settings** (titles, social links, Ko-fi/playtime/vote config) ·
+  editable **footer** · no-code **languages** (drop `lang/<code>.php`).
+- Forum **per-category posting policy** (announcement-only / read-only).
+- `/shop` **donation framing** (voluntary-tip / non-refundable wording).
 
 ---
 

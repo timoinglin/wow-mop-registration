@@ -32,8 +32,9 @@ A complete, secure, and modern registration portal for **World of Warcraft: Mist
 - 🗝️ **Auth** — SHA-1 password hashing matching the TrinityCore format
 - 📧 **Email** — SMTP password recovery and ticket notifications via PHPMailer
 - 📊 **Live Stats** — Real-time server status, player counts, and animated counters
-- 🌍 **Multilingual** — English and Spanish included; easy to add more
-- 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design
+- 🌍 **Multilingual** — English and Spanish included; **adding a language is no-code** (drop `lang/<code>.php`, enable it in the admin)
+- 🎨 **Modern UI** — Dark gaming theme, Bootstrap 5, responsive design; the accent recolours the whole site
+- 🛠️ **Site Customization (no-code, update-safe)** — one GM-only `/admin_customization` page: **Theme & branding** (accent / preset palettes / logos / favicon / hero background, live preview), a **drag-and-drop home-page designer** (reorder & toggle built-ins, add card-grid / text / CTA / Q&A sections), an editable **footer**, **languages**, and the presentational **site settings** (titles, social links, Ko-fi/playtime/vote config). All DB-stored — `config.php` stays the untouched fallback, so changes survive updates.
 - ⚙️ **Feature Flags** — Toggle tickets, password recovery, reCAPTCHA, and maintenance mode from config
 - 🧑‍💼 **Admin Dashboard** — Account management, ban/unban, ticket management, audit log, character lookup, IP bans, email broadcast
 - 🔍 **Public Armory** — Search any character on the realm; profile pages with equipped gear (Wowhead tooltips), stats, achievements, and account-mate links
@@ -197,7 +198,7 @@ Full guides live in the [`docs/`](docs/) folder so this README stays focused on 
 |---|---|
 | **[Installation](docs/INSTALL.md)** | Requirements, manual setup, database, the configuration steps, feature flags, `mod_rewrite` |
 | **[Updating](docs/UPDATE.md)** | The one-click updater, Git & manual paths, and every version-specific upgrade guide |
-| **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, changing text & images |
+| **[Admin &amp; Customization](docs/ADMIN.md)** | Admin dashboard & GM ranks, managing News / Forum / In-Game Shop & Ko-fi donations, and the no-code **Customization** suite (theme & branding, home-page designer, footer, languages, site settings) |
 | **[Security Notes](docs/SECURITY.md)** | What's protected out of the box and what you must configure |
 | **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and their fixes |
 | **[Shop DB Schema](docs/SHOP_SCHEMA.md)** | Reverse-engineered `battle_pay_*` reference for debugging / hand-editing the in-game shop |
