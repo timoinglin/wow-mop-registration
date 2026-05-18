@@ -215,7 +215,7 @@ $forum_css = <<<'CSS'
 .fo-thread-title:hover { color: #fff; }
 .fo-thread-sub { color: #8899aa; font-size: .78rem; margin-top: .15rem; }
 .fo-badge { display:inline-block; padding:.12rem .5rem; border-radius:10px; font-size:.68rem; text-transform:uppercase; letter-spacing:.5px; margin-right:.4rem; vertical-align: middle; }
-.fo-badge-sticky { background: rgba(240,192,64,.15); color: #f0c040; border: 1px solid rgba(240,192,64,.3); }
+.fo-badge-sticky { background: rgba(var(--accent-rgb), .15); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3); }
 .fo-badge-locked { background: rgba(231,76,60,.15); color: #f87e8a; border: 1px solid rgba(231,76,60,.3); }
 .fo-thread-stats {
     text-align: right;
@@ -343,9 +343,9 @@ $forum_css = <<<'CSS'
 .fo-mod-link-danger:hover { color: #ffbac0; }
 
 .fo-preview-banner {
-    background: rgba(240,192,64,.1);
-    border: 1px solid rgba(240,192,64,.3);
-    color: #f0c040;
+    background: rgba(var(--accent-rgb), .1);
+    border: 1px solid rgba(var(--accent-rgb), .3);
+    color: var(--accent);
     padding: .65rem 1rem;
     border-radius: 6px;
     margin-bottom: 1rem;
@@ -436,7 +436,7 @@ if ($mode === 'thread') {
 
         <div class="fo-hero">
             <h1>
-                <?php if ($thread['status'] === 'pending'): ?><span class="fo-badge" style="background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35)"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
+                <?php if ($thread['status'] === 'pending'): ?><span class="fo-badge" style="background:rgba(var(--accent-rgb), .15);color:var(--accent);border:1px solid rgba(var(--accent-rgb), .35)"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
                 <?php if ($thread['is_sticky']): ?><span class="fo-badge fo-badge-sticky"><i class="bi bi-pin-angle-fill"></i> <?= htmlspecialchars($TEXT['forum_sticky'] ?? 'Sticky') ?></span><?php endif; ?>
                 <?php if ($thread['is_locked']): ?><span class="fo-badge fo-badge-locked"><i class="bi bi-lock-fill"></i> <?= htmlspecialchars($TEXT['forum_locked'] ?? 'Locked') ?></span><?php endif; ?>
                 <?= htmlspecialchars($thread['title']) ?>
@@ -488,7 +488,7 @@ if ($mode === 'thread') {
             $is_mine    = ($user_id > 0 && (int)$p['author_id'] === $user_id);
             $can_edit   = ($is_admin || $is_mine);
         ?>
-            <article class="fo-post" id="post-<?= (int)$p['id'] ?>" <?= $is_pending ? 'style="border-color: rgba(240,192,64,.35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
+            <article class="fo-post" id="post-<?= (int)$p['id'] ?>" <?= $is_pending ? 'style="border-color: rgba(var(--accent-rgb), .35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
                 <div class="fo-post-side">
                     <?= render_avatar((string)$p['author_name'], $avatars[(int)$p['author_id']] ?? null, 64) ?>
                     <div class="fo-post-author"><?= htmlspecialchars($p['author_name']) ?></div>
@@ -501,7 +501,7 @@ if ($mode === 'thread') {
                         <span>
                             <i class="bi bi-clock me-1"></i><?= htmlspecialchars(date('M j, Y · H:i', strtotime($p['created_at']))) ?>
                             <?php if ($is_pending): ?>
-                                <span style="margin-left:.6rem;padding:.1rem .5rem;background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35);border-radius:10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span>
+                                <span style="margin-left:.6rem;padding:.1rem .5rem;background:rgba(var(--accent-rgb), .15);color:var(--accent);border:1px solid rgba(var(--accent-rgb), .35);border-radius:10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span>
                             <?php endif; ?>
                         </span>
                         <span style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
@@ -550,7 +550,7 @@ if ($mode === 'thread') {
         $reply_error   = $_GET['reply_error'] ?? '';
         ?>
         <?php if ($reply_pending): ?>
-            <div style="margin-top:1.5rem;padding:.85rem 1rem;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);border-radius:6px;color:#f0c040;font-size:.92rem">
+            <div style="margin-top:1.5rem;padding:.85rem 1rem;background:rgba(var(--accent-rgb), .1);border:1px solid rgba(var(--accent-rgb), .3);border-radius:6px;color:var(--accent);font-size:.92rem">
                 <i class="bi bi-hourglass-split me-1"></i><?= htmlspecialchars($TEXT['forum_reply_pending_msg'] ?? 'Your reply was submitted and is waiting for admin approval.') ?>
             </div>
         <?php endif; ?>
@@ -602,7 +602,7 @@ if ($mode === 'thread') {
                 if (!$auto):
                     $need = max(0, (int)$settings['auto_approve_threshold'] - forum_user_approved_post_count($pdo_auth, $user_id));
                 ?>
-                    <div style="background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.25);color:#f0c040;padding:.55rem .85rem;border-radius:6px;font-size:.85rem;margin-bottom:.8rem">
+                    <div style="background:rgba(var(--accent-rgb), .08);border:1px solid rgba(var(--accent-rgb), .25);color:var(--accent);padding:.55rem .85rem;border-radius:6px;font-size:.85rem;margin-bottom:.8rem">
                         <i class="bi bi-hourglass-split me-1"></i>
                         <?= htmlspecialchars(sprintf(
                             $TEXT['forum_threshold_notice'] ?? 'Your post will wait for admin approval. After %d more approved posts, your posts publish instantly.',
@@ -732,7 +732,7 @@ if ($mode === 'category') {
         <div class="fo-crumb"><a href="/forum"><i class="bi bi-chevron-left"></i> <?= htmlspecialchars($TEXT['forum_nav'] ?? 'Forum') ?></a></div>
 
         <?php if (isset($_GET['pending'])): ?>
-            <div style="margin-bottom:1rem;padding:.7rem 1rem;background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.3);border-radius:6px;color:#f0c040;font-size:.92rem">
+            <div style="margin-bottom:1rem;padding:.7rem 1rem;background:rgba(var(--accent-rgb), .1);border:1px solid rgba(var(--accent-rgb), .3);border-radius:6px;color:var(--accent);font-size:.92rem">
                 <i class="bi bi-hourglass-split me-1"></i><?= htmlspecialchars($TEXT['forum_thread_pending_msg'] ?? 'Your thread was submitted and is waiting for admin approval. It will appear here once approved.') ?>
             </div>
         <?php endif; ?>
@@ -780,10 +780,10 @@ if ($mode === 'category') {
                 $av   = $avatars[(int)$t['author_id']] ?? null;
             ?>
                 <?php $t_pending = (($t['status'] ?? 'published') === 'pending'); ?>
-                <div class="fo-thread-row" <?= $t_pending ? 'style="border-color: rgba(240,192,64,.35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
+                <div class="fo-thread-row" <?= $t_pending ? 'style="border-color: rgba(var(--accent-rgb), .35); background: linear-gradient(145deg, #1f1b14, #14110b);"' : '' ?>>
                     <?= render_avatar((string)$t['author_name'], $av, 40) ?>
                     <div class="fo-thread-main">
-                        <?php if ($t_pending): ?><span class="fo-badge" style="background:rgba(240,192,64,.15);color:#f0c040;border:1px solid rgba(240,192,64,.35)" title="<?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?>"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
+                        <?php if ($t_pending): ?><span class="fo-badge" style="background:rgba(var(--accent-rgb), .15);color:var(--accent);border:1px solid rgba(var(--accent-rgb), .35)" title="<?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?>"><i class="bi bi-hourglass-split"></i> <?= htmlspecialchars($TEXT['forum_pending_pill'] ?? 'Awaiting approval') ?></span><?php endif; ?>
                         <?php if ($t['is_sticky']): ?><span class="fo-badge fo-badge-sticky" title="<?= htmlspecialchars($TEXT['forum_sticky'] ?? 'Sticky') ?>"><i class="bi bi-pin-angle-fill"></i></span><?php endif; ?>
                         <?php if ($t['is_locked']): ?><span class="fo-badge fo-badge-locked" title="<?= htmlspecialchars($TEXT['forum_locked'] ?? 'Locked') ?>"><i class="bi bi-lock-fill"></i></span><?php endif; ?>
                         <a class="fo-thread-title" href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"><?= htmlspecialchars($t['title']) ?></a>

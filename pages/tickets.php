@@ -303,7 +303,7 @@ require_once __DIR__ . '/../templates/header.php';
     color: inherit;
 }
 .ticket-row.row-open        { border-left-color: #60a5fa; }
-.ticket-row.row-in_progress { border-left-color: #fbbf24; }
+.ticket-row.row-in_progress { border-left-color: var(--accent); }
 .ticket-row.row-closed      { border-left-color: #6b7280; }
 
 .ticket-row .row-info { flex: 1; min-width: 0; }
@@ -324,7 +324,7 @@ require_once __DIR__ . '/../templates/header.php';
 
 .ticket-status { display: inline-block; padding: .12rem .55rem; border-radius: 6px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
 .status-open        { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.status-in_progress { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.status-in_progress { background: rgba(245,158,11,0.15); color: var(--accent); border: 1px solid rgba(245,158,11,0.3); }
 .status-closed      { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
 
 .ticket-pill { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; }

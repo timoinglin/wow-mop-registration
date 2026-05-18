@@ -73,33 +73,33 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-bal .val { color:#69ccf0; font-weight:700; font-size:1.55rem; line-height:1.1; }
 
 .shp-donate {
-    background: linear-gradient(145deg,#1f1b10,#241608); border:1px solid rgba(240,192,64,.4);
+    background: linear-gradient(145deg,#1f1b10,#241608); border:1px solid rgba(var(--accent-rgb), .4);
     border-radius:10px 10px 0 0; padding:.95rem 1.3rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
 }
 .shp-donate.solo { border-radius:10px; margin-bottom:1.25rem; }
-.shp-donate .t { color:#f0c040; font-weight:700; }
+.shp-donate .t { color:var(--accent); font-weight:700; }
 .shp-donate .s { color:#8899aa; font-size:.84rem; margin-top:.15rem; }
-.shp-donate .s b { color:#f0c040; }
+.shp-donate .s b { color:var(--accent); }
 .shp-btn { padding:.55rem 1.2rem; border-radius:6px; border:1px solid; font-size:.9rem; text-decoration:none; display:inline-block; font-family:inherit; transition:background .14s ease; }
 .shp-btn-kofi { background:var(--btn-bg); color:#fff; border-color:var(--btn-bg-hover); }
 .shp-btn-kofi:hover { background:var(--btn-bg-hover); color:#fff; }
 
 /* Attribution-code box (sits directly under the donate bar) */
 .shp-code-box {
-    background: rgba(0,0,0,.30); border:1px solid rgba(240,192,64,.3); border-top:none;
+    background: rgba(0,0,0,.30); border:1px solid rgba(var(--accent-rgb), .3); border-top:none;
     border-radius:0 0 10px 10px; padding:1rem 1.3rem; margin-bottom:1.25rem;
 }
 .shp-code-box.muted {
     color:#9aa7b4; font-size:.9rem; display:flex; align-items:center; gap:.5rem;
 }
-.shp-code-box.muted a { color:#f0c040; text-decoration:none; font-weight:600; }
+.shp-code-box.muted a { color:var(--accent); text-decoration:none; font-weight:600; }
 .shp-code-cap { color:var(--accent); font-size:.85rem; font-weight:600; margin-bottom:.55rem; }
 .shp-code-row { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.9rem; }
 .shp-code {
     font-family:'Courier New',monospace; font-size:1.45rem; font-weight:700; letter-spacing:2px;
-    color:#f0c040; background:linear-gradient(145deg,#241608,#15100a);
-    border:1px dashed rgba(240,192,64,.55); border-radius:7px; padding:.4rem 1rem;
+    color:var(--accent); background:linear-gradient(145deg,#241608,#15100a);
+    border:1px dashed rgba(var(--accent-rgb), .55); border-radius:7px; padding:.4rem 1rem;
 }
 .shp-copy {
     background:var(--btn-bg); color:#fff; border:1px solid var(--btn-bg-hover); border-radius:6px;
@@ -129,7 +129,7 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-tipnote b { color:var(--accent); }
 .shp-steps { margin:0; padding-left:1.2rem; color:#9aa7b4; font-size:.85rem; line-height:1.75; }
 .shp-steps code, .shp-code-cap code {
-    color:#f0c040; background:rgba(240,192,64,.12); padding:.03rem .35rem; border-radius:4px;
+    color:var(--accent); background:rgba(var(--accent-rgb), .12); padding:.03rem .35rem; border-radius:4px;
     font-family:'Courier New',monospace;
 }
 .shp-steps li.key { color:#ffd9d4; font-weight:600; }
@@ -162,8 +162,8 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-rail-btn:hover { border-color:rgba(var(--accent-rgb), .6); color:#fff; }
 .shp-rail-btn.active {
     background:linear-gradient(145deg,#3a2410,#241608);
-    border-color:rgba(240,192,64,.6); color:#f0c040;
-    box-shadow:inset 3px 0 0 #f0c040;
+    border-color:rgba(var(--accent-rgb), .6); color:var(--accent);
+    box-shadow:inset 3px 0 0 var(--accent);
 }
 .shp-rail-btn .ri {
     width:30px; height:30px; flex-shrink:0; border-radius:50%;
@@ -212,13 +212,13 @@ require_once __DIR__ . '/../templates/header.php';
 .shp-tile .gi .sep { color:#4a5568; }
 .shp-tile .gi .miss { color:#f87e8a; font-style:italic; }
 .shp-tile .pr {
-    color:#f0c040; font-weight:700; font-size:1rem;
+    color:var(--accent); font-weight:700; font-size:1rem;
     border-top:1px solid rgba(var(--btn-bg-rgb), .2); padding-top:.55rem; margin-top:.3rem;
     display:flex; align-items:center; justify-content:center; gap:.3rem;
 }
 .shp-tile .pr small { color:#8899aa; font-weight:400; font-size:.7rem; }
 
-.shp-notice { background:rgba(240,192,64,.1); border:1px solid rgba(240,192,64,.3); color:#f0c040; padding:1rem 1.2rem; border-radius:8px; }
+.shp-notice { background:rgba(var(--accent-rgb), .1); border:1px solid rgba(var(--accent-rgb), .3); color:var(--accent); padding:1rem 1.2rem; border-radius:8px; }
 .shp-empty { color:#4a5568; text-align:center; padding:2.5rem 1rem; }
 
 @media (max-width: 820px) {

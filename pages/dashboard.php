@@ -358,7 +358,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
 .action-btn-primary { background: linear-gradient(135deg, var(--btn-bg), var(--btn-bg-hover)); color: #fff; }
 .action-btn-primary:hover { background: linear-gradient(135deg, var(--btn-bg-hover), var(--accent)); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(var(--btn-bg-rgb), .4); }
 .action-btn-secondary { background: rgba(255,255,255,0.05); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), 0.3); }
-.action-btn-secondary:hover { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.6); color: #e8c87e; transform: translateY(-2px); }
+.action-btn-secondary:hover { background: rgba(var(--accent-rgb), 0.12); border-color: rgba(var(--accent-rgb), 0.6); color: var(--accent); transform: translateY(-2px); }
 
 .info-row {
     display: flex;
@@ -423,7 +423,7 @@ if ($pr_just_claimed > 0 && isset($user)) {
 .char-meta  { font-size: .78rem; color: #8899aa; margin-top: 2px; }
 .char-stats { text-align: right; flex-shrink: 0; }
 .char-level-badge { display: inline-block; background: rgba(var(--btn-bg-rgb), .35); color: var(--accent); font-weight: 700; font-size: .85rem; padding: .2rem .6rem; border-radius: 6px; margin-bottom: 4px; }
-.achiev-badge { display: inline-block; background: rgba(255,215,0,.1); color: #ffd700; font-size: .75rem; padding: .15rem .5rem; border-radius: 6px; border: 1px solid rgba(255,215,0,.2); }
+.achiev-badge { display: inline-block; background: rgba(var(--accent-rgb), .1); color: var(--accent); font-size: .75rem; padding: .15rem .5rem; border-radius: 6px; border: 1px solid rgba(var(--accent-rgb), .2); }
 
 /* Login History */
 .login-row {

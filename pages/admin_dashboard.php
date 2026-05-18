@@ -184,10 +184,10 @@ $s_world    = check_port_status($db_host, $world_port);
 /* Toggle bot button */
 .toggle-bot-btn {
     padding: .45rem 1rem; border-radius: 8px; font-size: .8rem; font-weight: 600; cursor: pointer;
-    border: 1px solid rgba(251,191,36,.3); background: rgba(251,191,36,.08); color: #fbbf24;
+    border: 1px solid rgba(var(--accent-rgb), .3); background: rgba(var(--accent-rgb), .08); color: var(--accent);
     transition: all .2s; white-space: nowrap;
 }
-.toggle-bot-btn:hover { background: rgba(251,191,36,.18); }
+.toggle-bot-btn:hover { background: rgba(var(--accent-rgb), .18); }
 .toggle-bot-btn.showing-bots { border-color: rgba(var(--btn-bg-rgb), .4); background: rgba(var(--btn-bg-rgb), .12); color: var(--accent); }
 
 /* Accounts table */
@@ -208,14 +208,14 @@ $s_world    = check_port_status($db_host, $world_port);
 .row-gm td:first-child { color: var(--accent) !important; }
 
 /* Badges */
-.badge-bot    { display: inline-block; font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; background: rgba(251,191,36,.1); color: #fbbf24; border: 1px solid rgba(251,191,36,.2); margin-left: 4px; vertical-align: middle; }
+.badge-bot    { display: inline-block; font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; background: rgba(var(--accent-rgb), .1); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .2); margin-left: 4px; vertical-align: middle; }
 .badge-ban    { display: inline-block; font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; background: rgba(220,53,69,.15); color: #f87e8a; border: 1px solid rgba(220,53,69,.25); margin-left: 4px; vertical-align: middle; }
 .badge-gm     { display: inline-block; font-size: .63rem; font-weight: 700; padding: .1rem .4rem; border-radius: 4px; background: rgba(var(--btn-bg-rgb), .25); color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3); margin-left: 4px; vertical-align: middle; }
 .online-pill  { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; }
 .dot          { width: 7px; height: 7px; border-radius: 50%; }
 .dot-on       { background: #5dd87c; box-shadow: 0 0 5px #5dd87c; }
 .dot-off      { background: #374151; }
-.ip-susp      { color: #fbbf24; font-weight: 600; }
+.ip-susp      { color: var(--accent); font-weight: 600; }
 .ip-local     { color: #4a5568; }
 
 /* Pagination */
@@ -271,7 +271,7 @@ $s_world    = check_port_status($db_host, $world_port);
 .admin-ticket-row:hover { background: rgba(var(--accent-rgb), .06) !important; border-color: rgba(var(--accent-rgb), .35) !important; transform: translateX(3px); color: inherit !important; }
 .t-status { display: inline-block; padding: .12rem .5rem; border-radius: 5px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
 .t-open { background: rgba(59,130,246,.12); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
-.t-in_progress { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.25); }
+.t-in_progress { background: rgba(245,158,11,.12); color: var(--accent); border: 1px solid rgba(245,158,11,.25); }
 .t-closed { background: rgba(107,114,128,.12); color: #9ca3af; border: 1px solid rgba(107,114,128,.25); }
 
 /* Audit log */
@@ -348,7 +348,7 @@ $s_world    = check_port_status($db_host, $world_port);
     <div class="col-6 col-md-2">
         <div class="astat-card">
             <div style="font-size:1.5rem;margin-bottom:.3rem">🤖</div>
-            <div class="val" style="color:#fbbf24"><?= number_format($bot_count) ?></div>
+            <div class="val" style="color:var(--accent)"><?= number_format($bot_count) ?></div>
             <div class="lbl"><?= htmlspecialchars($TEXT['admin_player_bots'] ?? 'PlayerBots') ?></div>
             <div class="sub"><?= count($real_accounts) ?> <?= htmlspecialchars($TEXT['admin_real_players'] ?? 'real players') ?></div>
         </div>
@@ -735,9 +735,9 @@ $s_world    = check_port_status($db_host, $world_port);
             </div>
             <div class="col-md-3">
                 <a href="/admin_forum#moderation-queue" style="text-decoration:none;display:block">
-                    <div style="background:#0e0e17;border:1px solid <?= $forum_pending > 0 ? 'rgba(240,192,64,.45)' : 'rgba(var(--btn-bg-rgb), .2)' ?>;border-radius:6px;padding:.9rem 1rem;transition:border-color .15s">
+                    <div style="background:#0e0e17;border:1px solid <?= $forum_pending > 0 ? 'rgba(var(--accent-rgb), .45)' : 'rgba(var(--btn-bg-rgb), .2)' ?>;border-radius:6px;padding:.9rem 1rem;transition:border-color .15s">
                         <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:.5px"><?= htmlspecialchars($TEXT['admin_forum_pending'] ?? 'Pending approvals') ?></div>
-                        <div style="color:<?= $forum_pending > 0 ? '#f0c040' : 'var(--accent)' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= $forum_pending ?></div>
+                        <div style="color:<?= $forum_pending > 0 ? 'var(--accent)' : 'var(--accent)' ?>;font-weight:700;font-size:1.4rem;line-height:1.2"><?= $forum_pending ?></div>
                     </div>
                 </a>
             </div>
@@ -778,7 +778,7 @@ $s_world    = check_port_status($db_host, $world_port);
                         <?php if ($adm_shop_ok): ?>
                             <span style="color:#5dd87c;font-weight:700"><i class="bi bi-check-circle"></i> <?= htmlspecialchars($TEXT['admin_shop_connected'] ?? 'Connected') ?></span>
                         <?php else: ?>
-                            <span style="color:#f0c040;font-weight:700"><i class="bi bi-exclamation-triangle"></i>
+                            <span style="color:var(--accent);font-weight:700"><i class="bi bi-exclamation-triangle"></i>
                                 <?= htmlspecialchars(match ($adm_shop_reason) {
                                     'disabled'    => $TEXT['admin_shop_disabled']  ?? 'Disabled',
                                     'no_world_db' => $TEXT['admin_shop_no_db']     ?? 'No world DB',
@@ -1335,7 +1335,7 @@ async function loadTickets() {
             : '<span style="color:var(--accent)"><i class="bi bi-person"></i> ' + escHtml(t.username) + '</span>';
 
         return `
-        <a class="admin-ticket-row" href="/admin_ticket/${t.id}" style="display:flex;align-items:center;gap:1rem;padding:.95rem 1.1rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid ${t.status === 'open' ? '#60a5fa' : t.status === 'in_progress' ? '#fbbf24' : '#6b7280'};border-radius:10px;margin-bottom:.5rem;text-decoration:none;color:inherit;transition:all .2s ease">
+        <a class="admin-ticket-row" href="/admin_ticket/${t.id}" style="display:flex;align-items:center;gap:1rem;padding:.95rem 1.1rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid ${t.status === 'open' ? '#60a5fa' : t.status === 'in_progress' ? 'var(--accent)' : '#6b7280'};border-radius:10px;margin-bottom:.5rem;text-decoration:none;color:inherit;transition:all .2s ease">
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;margin-bottom:.25rem">
                     <span class="t-status ${statusCls}">${statusLabel}</span>

@@ -267,7 +267,7 @@ $faq_items = $config['faq'] ?? [];
                 <div class="col-lg-3 col-md-6">
                     <div class="game-card h-100 text-center">
                         <div class="card-body d-flex flex-column p-4">
-                            <div class="step-icon"><i class="bi bi-pencil-square" style="color:#f0c040"></i></div>
+                            <div class="step-icon"><i class="bi bi-pencil-square" style="color:var(--accent)"></i></div>
                             <h4 class="text-accent mb-3"><?= $TEXT['step3_title'] ?></h4>
                             <p style="color:var(--text-muted)"><?= $TEXT['step3_desc'] ?></p>
                             <div class="realmlist-badge mt-auto">SET realmlist <?= htmlspecialchars($config['realm']['realmlist']) ?></div>
@@ -334,7 +334,7 @@ $faq_items = $config['faq'] ?? [];
                 $realm_desc = $realm_desc[$lang] ?? ($realm_desc['en'] ?? reset($realm_desc) ?: '');
             }
             ?>
-            <p class="text-center lead mb-4 text-warning" style="font-size: 1.3rem;"><?= htmlspecialchars($realm_desc) ?></p>
+            <p class="text-center lead mb-4" style="font-size: 1.3rem; color: var(--accent);"><?= htmlspecialchars($realm_desc) ?></p>
             <div class="row text-center justify-content-center g-4">
                 <div class="col-md-6 col-lg-4">
                     <div class="game-card h-100">

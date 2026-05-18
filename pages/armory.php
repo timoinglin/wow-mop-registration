@@ -348,7 +348,7 @@ if ($is_profile) {
     padding: .7rem .9rem;
 }
 .qstat .lbl { font-size: .68rem; color:#8899aa; text-transform: uppercase; letter-spacing: 1.2px; }
-.qstat .val { font-size: 1.05rem; color:#e8c87e; font-weight: 700; margin-top: .1rem; }
+.qstat .val { font-size: 1.05rem; color:var(--accent); font-weight: 700; margin-top: .1rem; }
 
 /* Panel cards */
 .armory-panel {

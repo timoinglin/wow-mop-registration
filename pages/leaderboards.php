@@ -320,7 +320,7 @@ function lb_rank_badge(int $rank): string {
 }
 .lb-table tbody tr:last-child td { border-bottom: none; }
 .lb-table tbody tr:hover td { background: rgba(255,255,255,.025); }
-.lb-table tbody tr.top-1 td { background: linear-gradient(90deg, rgba(255,215,0,.08), transparent 60%); }
+.lb-table tbody tr.top-1 td { background: linear-gradient(90deg, rgba(var(--accent-rgb), .08), transparent 60%); }
 .lb-table tbody tr.top-2 td { background: linear-gradient(90deg, rgba(192,192,192,.06), transparent 60%); }
 .lb-table tbody tr.top-3 td { background: linear-gradient(90deg, rgba(205,127,50,.06), transparent 60%); }
 
@@ -333,7 +333,7 @@ function lb_rank_badge(int $rank): string {
     color: #6c7a8c;
     background: rgba(255,255,255,.04);
 }
-.rank-gold   { background: linear-gradient(135deg, rgba(255,215,0,.25), rgba(255,215,0,.08)); border: 1px solid rgba(255,215,0,.35); font-size: 1.4rem; }
+.rank-gold   { background: linear-gradient(135deg, rgba(var(--accent-rgb), .25), rgba(var(--accent-rgb), .08)); border: 1px solid rgba(var(--accent-rgb), .35); font-size: 1.4rem; }
 .rank-silver { background: linear-gradient(135deg, rgba(192,192,192,.25), rgba(192,192,192,.08)); border: 1px solid rgba(192,192,192,.35); font-size: 1.4rem; }
 .rank-bronze { background: linear-gradient(135deg, rgba(205,127,50,.25), rgba(205,127,50,.08)); border: 1px solid rgba(205,127,50,.35); font-size: 1.4rem; }
 
@@ -355,7 +355,7 @@ function lb_rank_badge(int $rank): string {
 }
 .metric-val {
     font-weight: 700;
-    color: #e8c87e;
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
     text-align: right;
 }

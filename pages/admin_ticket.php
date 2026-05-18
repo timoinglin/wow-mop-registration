@@ -244,7 +244,7 @@ require_once __DIR__ . '/../templates/header.php';
     text-transform: uppercase; letter-spacing: .5px;
 }
 .tv-status.status-open        { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-.tv-status.status-in_progress { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.tv-status.status-in_progress { background: rgba(245,158,11,0.15); color: var(--accent); border: 1px solid rgba(245,158,11,0.3); }
 .tv-status.status-closed      { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
 
 .tv-user-info {
@@ -339,7 +339,7 @@ require_once __DIR__ . '/../templates/header.php';
 .tv-btn-danger:hover { background: rgba(220,53,69,0.18); border-color: rgba(220,53,69,0.6); color: #fff; }
 .tv-btn-secondary { background: rgba(105,204,240,0.08); border-color: rgba(105,204,240,0.4); color: #69ccf0; }
 .tv-btn-secondary:hover { background: rgba(105,204,240,0.18); border-color: rgba(105,204,240,0.6); color: #cfe9f6; }
-.tv-btn-warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.4); color: #fbbf24; }
+.tv-btn-warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.4); color: var(--accent); }
 .tv-btn-warn:hover { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.6); color: #fff; }
 
 .tv-toast { border-radius: 10px; padding: .8rem 1.1rem; margin-bottom: 1rem; background: rgba(93,216,124,0.12); border: 1px solid rgba(93,216,124,0.4); color: #5dd87c; font-size: .9rem; animation: tv-toast-in .35s ease; }

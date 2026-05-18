@@ -323,15 +323,15 @@ $csrf = generate_csrf_token();
 .sh-input:focus, .sh-select:focus { outline:none; border-color:var(--accent); }
 .sh-label { display:block; font-size:.7rem; color:#8899aa; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.25rem; }
 .sh-notice {
-    background:rgba(240,192,64,.1); border:1px solid rgba(240,192,64,.3);
-    color:#f0c040; padding:1rem 1.2rem; border-radius:6px; font-size:.92rem;
+    background:rgba(var(--accent-rgb), .1); border:1px solid rgba(var(--accent-rgb), .3);
+    color:var(--accent); padding:1rem 1.2rem; border-radius:6px; font-size:.92rem;
 }
-.sh-notice code { background:rgba(0,0,0,.35); padding:.05rem .4rem; border-radius:3px; color:#f0c040; }
+.sh-notice code { background:rgba(0,0,0,.35); padding:.05rem .4rem; border-radius:3px; color:var(--accent); }
 .sh-flash-ok { background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.3); color:#5dd87c; padding:.7rem 1rem; border-radius:6px; margin-bottom:1rem; }
 .sh-flash-err { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); color:#e74c3c; padding:.7rem 1rem; border-radius:6px; margin-bottom:1rem; }
 .sh-restart {
-    background:linear-gradient(145deg,#3a2410,#241608); border:1px solid rgba(240,192,64,.45);
-    color:#f0c040; padding:.9rem 1.2rem; border-radius:8px; margin-bottom:1.5rem;
+    background:linear-gradient(145deg,#3a2410,#241608); border:1px solid rgba(var(--accent-rgb), .45);
+    color:var(--accent); padding:.9rem 1.2rem; border-radius:8px; margin-bottom:1.5rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
 }
 .sh-cat-head {
@@ -351,7 +351,7 @@ $csrf = generate_csrf_token();
 .sh-empty { color:#4a5568; font-style:italic; padding:.6rem .7rem; }
 .sh-item-missing { color:#f87e8a; font-style:italic; }
 .sh-mono { font-family:monospace; font-size:.8rem; color:#8899aa; }
-.sh-special-pill { background:rgba(240,192,64,.15); color:#f0c040; border:1px solid rgba(240,192,64,.3); padding:.08rem .45rem; border-radius:10px; font-size:.66rem; text-transform:uppercase; letter-spacing:.5px; }
+.sh-special-pill { background:rgba(var(--accent-rgb), .15); color:var(--accent); border:1px solid rgba(var(--accent-rgb), .3); padding:.08rem .45rem; border-radius:10px; font-size:.66rem; text-transform:uppercase; letter-spacing:.5px; }
 </style>
 
 <div class="container sh-wrap">
@@ -396,7 +396,7 @@ $csrf = generate_csrf_token();
                 <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars(sprintf($TEXT['shop_rate_default'] ?? 'Currently using the config default (%s). Saving here stores a database override.', number_format((int)$don_rate_eff))) ?>
             <?php endif; ?>
             <?php if (!$don_flag_on): ?>
-                <div style="color:#f0c040;margin-top:.4rem"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($TEXT['shop_rate_disabled'] ?? 'Donations are disabled (features.donations = false). You can still set the rate now — it applies once you enable donations.') ?></div>
+                <div style="color:var(--accent);margin-top:.4rem"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($TEXT['shop_rate_disabled'] ?? 'Donations are disabled (features.donations = false). You can still set the rate now — it applies once you enable donations.') ?></div>
             <?php endif; ?>
             <div id="rateExamples" style="margin-top:.55rem;color:#8899aa"></div>
             <?php if ($don_median > 0): ?>
@@ -636,7 +636,7 @@ $csrf = generate_csrf_token();
                 <form method="post" action="/admin_shop" style="flex-shrink:0">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                     <input type="hidden" name="action" value="clear_dirty">
-                    <button type="submit" class="sh-btn sh-btn-ghost" style="border-color:rgba(240,192,64,.5);color:#f0c040">
+                    <button type="submit" class="sh-btn sh-btn-ghost" style="border-color:rgba(var(--accent-rgb), .5);color:var(--accent)">
                         <i class="bi bi-check2 me-1"></i><?= htmlspecialchars($TEXT['shop_restart_done'] ?? "I've restarted it") ?>
                     </button>
                 </form>

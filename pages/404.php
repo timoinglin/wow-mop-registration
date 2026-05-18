@@ -121,7 +121,7 @@ require_once __DIR__ . '/../templates/header.php';
 .dead-btn-secondary:hover {
     background: rgba(var(--accent-rgb), .12);
     border-color: rgba(var(--accent-rgb), .6);
-    color: #e8c87e;
+    color: var(--accent);
     transform: translateY(-2px);
 }
 

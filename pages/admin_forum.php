@@ -308,7 +308,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
             <i class="bi bi-hourglass-split"></i>
             <span><?= htmlspecialchars($TEXT['forum_queue_title'] ?? 'Moderation Queue') ?></span>
             <?php if ($pending_total > 0): ?>
-                <span style="background:rgba(240,192,64,.18);color:#f0c040;border:1px solid rgba(240,192,64,.4);padding:.1rem .55rem;border-radius:10px;font-size:.72rem;letter-spacing:.5px"><?= $pending_total ?></span>
+                <span style="background:rgba(var(--accent-rgb), .18);color:var(--accent);border:1px solid rgba(var(--accent-rgb), .4);padding:.1rem .55rem;border-radius:10px;font-size:.72rem;letter-spacing:.5px"><?= $pending_total ?></span>
             <?php endif; ?>
         </h2>
 
@@ -326,7 +326,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                     <i class="bi bi-chat-square-text me-1"></i><?= htmlspecialchars($TEXT['forum_queue_threads'] ?? 'Pending threads') ?> (<?= count($pending_thrs) ?>)
                 </h3>
                 <?php foreach ($pending_thrs as $t): ?>
-                    <div style="background:#0e0e17;border:1px solid rgba(240,192,64,.25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
+                    <div style="background:#0e0e17;border:1px solid rgba(var(--accent-rgb), .25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
                             <div style="min-width:0;flex:1">
                                 <strong style="color:var(--accent)"><?= htmlspecialchars($t['title']) ?></strong>
@@ -369,7 +369,7 @@ input:checked + .toggle-slider::before { transform: translateX(22px); background
                     <i class="bi bi-reply me-1"></i><?= htmlspecialchars($TEXT['forum_queue_replies'] ?? 'Pending replies') ?> (<?= count($pending_posts) ?>)
                 </h3>
                 <?php foreach ($pending_posts as $p): ?>
-                    <div style="background:#0e0e17;border:1px solid rgba(240,192,64,.25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
+                    <div style="background:#0e0e17;border:1px solid rgba(var(--accent-rgb), .25);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.7rem">
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
                             <div style="min-width:0;flex:1">
                                 <span style="color:#8899aa;font-size:.78rem"><?= htmlspecialchars($TEXT['forum_queue_reply_to'] ?? 'Reply to') ?>:</span>

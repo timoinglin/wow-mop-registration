@@ -130,9 +130,9 @@ $csrf = generate_csrf_token();
 .fn-btn-ghost:hover { color:var(--accent); border-color:var(--accent); }
 .fn-flash-err { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); color:#e74c3c; padding:.7rem 1rem; border-radius:4px; margin-bottom:1rem; }
 .fn-pending-note {
-    background:rgba(240,192,64,.08);
-    border:1px solid rgba(240,192,64,.25);
-    color:#f0c040;
+    background:rgba(var(--accent-rgb), .08);
+    border:1px solid rgba(var(--accent-rgb), .25);
+    color:var(--accent);
     padding:.5rem .85rem;
     border-radius:6px;
     font-size:.85rem;
