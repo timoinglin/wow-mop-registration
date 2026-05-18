@@ -178,15 +178,7 @@ git checkout develop && git pull
 
 Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold into the next release automatically.
 
-- **Forum per-category posting policy** — admins can flag a forum category as *announcement-only* (only GMs start threads) and/or *read-only* (no user replies), via two toggles on the category form. Existing categories stay fully open.
-- **Donation disclaimer on `/shop`** — a clear, always-visible note that donations are a voluntary tip (not a purchase) and Battle Coins are a complimentary thank-you gift, non-refundable. Protects the operator from refund/chargeback/consumer-rights claims.
-- **Customizable footer** — new admin **Customization** page (`/admin_customization`): toggle the built-in footer quick-links and add your own (e.g. a donations-disclaimer link). Stored in the DB so it survives updates; `config.php` stays the fallback. Foundation for future home-page/theming customization.
-- **Languages section** (Customization) — **adding a language is now no-code**: drop a `lang/<code>.php` (copy `lang/en.php`, translate) and it's auto-discovered. Admin can enable/disable which languages show in the site menu (English always on); built-in instructions explain the copy/translate flow. Missing keys still fall back to English.
-- **Theme & branding** (Customization) — **recolour and re-brand the site with no code edits**: pick an accent colour (custom `#rrggbb` or a preset palette) with a live preview, optionally override the base dark tone, and upload your own **main logo**, **top-left logo**, **favicon** and **header background** (image *or* looping video). Optional advanced custom-CSS escape hatch (sanitised). All DB-stored under `uploads/branding/` + `site_settings`, so it **survives updates** — no more hand-editing `style.css` and losing it on the next update.
-- **Site settings** (Customization) — the presentational `config.php` values are now editable in the admin with **no file edit**: site/browser title, realm name & description, social links, the Ko-fi page URL / currency / minimum, playtime-reward tunables (DP/hour, daily cap), and the vote-site list. Every field is *blank = use the `config.php` default* (config is never overwritten — it stays the seed). Secrets & bootstrap (Ko-fi webhook token, `db`/`smtp`/`recaptcha`, `site.base_url`, **all `features.*`** incl. `playtime_reward.enabled`) deliberately stay file-only.
-- **Home page designer** (Customization) — a **section-based homepage editor**: drag to reorder, toggle on/off, and add your own sections — **Card grid** (responsive 2/3/4 cols), **Text block** (Markdown), **Call to action**, **Q&A accordion**. Built-in sections (hero, news, forum, how-to-connect, counters, features, FAQ) keep their live content and are just toggled/reordered; the hero stays pinned at the top. Predefined types + structured fields only (no raw HTML), DB-stored — the nav and footer are untouched, and an un-customized install renders exactly as before.
-
-*Empty = the latest tagged release is fully current.*
+*Empty = the latest tagged release is fully current.* — **everything below the v0.7.0 line in the [release notes](https://github.com/timoinglin/wow-mop-registration/releases) is now in `main`.**
 
 ---
 
