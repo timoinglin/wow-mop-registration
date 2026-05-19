@@ -203,6 +203,9 @@ if ($is_profile) {
     $gid     = (int)$char['gender'];
     $clr     = $class_colors[$cid] ?? 'var(--accent)';
     $faction = faction_for_race($rid, $alliance_races, $horde_races);
+    // Faction RGB for portrait halos (matches the hero background tint).
+    $fac_rgb = $faction === 'alliance' ? '0,112,222'
+             : ($faction === 'horde'   ? '196,31,59' : '139,69,19');
 
     // Equipped items (bag=0, slot 0..18). Pull item entry per slot.
     $equipped = [];
@@ -318,8 +321,32 @@ if ($is_profile) {
     letter-spacing: .8px;
     margin-top: .35rem;
 }
-.armory-icons { display: flex; gap: .5rem; align-items: center; }
-.armory-icons img { width: 38px; height: 38px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background:#000; }
+/* ── Shared character portrait (HQ race art) — used in the hero header
+   and the equipment centre so the page reads as one piece. ───────────── */
+.wl-portrait { position: relative; flex-shrink: 0; }
+.wl-portrait::after {                       /* faction-tinted halo */
+    content: ''; position: absolute; inset: -14%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(<?= $fac_rgb ?>,.45), transparent 70%);
+    z-index: 0; pointer-events: none;
+}
+.wl-portrait .pf {                          /* the race art disc */
+    position: relative; z-index: 1; display: block;
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    object-position: center 18%;            /* frame the face, not the chest */
+    background: #0a0a0f;
+    border: 3px solid <?= $clr ?>;
+    box-shadow: 0 0 26px -4px <?= $clr ?>cc, inset 0 0 0 2px rgba(0,0,0,.55);
+}
+.wl-portrait .pc {                          /* class-icon badge */
+    position: absolute; z-index: 2; right: -2px; bottom: -2px;
+    border-radius: 50%; background: #0a0a0f;
+    border: 2px solid <?= $clr ?>; padding: 2px;
+    box-shadow: 0 2px 7px rgba(0,0,0,.7);
+}
+/* hero header instance */
+.armory-avatar { width: 104px; height: 104px; }
+.armory-avatar .pc { width: 38px; height: 38px; }
+@media (max-width: 575px) { .armory-avatar { width: 84px; height: 84px; } }
 .faction-badge {
     display: inline-flex; align-items: center; gap: .4rem;
     padding: .35rem .8rem; border-radius: 50px;
@@ -383,24 +410,10 @@ if ($is_profile) {
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: .7rem; text-align: center;
 }
-.gear-portrait { position: relative; width: 118px; height: 118px; }
-.gear-portrait::after {
-    content: ''; position: absolute; inset: -12px; border-radius: 50%;
-    background: radial-gradient(circle, <?= $clr ?>3a, transparent 70%); z-index: 0;
-}
-.gear-portrait img.race {
-    position: relative; z-index: 1;
-    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
-    background: #0a0a0f; border: 3px solid <?= $clr ?>;
-    box-shadow: 0 0 22px -2px <?= $clr ?>cc, inset 0 0 0 2px rgba(0,0,0,.55);
-}
-.gear-portrait img.cls {
-    position: absolute; z-index: 2; right: -3px; bottom: -3px;
-    width: 42px; height: 42px; border-radius: 50%;
-    background: #0a0a0f; border: 2px solid #0a0a0f;
-    box-shadow: 0 2px 7px rgba(0,0,0,.65);
-}
-.gear-id-class { font-size: 1rem; font-weight: 800; letter-spacing: .5px; color: <?= $clr ?>; }
+/* equipment-centre instance of .wl-portrait (same look as the hero avatar) */
+.gear-avatar { width: 132px; height: 132px; }
+.gear-avatar .pc { width: 44px; height: 44px; }
+.gear-id-class { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; color: <?= $clr ?>; }
 .gear-id-race  { font-size: .74rem; text-transform: uppercase; letter-spacing: 1.5px; color: #8899aa; margin-top: 1px; }
 .gear-id-lvl   { font-size: .72rem; color: #6c7a8c; margin-top: 2px; }
 
@@ -487,10 +500,10 @@ if ($is_profile) {
     <!-- HERO -->
     <div class="armory-hero">
         <div class="armory-hero-inner">
-            <div class="d-flex flex-wrap align-items-end gap-3 mb-2">
-                <div class="armory-icons">
-                    <img src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" title="<?= htmlspecialchars(get_race_name($rid)) ?>">
-                    <img src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                <div class="wl-portrait armory-avatar">
+                    <img class="pf" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid) . ' ' . get_class_name($cid)) ?>">
+                    <img class="pc" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>">
                 </div>
                 <div>
                     <h1 class="armory-name"><?= htmlspecialchars($char['name']) ?></h1>
@@ -588,12 +601,12 @@ if ($is_profile) {
                         <?php endforeach; ?>
                     </div>
 
-                    <!-- Center character portrait (race + class art we already ship —
-                         no fragile 3D model; faithful, themeable, repack-safe) -->
+                    <!-- Centre character portrait — HQ race art, class-colour ring,
+                         faction halo; matches the hero avatar (.wl-portrait). -->
                     <div class="gear-center">
-                        <div class="gear-portrait">
-                            <img class="race" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" loading="lazy">
-                            <img class="cls" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>" loading="lazy">
+                        <div class="wl-portrait gear-avatar">
+                            <img class="pf" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" loading="lazy">
+                            <img class="pc" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>" loading="lazy">
                         </div>
                         <div>
                             <div class="gear-id-class"><?= htmlspecialchars(get_class_name($cid)) ?></div>
