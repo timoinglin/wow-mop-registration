@@ -178,7 +178,10 @@ git checkout develop && git pull
 
 Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold into the next release automatically.
 
-*Empty = the latest tagged release is fully current.* — **everything below the v0.7.0 line in the [release notes](https://github.com/timoinglin/wow-mop-registration/releases) is now in `main`.**
+- **Armory character portrait** — the empty grey placeholder in the equipment panel is replaced by a proper class-coloured portrait (race + gender art we already ship, class emblem badge, class/race/level), themed by the accent. No fragile 3D model, repack-safe.
+- **"Update available" notice (admin)** — the admin dashboard checks the GitHub latest release vs. your installed version and, when behind, shows an advisory banner with the release-notes link and the one-paste `update.ps1` command (copy button). Cached ~6h, fail-silent, **advisory only — it never updates anything itself**. No DB migration.
+
+*Empty = the latest tagged release is fully current.*
 
 ---
 

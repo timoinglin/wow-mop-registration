@@ -379,15 +379,30 @@ if ($is_profile) {
 .gear-col   { display: flex; flex-direction: column; gap: .55rem; }
 .gear-col-r { align-items: flex-end; }
 .gear-center {
-    width: 130px; height: 270px;
-    background: radial-gradient(circle at center, rgba(var(--accent-rgb), .18), transparent 70%);
-    border-radius: 80px;
+    width: 150px; min-height: 270px;
     display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap:.5rem;
-    color: rgba(var(--accent-rgb), .5);
-    font-size: 4rem;
+    flex-direction: column; gap: .7rem; text-align: center;
 }
-.gear-center-icon i { filter: drop-shadow(0 0 12px <?= $clr ?>aa); color: <?= $clr ?>; }
+.gear-portrait { position: relative; width: 118px; height: 118px; }
+.gear-portrait::after {
+    content: ''; position: absolute; inset: -12px; border-radius: 50%;
+    background: radial-gradient(circle, <?= $clr ?>3a, transparent 70%); z-index: 0;
+}
+.gear-portrait img.race {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    background: #0a0a0f; border: 3px solid <?= $clr ?>;
+    box-shadow: 0 0 22px -2px <?= $clr ?>cc, inset 0 0 0 2px rgba(0,0,0,.55);
+}
+.gear-portrait img.cls {
+    position: absolute; z-index: 2; right: -3px; bottom: -3px;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: #0a0a0f; border: 2px solid #0a0a0f;
+    box-shadow: 0 2px 7px rgba(0,0,0,.65);
+}
+.gear-id-class { font-size: 1rem; font-weight: 800; letter-spacing: .5px; color: <?= $clr ?>; }
+.gear-id-race  { font-size: .74rem; text-transform: uppercase; letter-spacing: 1.5px; color: #8899aa; margin-top: 1px; }
+.gear-id-lvl   { font-size: .72rem; color: #6c7a8c; margin-top: 2px; }
 
 .gear-slot {
     display: flex; align-items: center; gap: .6rem;
@@ -573,12 +588,18 @@ if ($is_profile) {
                         <?php endforeach; ?>
                     </div>
 
-                    <!-- Center silhouette -->
+                    <!-- Center character portrait (race + class art we already ship —
+                         no fragile 3D model; faithful, themeable, repack-safe) -->
                     <div class="gear-center">
-                        <div class="gear-center-icon">
-                            <i class="bi <?= $cid === 1 ? 'bi-shield-fill' : ($cid === 8 || $cid === 9 ? 'bi-magic' : ($cid === 5 || $cid === 7 ? 'bi-stars' : 'bi-person-fill')) ?>"></i>
+                        <div class="gear-portrait">
+                            <img class="race" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" loading="lazy">
+                            <img class="cls" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>" loading="lazy">
                         </div>
-                        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--accent-rgb), .6)"><?= htmlspecialchars(class_role_label($cid)) ?></div>
+                        <div>
+                            <div class="gear-id-class"><?= htmlspecialchars(get_class_name($cid)) ?></div>
+                            <div class="gear-id-race"><?= htmlspecialchars(get_race_name($rid)) ?></div>
+                            <div class="gear-id-lvl">Lv <?= (int)$char['level'] ?> · <?= htmlspecialchars(class_role_label($cid)) ?></div>
+                        </div>
                     </div>
 
                     <!-- Right column -->

@@ -109,6 +109,10 @@ $auth_port  = $config['realm']['auth_port'] ?? 3724;
 $world_port = $config['realm']['world_port']?? 8085;
 $s_auth     = check_port_status($db_host, $auth_port);
 $s_world    = check_port_status($db_host, $world_port);
+
+// Advisory "update available" check (cached, fail-silent, never updates).
+require_once __DIR__ . '/../includes/update_check.php';
+$upd = update_check_get($pdo_auth ?? null, $config);
 ?>
 
 <style>
@@ -292,9 +296,65 @@ $s_world    = check_port_status($db_host, $world_port);
 .toast-msg { position: fixed; bottom: 2rem; right: 2rem; padding: .8rem 1.5rem; border-radius: 10px; font-size: .88rem; font-weight: 600; z-index: 99999; animation: slideUp .3s ease; }
 .toast-success { background: rgba(40,167,69,.9); color: #fff; }
 .toast-error { background: rgba(220,53,69,.9); color: #fff; }
+.upd-banner {
+    display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),.16), rgba(var(--btn-bg-rgb),.10));
+    border: 1px solid rgba(var(--accent-rgb),.45); border-radius: 12px;
+    padding: .8rem 1.1rem; margin-bottom: 1.2rem;
+}
+.upd-banner > i { font-size: 1.5rem; color: var(--accent); flex-shrink: 0; }
+.upd-txt { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.upd-txt strong { color: var(--accent); }
+.upd-txt span { color: #9aa7b4; font-size: .85rem; }
+.upd-txt a { color: var(--accent); }
+.upd-cmd {
+    margin-left: auto; display: flex; align-items: center; gap: .5rem;
+    flex: 1 1 320px; min-width: 0;
+}
+.upd-cmd code {
+    flex: 1; background: #0a0a0f; border: 1px solid rgba(var(--btn-bg-rgb),.35);
+    border-radius: 6px; padding: .45rem .6rem; font-size: .76rem; color: #c0cce0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.upd-copy {
+    background: var(--btn-bg); color: #fff; border: 1px solid var(--btn-bg-hover);
+    border-radius: 6px; padding: .45rem .8rem; font-size: .8rem; cursor: pointer;
+    flex-shrink: 0; font-family: inherit;
+}
+.upd-copy:hover { background: var(--btn-bg-hover); }
 </style>
 
 <div class="container admin-wrap">
+
+<?php if (!empty($upd['behind'])):
+    $upd_cmd = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/timoinglin/wow-mop-registration/main/update.ps1 -OutFile update.ps1; .\\update.ps1"';
+?>
+<div class="upd-banner">
+    <i class="bi bi-arrow-up-circle-fill"></i>
+    <div class="upd-txt">
+        <strong><?= sprintf(htmlspecialchars($TEXT['admin_update_avail'] ?? '%s is available'), htmlspecialchars($upd['latest'])) ?></strong>
+        <span><?= sprintf(htmlspecialchars($TEXT['admin_update_on'] ?? "you're on %s"), htmlspecialchars($upd['installed'])) ?>
+            · <a href="<?= htmlspecialchars($upd['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($TEXT['admin_update_notes'] ?? 'release notes') ?></a></span>
+    </div>
+    <div class="upd-cmd">
+        <code id="updCmd"><?= htmlspecialchars($upd_cmd) ?></code>
+        <button type="button" class="upd-copy" id="updCopy"
+            data-done="<?= htmlspecialchars($TEXT['admin_update_copied'] ?? 'Copied!') ?>"><?= htmlspecialchars($TEXT['admin_update_copy'] ?? 'Copy') ?></button>
+    </div>
+</div>
+<script>
+(function(){
+    var b=document.getElementById('updCopy'),c=document.getElementById('updCmd');
+    if(!b||!c)return;
+    b.addEventListener('click',function(){
+        var t=c.textContent,lbl=b.textContent,done=b.getAttribute('data-done');
+        var ok=function(){b.textContent=done;setTimeout(function(){b.textContent=lbl;},1800);};
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,function(){});}
+        else{var r=document.createRange();r.selectNode(c);var s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');ok();}catch(e){}s.removeAllRanges();}
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php if (!empty($errors)): ?>
 <div class="alert alert-danger mb-3" style="border-radius:10px"><?= implode('<br>', array_map('htmlspecialchars', $errors)) ?></div>
