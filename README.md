@@ -179,7 +179,7 @@ git checkout develop && git pull
 Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold into the next release automatically.
 
 - **Armory character portrait** — the empty grey placeholder in the equipment panel is replaced by a proper class-coloured portrait (race + gender art we already ship, class emblem badge, class/race/level), themed by the accent. No fragile 3D model, repack-safe.
-- **"Update available" notice (admin)** — the admin dashboard checks the GitHub latest release vs. your installed version and, when behind, shows an advisory banner with the release-notes link and the one-paste `update.ps1` command (copy button). Cached ~6h, fail-silent, **advisory only — it never updates anything itself**. No DB migration.
+- **"Update available" notice (admin)** — the admin dashboard always shows a small **`Portal vX.Y.Z · up to date / update available`** chip under the title, and when you're behind it also surfaces a prominent banner with the release-notes link and the one-paste `update.ps1` command (copy button). Version = `WL_VERSION` (overridden by an updater-written `/VERSION` when higher); GitHub check cached ~6h, fail-silent, **advisory only — it never updates anything itself**. No DB migration.
 
 *Empty = the latest tagged release is fully current.*
 

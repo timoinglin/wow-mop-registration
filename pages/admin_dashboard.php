@@ -322,6 +322,14 @@ $upd = update_check_get($pdo_auth ?? null, $config);
     flex-shrink: 0; font-family: inherit;
 }
 .upd-copy:hover { background: var(--btn-bg-hover); }
+.upd-chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    margin-left: .5rem; padding: .12rem .55rem; border-radius: 999px;
+    font-size: .74rem; font-weight: 600; white-space: nowrap;
+}
+.upd-chip.is-ok  { color: #5dd87c; background: rgba(93,216,124,.12); border: 1px solid rgba(93,216,124,.35); }
+.upd-chip.is-old { color: var(--accent); background: rgba(var(--accent-rgb),.14); border: 1px solid rgba(var(--accent-rgb),.45); }
+.upd-chip a { color: inherit; text-decoration: underline; }
 </style>
 
 <div class="container admin-wrap">
@@ -364,7 +372,20 @@ $upd = update_check_get($pdo_auth ?? null, $config);
 <div class="admin-hero">
     <div>
         <h1><i class="bi bi-shield-lock-fill me-2"></i><?= $TEXT['admin_panel_title'] ?? 'Admin Panel' ?></h1>
-        <div style="color:#8899aa;font-size:.82rem;margin-top:.25rem"><?= htmlspecialchars($realm_name) ?></div>
+        <div style="color:#8899aa;font-size:.82rem;margin-top:.25rem">
+            <?= htmlspecialchars($realm_name) ?>
+            <?php if (!empty($upd['installed'])): ?>
+                <span class="upd-chip <?= !empty($upd['behind']) ? 'is-old' : 'is-ok' ?>" title="<?= htmlspecialchars($TEXT['admin_update_chip_title'] ?? 'Portal version vs. latest GitHub release (checked ~6h)') ?>">
+                    <i class="bi <?= !empty($upd['behind']) ? 'bi-arrow-up-circle-fill' : 'bi-check-circle-fill' ?>"></i>
+                    <?= htmlspecialchars($TEXT['admin_portal'] ?? 'Portal') ?> <?= htmlspecialchars($upd['installed']) ?>
+                    <?php if (!empty($upd['behind'])): ?>
+                        · <a href="<?= htmlspecialchars($upd['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(sprintf($TEXT['admin_update_avail'] ?? '%s is available', $upd['latest'])) ?></a>
+                    <?php else: ?>
+                        · <?= htmlspecialchars($TEXT['admin_update_uptodate'] ?? 'up to date') ?>
+                    <?php endif; ?>
+                </span>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="text-end">
         <div id="liveClock">--:--:--</div>
