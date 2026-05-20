@@ -251,13 +251,13 @@ if (!empty($config['features']['maintenance'])) {
                     </a>
                     <ul class="dropdown-menu game-dropdown" aria-labelledby="playersDropdown">
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
-                            <i class="bi bi-search me-3 text-primary"></i><?= $TEXT['armory'] ?? 'Armory' ?>
+                            <i class="bi bi-person-vcard-fill me-3" style="color:var(--accent)"></i><?= $TEXT['armory'] ?? 'Armory' ?>
                         </a></li>
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'leaderboards.php') ? 'active' : '' ?>" href="/leaderboards">
-                            <i class="bi bi-trophy-fill me-3 text-warning"></i><?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
+                            <i class="bi bi-trophy-fill me-3" style="color:var(--accent)"></i><?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
                         </a></li>
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'online.php') ? 'active' : '' ?>" href="/online">
-                            <i class="bi bi-broadcast me-3 text-success"></i><?= $TEXT['nav_online'] ?? "Who's Online" ?>
+                            <i class="bi bi-broadcast me-3" style="color:#5dd87c"></i><?= $TEXT['nav_online'] ?? "Who's Online" ?>
                         </a></li>
                     </ul>
                 </li>
