@@ -15,10 +15,16 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 # 2a. Armory profile: /armory/{character-name} → pages/armory.php?char={name}
-RewriteRule ^armory/([^/]+)/?$ pages/armory.php?char=$1 [L,QSA]
+#     [B] = URL-escape the backreference, so spaces/specials in the name don't
+#     trip Apache 2.4's "rewritten query string contains control chars or
+#     spaces" (AH10411) safety check. (WoW char names disallow spaces, but
+#     defense-in-depth + consistency with the guild rule.)
+RewriteRule ^armory/([^/]+)/?$ pages/armory.php?char=$1 [B,L,QSA]
 
 # 2a-bis. Guild profile: /guild/{guild-name} → pages/guild.php?name={name}
-RewriteRule ^guild/([^/]+)/?$ pages/guild.php?name=$1 [L,QSA]
+#     Guild names CAN (and usually do) contain spaces, so [B] is required —
+#     without it Apache returns 403 (AH10411) for any multi-word guild.
+RewriteRule ^guild/([^/]+)/?$ pages/guild.php?name=$1 [B,L,QSA]
 
 # 2b. Ticket detail (user side): /tickets/{id} → pages/ticket_view.php?id={id}
 RewriteRule ^tickets/(\d+)/?$ pages/ticket_view.php?id=$1 [L,QSA]

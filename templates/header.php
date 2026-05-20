@@ -239,11 +239,15 @@ if (!empty($config['features']['maintenance'])) {
                     </a>
                 </li>
                 <?php
-                // "Players" dropdown — consolidates Armory / Leaderboards / Online
-                // (and future Guilds, etc.) into one nav slot so the bar stays
-                // small as we add more player-facing pages.
-                $nav_players_pages = ['armory.php', 'leaderboards.php', 'online.php'];
+                // "Players" dropdown — consolidates the player-facing pages
+                // (Armory / Leaderboards / Guilds / Online) into one nav slot
+                // so the bar stays small as features grow. Guilds points at
+                // the leaderboards "Guilds" ranking (the de facto guild index;
+                // each row now click-throughs to /guild/<name>).
+                $nav_players_pages = ['armory.php', 'leaderboards.php', 'online.php', 'guild.php'];
                 $nav_players_active = in_array($current_page, $nav_players_pages, true);
+                $on_guilds_lb = ($current_page === 'leaderboards.php' && (($_GET['type'] ?? '') === 'guilds'));
+                if ($on_guilds_lb) $nav_players_active = true;
                 ?>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle <?= $nav_players_active ? 'active' : '' ?>" href="#" id="playersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -253,8 +257,11 @@ if (!empty($config['features']['maintenance'])) {
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
                             <i class="bi bi-person-vcard-fill me-3" style="color:var(--accent)"></i><?= $TEXT['armory'] ?? 'Armory' ?>
                         </a></li>
-                        <li><a class="dropdown-item py-2 <?= ($current_page === 'leaderboards.php') ? 'active' : '' ?>" href="/leaderboards">
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'leaderboards.php' && !$on_guilds_lb) ? 'active' : '' ?>" href="/leaderboards">
                             <i class="bi bi-trophy-fill me-3" style="color:var(--accent)"></i><?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
+                        </a></li>
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'guild.php' || $on_guilds_lb) ? 'active' : '' ?>" href="/leaderboards?type=guilds">
+                            <i class="bi bi-people-fill me-3" style="color:var(--accent)"></i><?= $TEXT['nav_guilds'] ?? 'Guilds' ?>
                         </a></li>
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'online.php') ? 'active' : '' ?>" href="/online">
                             <i class="bi bi-broadcast me-3" style="color:#5dd87c"></i><?= $TEXT['nav_online'] ?? "Who's Online" ?>

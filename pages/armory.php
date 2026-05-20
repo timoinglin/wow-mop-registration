@@ -1357,7 +1357,10 @@ function build_qs(array $overrides = []): string {
                     </div>
                     <div class="extra">
                         <?php if (!empty($row['guild_name'])): ?>
-                            <i class="bi bi-people-fill"></i> <a href="/guild/<?= rawurlencode($row['guild_name']) ?>" style="color:inherit;text-decoration:none">&lt;<?= htmlspecialchars($row['guild_name']) ?>&gt;</a>
+                            <i class="bi bi-people-fill"></i> &lt;<?= htmlspecialchars($row['guild_name']) ?>&gt;
+                            <?php /* No nested <a> — the entire result-card is already an <a href="/armory/...">.
+                                     The /guild/<name> click-through is available on the character profile
+                                     hero, the Leaderboards Guilds tab, and Who's Online. */ ?>
                         <?php elseif (!empty($row['zone'])): ?>
                             <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($row['zone']) ?>
                         <?php else: ?>

@@ -475,6 +475,7 @@ return [
   'home_counter_online'      => 'Players Online',
   'nav_players'              => 'Players',
   'nav_online'               => "Who's Online",
+  'nav_guilds'               => 'Guilds',
   'online_title'             => "Who's Online",
   'online_og_title'          => "Who's Online",
   'online_subtitle'          => 'Characters logged in right now — click any row to view the Armory profile.',
