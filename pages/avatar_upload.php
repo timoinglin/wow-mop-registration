@@ -54,13 +54,13 @@ if (!is_dir($dest_dir)) {
 if ($action === 'delete') {
     try {
         // Pull existing record so we can remove the file too
-        $stmt = $pdo_auth->prepare("SELECT filename FROM user_avatars WHERE account_id = :id");
+        $stmt = $pdo_auth->prepare("SELECT filename FROM web_user_avatars WHERE account_id = :id");
         $stmt->execute(['id' => $user_id]);
         $old = $stmt->fetchColumn();
         if ($old) {
             $old_path = $dest_dir . DIRECTORY_SEPARATOR . basename($old);
             if (is_file($old_path)) @unlink($old_path);
-            $del = $pdo_auth->prepare("DELETE FROM user_avatars WHERE account_id = :id");
+            $del = $pdo_auth->prepare("DELETE FROM web_user_avatars WHERE account_id = :id");
             $del->execute(['id' => $user_id]);
             log_admin_action($pdo_auth, $user_id, $username, 'avatar_delete', $old, null, null);
         }
@@ -103,7 +103,7 @@ if ($action === 'upload') {
     // If a previous avatar exists with a *different* extension, clean it up
     // so we don't leave orphan files lying around.
     try {
-        $stmt = $pdo_auth->prepare("SELECT filename FROM user_avatars WHERE account_id = :id");
+        $stmt = $pdo_auth->prepare("SELECT filename FROM web_user_avatars WHERE account_id = :id");
         $stmt->execute(['id' => $user_id]);
         $old = $stmt->fetchColumn();
         if ($old && $old !== $basename) {
@@ -123,7 +123,7 @@ if ($action === 'upload') {
     // Upsert the DB row
     try {
         $upsert = $pdo_auth->prepare(
-            "INSERT INTO user_avatars (account_id, filename, mime_type)
+            "INSERT INTO web_user_avatars (account_id, filename, mime_type)
              VALUES (:id, :fn, :mt)
              ON DUPLICATE KEY UPDATE filename = VALUES(filename), mime_type = VALUES(mime_type)"
         );

@@ -34,7 +34,7 @@ To grant or revoke access, edit the `account_access` table directly (or use any 
 | **Audit Log** | Chronological log of all admin actions (bans, unbans, edits, etc.) |
 | **Tools** | Character lookup, IP ban management, server stats, email broadcast to all users |
 
-All admin actions are logged to the `admin_audit_log` table automatically.
+All admin actions are logged to the `web_admin_audit_log` table automatically.
 
 ### Managing News
 
@@ -54,7 +54,7 @@ When viewing a published post on `/news/{slug}` while logged in as GM 9+, you'll
 
 The Forum tab in `/admin_dashboard` shows status tiles and a **Configure Forum** button that opens `/admin_forum`. From there you have four sections:
 
-**Settings** — one row in `forum_settings`:
+**Settings** — one row in `web_forum_settings`:
 - **Forum enabled** — when off, `/forum` shows a "currently disabled" notice to regular users (admins still get an "admin preview" view so they can populate the forum before launch).
 - **Auto-approve threshold** — `0` means every post publishes instantly; otherwise a user's posts queue for admin approval until they've accumulated this many *approved* posts. GM 9+ always bypass.
 
@@ -82,7 +82,7 @@ Plus per-post actions in each post's meta row:
 - **Edit** (any post — admin edits stamp the editor as `"{name} (admin)"`)
 - **Delete** (any post — deleting the OP is the same as deleting the thread)
 
-Every moderation action is recorded in `admin_audit_log` with the admin name, target, and IP.
+Every moderation action is recorded in `web_admin_audit_log` with the admin name, target, and IP.
 
 ### Managing the In-Game Shop
 
@@ -99,7 +99,7 @@ The Shop tab in `/admin_dashboard` shows status + counts and links to `/admin_sh
 > **Shop changes need a worldserver restart.** The `battle_pay_*` tables are read into worldserver memory at startup only — there is no in-game reload. After any change the page shows a persistent "restart required" banner (with an *I've restarted it* dismiss). Restarting disconnects online players for ~1–2 min.
 
 > [!NOTE]
-> Custom rows are assigned ids ≥ **9000** (a reserved range) so a repack update that re-imports `battle_pay_*` is unlikely to collide with them. A repack update *can* still overwrite custom shop data — keep a DB backup before applying repack updates. Every shop write is recorded in `admin_audit_log`.
+> Custom rows are assigned ids ≥ **9000** (a reserved range) so a repack update that re-imports `battle_pay_*` is unlikely to collide with them. A repack update *can* still overwrite custom shop data — keep a DB backup before applying repack updates. Every shop write is recorded in `web_admin_audit_log`.
 
 ### Public Shop Catalog & Ko-fi Donations
 
@@ -125,7 +125,7 @@ Two **independent** feature flags drive the player-facing side — neither impli
    - `min_amount` — donations below this are logged but credit 0 DP;
    - `kofi_url` — your public Ko-fi page (the Donate button links here).
 4. Set `features.donations = true`.
-5. Apply `sql/setup.sql` (idempotent) so the `donation_codes` / `donation_log` / `shop_settings` tables exist.
+5. Apply `sql/setup.sql` (idempotent) so the `web_donation_codes` / `web_donation_log` / `web_shop_settings` tables exist.
 
 > [!TIP]
 > The exchange rate is editable in-app: **/admin_shop → Battle Coins exchange rate**. It shows live `1€ / 5€ / 25€` examples and your median in-game item price as an anchor, and the saved value overrides `config.donation.eur_to_dp_rate` (the config line is then only the fallback for fresh installs).
@@ -133,10 +133,10 @@ Two **independent** feature flags drive the player-facing side — neither impli
 **How crediting works:** a logged-in player opens **/shop**, copies their personal `WL-XXXXXXXX` code, and pastes it into the Ko-fi message when donating. The webhook reads the real paid amount, so the donate button is fully dynamic — any amount works. Crediting happens **only** via the webhook (never the Ko-fi thank-you/redirect page).
 
 > [!CAUTION]
-> **The donor MUST paste their `WL-XXXXXXXX` code into the Ko-fi message field.** This is the only thing that links a payment to an account — Ko-fi does not share the payer's site identity. A donation with no (or a wrong) code is recorded as **unattributed**: it is logged in `donation_log` + `admin_audit_log` for the donor's protection, but **no Battle Coins are credited automatically** — a GM has to resolve it by hand. The `/shop` donate panel makes this requirement very prominent (red warning + a highlighted step), but you should also state it on your Ko-fi page description.
+> **The donor MUST paste their `WL-XXXXXXXX` code into the Ko-fi message field.** This is the only thing that links a payment to an account — Ko-fi does not share the payer's site identity. A donation with no (or a wrong) code is recorded as **unattributed**: it is logged in `web_donation_log` + `web_admin_audit_log` for the donor's protection, but **no Battle Coins are credited automatically** — a GM has to resolve it by hand. The `/shop` donate panel makes this requirement very prominent (red warning + a highlighted step), but you should also state it on your Ko-fi page description.
 
 > [!IMPORTANT]
-> The webhook is **idempotent**: every delivery is keyed by Ko-fi's `kofi_transaction_id` (UNIQUE), so a re-delivered webhook never double-credits. Donations whose message has no valid code are logged as **unattributed** (status in `donation_log`, plus an `admin_audit_log` entry) for manual GM resolution — they are *not* credited automatically. Refunds/chargebacks are an accepted small-server risk: a GM can claw back DP via the admin panel. Test with Ko-fi's free **webhook test button** first, then a single ~€1 self-donation as the live smoke test.
+> The webhook is **idempotent**: every delivery is keyed by Ko-fi's `kofi_transaction_id` (UNIQUE), so a re-delivered webhook never double-credits. Donations whose message has no valid code are logged as **unattributed** (status in `web_donation_log`, plus an `web_admin_audit_log` entry) for manual GM resolution — they are *not* credited automatically. Refunds/chargebacks are an accepted small-server risk: a GM can claw back DP via the admin panel. Test with Ko-fi's free **webhook test button** first, then a single ~€1 self-donation as the live smoke test.
 
 ---
 
@@ -148,7 +148,7 @@ Two **independent** feature flags drive the player-facing side — neither impli
 
 **Footer links** (first section): toggle which built-in quick-links show (Home / Register / Login / Support — "Support" also needs the tickets feature on), and add your own **custom label + URL rows** (e.g. a donations-disclaimer page). A live preview of the saved footer is shown.
 
-- Stored in the `site_settings` table (DB), **not** `config.php` — so it survives updates (like avatars/news/forum), and `config.php` stays the bootstrap/fallback. No migration needed: until you save here, the built-in defaults apply.
+- Stored in the `web_site_settings` table (DB), **not** `config.php` — so it survives updates (like avatars/news/forum), and `config.php` stays the bootstrap/fallback. No migration needed: until you save here, the built-in defaults apply.
 - Custom URLs are sanitised on save — only `https://` / `http://` or a site path starting with `/` are kept; anything else (e.g. `javascript:`, protocol-relative `//host`) is dropped.
 - Audit-logged (`site_footer_update`).
 
@@ -159,7 +159,7 @@ Two **independent** feature flags drive the player-facing side — neither impli
 3. It appears in the list automatically — enable it and Save.
 4. Missing keys fall back to English automatically (`$TEXT[...] ?? '...'`), so a partial translation is safe.
 
-Disabling hides a language from the menu (not deleted — re-enable anytime). Stored in `site_settings` (`site_languages_update`, audit-logged). `lang.php` discovers files from the filesystem and stays DB-free.
+Disabling hides a language from the menu (not deleted — re-enable anytime). Stored in `web_site_settings` (`site_languages_update`, audit-logged). `lang.php` discovers files from the filesystem and stays DB-free.
 
 **Theme & branding**: recolour the whole site and swap the branding without editing files — all DB-stored, so it **survives updates** (the stylesheet stays the shipped fallback).
 
@@ -168,7 +168,7 @@ Disabling hides a language from the menu (not deleted — re-enable anytime). St
 - **Branding uploads** — **Main logo** (homepage hero), **Top-left logo** (navbar, every page), **Favicon**, and **Header background** (the full-screen homepage hero — an image *or* a looping `mp4`/`webm` video). Each shows the current asset with a one-click *Remove (revert to default)*. Limits: logos ≤ 3 MB, favicon ≤ 512 KB, header background ≤ 25 MB. **SVG is rejected** (XSS surface). Files are stored under `uploads/branding/` (updater-preserved, like avatars).
 - **Advanced: custom CSS** — an opt-in textarea injected site-wide *after* the theme variables. Tags, `@import`, `expression()` and `javascript:` are stripped on save, but it can still break your layout — you own any breakage.
 
-Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). The override `<style>` is emitted only when the theme is *not* stock, so a default install ships byte-identical markup. How the operator on a live deployment hand-edited `style.css` and lost it on the next update is exactly what this removes.
+Stored as one `web_site_settings['theme']` row (`site_theme_update`, audit-logged). The override `<style>` is emitted only when the theme is *not* stock, so a default install ships byte-identical markup. How the operator on a live deployment hand-edited `style.css` and lost it on the next update is exactly what this removes.
 
 **Site settings**: the presentational values that used to require editing `config.php` — no file edit, survives updates. **Every field is blank = use the `config.php` default**; config is never overwritten, it stays the seed/fallback.
 
@@ -178,7 +178,7 @@ Stored as one `site_settings['theme']` row (`site_theme_update`, audit-logged). 
 - **Playtime reward** — `DP per hour` and `daily cap` (server-clamped to 0–10000 / 0–1,000,000). The **master on/off stays a `config.php` feature flag** (`playtime_reward.enabled`) and is shown read-only here.
 - **Vote sites** — name / URL / cooldown-hours rows. An empty list hides the Vote & Reward block.
 
-Stored as one `site_settings['settings']` row (`site_settings_update`, audit-logged), resolved everywhere through `settings_get()` (DB → `config.php`). **Stays file-only (locked):** `donation.kofi_verification_token`, `db.*`, `smtp.*`, `recaptcha.*`, `security.*`, `site.base_url`, realm connection fields, and **all `features.*`** including `playtime_reward.enabled`.
+Stored as one `web_site_settings['settings']` row (`site_settings_update`, audit-logged), resolved everywhere through `settings_get()` (DB → `config.php`). **Stays file-only (locked):** `donation.kofi_verification_token`, `db.*`, `smtp.*`, `recaptcha.*`, `security.*`, `site.base_url`, realm connection fields, and **all `features.*`** including `playtime_reward.enabled`.
 
 **Home page**: a section-based designer for the homepage **body** (the global nav bar and footer are *not* touched — they have their own tools). The default layout = the shipped order, so an un-customized install is pixel-identical.
 
@@ -186,7 +186,7 @@ Stored as one `site_settings['settings']` row (`site_settings_update`, audit-log
 - **Custom sections** — add your own, from safe predefined types: **Card grid** (heading + cards + 2/3/4 responsive column picker, themed `.game-card` style), **Text block** (Markdown via the same safe renderer as tickets/news), **Call to action** (heading + text + button), **Q&A accordion**. Drag to position them anywhere among the built-ins; Edit / Delete per section.
 - Reordering is drag-and-drop (SortableJS); “View homepage” opens it in a new tab.
 
-Stored as one `site_settings['homepage']` row (`site_homepage_update`, audit-logged), resolved through `homepage_layout_get()` (DB → shipped default). Safety: predefined types only, structured fields, Markdown via `render_markdown()` (Parsedown safe-mode), URLs via `footer_link_url_ok()`, icons allow-listed (`bi-*`), section/card/Q&A counts capped — **no raw HTML/CSS** (the Theme tab's custom-CSS box is the separate, sanitised escape hatch). Built-in markup is captured verbatim via output buffering, so toggling/reordering can't change how a section looks.
+Stored as one `web_site_settings['homepage']` row (`site_homepage_update`, audit-logged), resolved through `homepage_layout_get()` (DB → shipped default). Safety: predefined types only, structured fields, Markdown via `render_markdown()` (Parsedown safe-mode), URLs via `footer_link_url_ok()`, icons allow-listed (`bi-*`), section/card/Q&A counts capped — **no raw HTML/CSS** (the Theme tab's custom-CSS box is the separate, sanitised escape hatch). Built-in markup is captured verbatim via output buffering, so toggling/reordering can't change how a section looks.
 
 > Foundation complete — client download + the `config.php` FAQ can later become custom Card-grid/Q&A sections here; secrets/bootstrap (`db.*`, `smtp.*`, `recaptcha.*`, `site.base_url`, feature flags) deliberately stay file-only in `config.php`.
 

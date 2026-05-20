@@ -38,7 +38,7 @@ if ($ticket_id <= 0) { header('Location: /admin_dashboard'); exit; }
 
 // Load ticket (no ownership constraint — GMs see all)
 try {
-    $stmt = $pdo_auth->prepare("SELECT * FROM tickets WHERE id = :id LIMIT 1");
+    $stmt = $pdo_auth->prepare("SELECT * FROM web_tickets WHERE id = :id LIMIT 1");
     $stmt->execute(['id' => $ticket_id]);
     $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // Append admin message
                     $msg = $pdo_auth->prepare(
-                        "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
+                        "INSERT INTO web_ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
                          VALUES (:tid, 'admin', :name, :msg, :attach, NOW())"
                     );
                     $msg->execute([
@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     // Keep the legacy admin_reply column up to date (last admin reply)
                     $pdo_auth->prepare(
-                        "UPDATE tickets SET admin_reply = :reply, replied_by = :by, status = :st, updated_at = NOW() WHERE id = :id"
+                        "UPDATE web_tickets SET admin_reply = :reply, replied_by = :by, status = :st, updated_at = NOW() WHERE id = :id"
                     )->execute([
                         'reply' => $reply_text,
                         'by'    => $admin_name,
@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (empty($errors) && in_array($action, ['close', 'reopen', 'mark_in_progress'], true)) {
         $new = $action === 'close' ? 'closed' : ($action === 'reopen' ? 'open' : 'in_progress');
-        $pdo_auth->prepare("UPDATE tickets SET status = :st, updated_at = NOW() WHERE id = :id")
+        $pdo_auth->prepare("UPDATE web_tickets SET status = :st, updated_at = NOW() WHERE id = :id")
                  ->execute(['st' => $new, 'id' => $ticket_id]);
         if (function_exists('log_admin_action')) {
             log_admin_action($pdo_auth, $admin_id, $admin_name, 'ticket_status', "Ticket #$ticket_id", "New status: $new", $ip);
@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Reload ticket after mutations
-$stmt = $pdo_auth->prepare("SELECT * FROM tickets WHERE id = :id");
+$stmt = $pdo_auth->prepare("SELECT * FROM web_tickets WHERE id = :id");
 $stmt->execute(['id' => $ticket_id]);
 $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -188,7 +188,7 @@ $thread = [];
 try {
     $msg_stmt = $pdo_auth->prepare(
         "SELECT id, sender_type, sender_username, message, attachments, created_at
-         FROM ticket_messages WHERE ticket_id = :tid ORDER BY created_at ASC, id ASC"
+         FROM web_ticket_messages WHERE ticket_id = :tid ORDER BY created_at ASC, id ASC"
     );
     $msg_stmt->execute(['tid' => $ticket_id]);
     $thread = $msg_stmt->fetchAll(PDO::FETCH_ASSOC);

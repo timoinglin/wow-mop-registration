@@ -37,7 +37,7 @@ if ($ticket_id <= 0) {
 
 // ─── Load ticket + verify ownership ──────────────────────────────────────────
 try {
-    $stmt = $pdo_auth->prepare("SELECT * FROM tickets WHERE id = :id AND user_id = :uid LIMIT 1");
+    $stmt = $pdo_auth->prepare("SELECT * FROM web_tickets WHERE id = :id AND user_id = :uid LIMIT 1");
     $stmt->execute(['id' => $ticket_id, 'uid' => $_SESSION['user_id']]);
     $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $pdo_auth->beginTransaction();
                     $msg = $pdo_auth->prepare(
-                        "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
+                        "INSERT INTO web_ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
                          VALUES (:tid, 'user', :name, :msg, :attach, NOW())"
                     );
                     $msg->execute([
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'attach' => !empty($attachment_names) ? json_encode($attachment_names) : null,
                     ]);
                     // Bump status to in_progress so admins see new replies as live
-                    $pdo_auth->prepare("UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE id = :id")
+                    $pdo_auth->prepare("UPDATE web_tickets SET status = 'in_progress', updated_at = NOW() WHERE id = :id")
                              ->execute(['id' => $ticket_id]);
                     $pdo_auth->commit();
                     header('Location: /tickets/' . $ticket_id . '?action=replied#bottom');
@@ -148,14 +148,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (empty($errors) && $action === 'close') {
         if ($ticket['status'] !== 'closed') {
-            $pdo_auth->prepare("UPDATE tickets SET status = 'closed', updated_at = NOW() WHERE id = :id AND user_id = :uid")
+            $pdo_auth->prepare("UPDATE web_tickets SET status = 'closed', updated_at = NOW() WHERE id = :id AND user_id = :uid")
                      ->execute(['id' => $ticket_id, 'uid' => $_SESSION['user_id']]);
         }
         header('Location: /tickets/' . $ticket_id . '?action=closed');
         exit;
     } elseif (empty($errors) && $action === 'reopen') {
         if ($ticket['status'] === 'closed') {
-            $pdo_auth->prepare("UPDATE tickets SET status = 'in_progress', updated_at = NOW() WHERE id = :id AND user_id = :uid")
+            $pdo_auth->prepare("UPDATE web_tickets SET status = 'in_progress', updated_at = NOW() WHERE id = :id AND user_id = :uid")
                      ->execute(['id' => $ticket_id, 'uid' => $_SESSION['user_id']]);
         }
         header('Location: /tickets/' . $ticket_id . '?action=reopened');
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ─── Reload ticket after any mutation, plus the thread ──────────────────────
-$stmt = $pdo_auth->prepare("SELECT * FROM tickets WHERE id = :id AND user_id = :uid");
+$stmt = $pdo_auth->prepare("SELECT * FROM web_tickets WHERE id = :id AND user_id = :uid");
 $stmt->execute(['id' => $ticket_id, 'uid' => $_SESSION['user_id']]);
 $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -172,7 +172,7 @@ $thread = [];
 try {
     $msg_stmt = $pdo_auth->prepare(
         "SELECT id, sender_type, sender_username, message, attachments, created_at
-         FROM ticket_messages WHERE ticket_id = :tid ORDER BY created_at ASC, id ASC"
+         FROM web_ticket_messages WHERE ticket_id = :tid ORDER BY created_at ASC, id ASC"
     );
     $msg_stmt->execute(['tid' => $ticket_id]);
     $thread = $msg_stmt->fetchAll(PDO::FETCH_ASSOC);

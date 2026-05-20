@@ -722,7 +722,7 @@ $upd = update_check_get($pdo_auth ?? null, $config);
         try {
             $news_recent = $pdo_auth->query(
                 "SELECT id, slug, title, status, published_at, updated_at
-                 FROM news_posts
+                 FROM web_news_posts
                  ORDER BY COALESCE(published_at, updated_at) DESC
                  LIMIT 10"
             )->fetchAll(PDO::FETCH_ASSOC);
@@ -788,8 +788,8 @@ $upd = update_check_get($pdo_auth ?? null, $config);
             $forum_settings = forum_settings_get($pdo_auth);
             $forum_cats     = forum_categories_list($pdo_auth);
             $forum_bans     = forum_bans_list($pdo_auth);
-            $forum_pending  = (int)$pdo_auth->query("SELECT COUNT(*) FROM forum_threads WHERE status = 'pending'")->fetchColumn();
-            $forum_pending += (int)$pdo_auth->query("SELECT COUNT(*) FROM forum_posts WHERE status = 'pending' AND is_op = 0")->fetchColumn();
+            $forum_pending  = (int)$pdo_auth->query("SELECT COUNT(*) FROM web_forum_threads WHERE status = 'pending'")->fetchColumn();
+            $forum_pending += (int)$pdo_auth->query("SELECT COUNT(*) FROM web_forum_posts WHERE status = 'pending' AND is_op = 0")->fetchColumn();
         } catch (PDOException $e) {
             $forum_settings = ['enabled' => false, 'auto_approve_threshold' => 3];
             $forum_cats = $forum_bans = []; $forum_pending = 0;

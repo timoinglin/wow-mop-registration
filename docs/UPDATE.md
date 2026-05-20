@@ -106,15 +106,15 @@ git pull origin main
 
 #### 2. Run the SQL setup (required)
 
-The new `news_posts` table must be created in your `auth` database, and a starter "Welcome!" post is seeded on first run:
+The new `web_news_posts` table must be created in your `auth` database, and a starter "Welcome!" post is seeded on first run:
 
 ```bash
 mysql -u root -pascent auth < sql/setup.sql
 ```
 
 `sql/setup.sql` is idempotent:
-- The `CREATE TABLE news_posts (...)` uses `IF NOT EXISTS` so re-running on an existing install does nothing destructive.
-- The seed `INSERT` is guarded by `WHERE NOT EXISTS (SELECT 1 FROM news_posts LIMIT 1)`, so it only fires when the table is empty. If you delete the seed post from the admin UI later, re-running setup.sql won't resurrect it.
+- The `CREATE TABLE web_news_posts (...)` uses `IF NOT EXISTS` so re-running on an existing install does nothing destructive.
+- The seed `INSERT` is guarded by `WHERE NOT EXISTS (SELECT 1 FROM web_news_posts LIMIT 1)`, so it only fires when the table is empty. If you delete the seed post from the admin UI later, re-running setup.sql won't resurrect it.
 
 #### 3. Make sure `uploads/news/` exists (required)
 
@@ -140,7 +140,7 @@ Options -Indexes -ExecCGI
 
 #### 4. (Optional) Clean up `config.news`
 
-The `'news' => [...]` array in `config.php` is **no longer read** — v0.4.0 sources news exclusively from the `news_posts` table. You can:
+The `'news' => [...]` array in `config.php` is **no longer read** — v0.4.0 sources news exclusively from the `web_news_posts` table. You can:
 
 - **Leave it alone** — it's silently ignored. No harm done.
 - **Delete it** for a cleaner config file (recommended).
@@ -163,7 +163,7 @@ Then in a browser:
 
 | Area | Change |
 |---|---|
-| Database | New table `news_posts` (+ idempotent seed) |
+| Database | New table `web_news_posts` (+ idempotent seed) |
 | Filesystem | New dir `uploads/news/` (image uploads, tracked `.htaccess`) |
 | Routing | New `.htaccess` rule: `/news/{slug}` → `pages/news.php?slug={slug}` |
 | Pages | `pages/news.php`, `pages/admin_news.php`, `pages/news_image.php`, `pages/news_preview.php` |
@@ -197,7 +197,7 @@ git pull origin main
 
 #### 2. Run the SQL setup (required)
 
-`sql/setup.sql` adds 6 new tables (`user_avatars` + the 5 `forum_*` tables) and runs a one-time charset migration on the original 6 legacy tables to upgrade them from `utf8` (alias for utf8mb3) to `utf8mb4`:
+`sql/setup.sql` adds 6 new tables (`web_user_avatars` + the 5 `forum_*` tables) and runs a one-time charset migration on the original 6 legacy tables to upgrade them from `utf8` (alias for utf8mb3) to `utf8mb4`:
 
 ```bash
 mysql -u root -pascent auth < sql/setup.sql
@@ -209,7 +209,7 @@ Idempotent — safe to re-run:
 - The charset migration only fires on tables not already at utf8mb4 (INFORMATION_SCHEMA-checked). A second run of the entire script measures ~3 ms total.
 
 > [!NOTE]
-> The charset migration rewrites the legacy tables in place (`ALTER TABLE … CONVERT TO CHARACTER SET utf8mb4`). For a typical install with thousands of rows it finishes in under a second. The only edge case is **very old MySQL with InnoDB ANTELOPE row format** where the `password_resets.idx_email` index could exceed the 767-byte prefix limit at utf8mb4 — modern XAMPP / MariaDB 10.2+ / MySQL 5.7.7+ default to DYNAMIC row format, which supports 3072 bytes, so it just works. If your install hits the edge case, the ALTER errors cleanly with no data loss; fix is `ALTER TABLE password_resets DROP INDEX idx_email, ADD INDEX idx_email (email(191))` and re-run setup.sql.
+> The charset migration rewrites the legacy tables in place (`ALTER TABLE … CONVERT TO CHARACTER SET utf8mb4`). For a typical install with thousands of rows it finishes in under a second. The only edge case is **very old MySQL with InnoDB ANTELOPE row format** where the `web_password_resets.idx_email` index could exceed the 767-byte prefix limit at utf8mb4 — modern XAMPP / MariaDB 10.2+ / MySQL 5.7.7+ default to DYNAMIC row format, which supports 3072 bytes, so it just works. If your install hits the edge case, the ALTER errors cleanly with no data loss; fix is `ALTER TABLE web_password_resets DROP INDEX idx_email, ADD INDEX idx_email (email(191))` and re-run setup.sql.
 
 #### 3. Make sure `uploads/avatars/` and `uploads/forum/` exist (required)
 
@@ -257,7 +257,7 @@ Then in a browser:
 
 | Area | Change |
 |---|---|
-| Database | 6 new tables (`user_avatars`, `forum_settings`, `forum_categories`, `forum_threads`, `forum_posts`, `forum_bans`) + idempotent seeds (forum settings row, default category, welcome thread + OP post) |
+| Database | 6 new tables (`web_user_avatars`, `web_forum_settings`, `web_forum_categories`, `web_forum_threads`, `web_forum_posts`, `web_forum_bans`) + idempotent seeds (forum settings row, default category, welcome thread + OP post) |
 | Schema migrations | One-time `utf8` → `utf8mb4` charset upgrade on the 6 legacy tables, INFORMATION_SCHEMA-checked so re-runs are no-ops (~3 ms total) |
 | Filesystem | New dirs `uploads/avatars/` and `uploads/forum/` (each with tracked override `.htaccess`) |
 | Routing | `.htaccess` gains rules for `/forum`, `/forum/{cat}`, `/forum/{cat}/{thread}`, `/forum/new/{cat}`, `/forum/edit/{post}`, `/forum/reply`, `/forum/mod`, `/avatar_upload` |
@@ -304,8 +304,8 @@ git checkout main && git pull
 mysql -u root -pascent auth < sql/setup.sql
 ```
 
-Idempotent (`CREATE TABLE IF NOT EXISTS`). It adds the `site_settings`
-table (the customization store) and the `forum_categories.admin_only` /
+Idempotent (`CREATE TABLE IF NOT EXISTS`). It adds the `web_site_settings`
+table (the customization store) and the `web_forum_categories.admin_only` /
 `allow_replies` columns. **No existing data is changed**; until you save
 something in `/admin_customization`, every value falls back to
 `config.php`. (The one-click updater applies this for you with the

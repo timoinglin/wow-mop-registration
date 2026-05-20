@@ -83,24 +83,34 @@ Open `config.php` and set:
 Open **phpMyAdmin** (your repack's DB manager), select the **`auth`** database, go to the **SQL** tab, and run the contents of `sql/setup.sql`:
 
 ```sql
--- This creates 13 tables (plus idempotent column-add and charset migrations):
--- 1. password_resets       — password recovery tokens
--- 2. tickets               — support ticket headers (subject, category, status…)
--- 3. admin_audit_log       — chronological log of admin actions
--- 4. playtime_rewards      — per-account state for the Battle Pay reward feature
--- 5. playtime_reward_log   — audit trail for every Battle Pay claim
--- 6. ticket_messages       — per-message thread (user + admin replies, attachments)
--- 7. news_posts            — admin-authored blog/news (Markdown body, draft/published)
--- 8. user_avatars          — per-account uploaded avatars (one row when uploaded)
--- 9. forum_settings        — single-row forum config (enabled + auto-approve threshold)
--- 10. forum_categories     — one level (no sub-categories), slug + name + icon + sort
--- 11. forum_threads        — title + author + status + sticky/locked + view/reply counts
--- 12. forum_posts          — every message (OP + replies), status, edited_at/by
--- 13. forum_bans           — forum-only mutes (game login unaffected); expires_at NULL = permanent
+-- All portal-owned tables use a `web_` prefix so they're visually distinct
+-- from the worldserver's own auth/character/world tables in the same DB.
+-- Pre-v0.7.x installs with un-prefixed names are auto-renamed in place
+-- (RENAME TABLE preserves data + indexes — no rebuild).
+--
+-- This creates 17 tables (plus idempotent column-add and charset migrations):
+--  1. web_password_resets     — password recovery tokens
+--  2. web_tickets             — support ticket headers (subject, category, status…)
+--  3. web_admin_audit_log     — chronological log of admin actions
+--  4. web_playtime_rewards    — per-account state for the Battle Pay reward feature
+--  5. web_playtime_reward_log — audit trail for every Battle Pay claim
+--  6. web_ticket_messages     — per-message thread (user + admin replies, attachments)
+--  7. web_news_posts          — admin-authored blog/news (Markdown body, draft/published)
+--  8. web_user_avatars        — per-account uploaded avatars (one row when uploaded)
+--  9. web_forum_settings      — single-row forum config (enabled + auto-approve threshold)
+-- 10. web_forum_categories    — one level (no sub-categories), slug + name + icon + sort
+-- 11. web_forum_threads       — title + author + status + sticky/locked + view/reply counts
+-- 12. web_forum_posts         — every message (OP + replies), status, edited_at/by
+-- 13. web_forum_bans          — forum-only mutes (game login unaffected); expires_at NULL = permanent
+-- 14. web_donation_codes      — per-account Ko-fi attribution code
+-- 15. web_donation_log        — Ko-fi webhook audit + idempotency
+-- 16. web_shop_settings       — admin-editable shop exchange rate
+-- 17. web_site_settings       — generic key → JSON store for site customization
 
 -- Compatible with MySQL 5.5.9+
 -- All CREATEs use IF NOT EXISTS. Idempotent migration blocks handle:
---   - ticket_messages.attachments column add (INFORMATION_SCHEMA-checked)
+--   - Legacy un-prefixed → web_ rename (only fires when old name exists)
+--   - web_ticket_messages.attachments column add (INFORMATION_SCHEMA-checked)
 --   - utf8 → utf8mb4 conversion for the legacy tables (only fires when needed)
 -- so re-running setup.sql is always safe.
 -- See sql/setup.sql for the full script.
@@ -169,7 +179,7 @@ FAQ items and vote sites are configured in `config.php`:
 ```
 
 > [!NOTE]
-> News is stored in the `news_posts` database table and managed from the admin panel at `/admin_news`. A starter "Welcome!" post is seeded by `sql/setup.sql` on a fresh install so the news section is never empty out of the gate — edit or delete it from the admin UI. There is no `config.news` entry; everything lives in the DB.
+> News is stored in the `web_news_posts` database table and managed from the admin panel at `/admin_news`. A starter "Welcome!" post is seeded by `sql/setup.sql` on a fresh install so the news section is never empty out of the gate — edit or delete it from the admin UI. There is no `config.news` entry; everything lives in the DB.
 
 ### 6. Dependencies
 

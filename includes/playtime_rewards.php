@@ -5,8 +5,8 @@
  * Source of truth: SUM(characters.totaltime) — updated by the worldserver,
  * so AFK still counts but login/logout farming gives nothing.
  *
- * State lives in `playtime_rewards` (per-account rolling counters);
- * each successful claim is appended to `playtime_reward_log`.
+ * State lives in `web_playtime_rewards` (per-account rolling counters);
+ * each successful claim is appended to `web_playtime_reward_log`.
  */
 
 /**
@@ -67,14 +67,14 @@ function pr_get_status(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $c
 
     // Read existing row, init if missing
     try {
-        $sel = $pdo_auth->prepare("SELECT * FROM playtime_rewards WHERE account_id = :id");
+        $sel = $pdo_auth->prepare("SELECT * FROM web_playtime_rewards WHERE account_id = :id");
         $sel->execute(['id' => $account_id]);
         $r = $sel->fetch();
 
         if (!$r) {
             // Initialize baseline at current total — past playtime is NOT retroactively rewarded
             $ins = $pdo_auth->prepare(
-                "INSERT IGNORE INTO playtime_rewards (account_id, last_total_seconds, today_dp_claimed, today_date, total_paid_dp)
+                "INSERT IGNORE INTO web_playtime_rewards (account_id, last_total_seconds, today_dp_claimed, today_date, total_paid_dp)
                  VALUES (:id, :ts, 0, :td, 0)"
             );
             $ins->execute(['id' => $account_id, 'ts' => $current_total, 'td' => $today]);
@@ -158,13 +158,13 @@ function pr_claim(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config
     try {
         // Ensure row exists (defensive — pr_get_status normally creates it)
         $ins = $pdo_auth->prepare(
-            "INSERT IGNORE INTO playtime_rewards (account_id, last_total_seconds, today_dp_claimed, today_date, total_paid_dp)
+            "INSERT IGNORE INTO web_playtime_rewards (account_id, last_total_seconds, today_dp_claimed, today_date, total_paid_dp)
              VALUES (:id, :ts, 0, :td, 0)"
         );
         $ins->execute(['id' => $account_id, 'ts' => $current_total, 'td' => $today]);
 
         // Lock the row
-        $sel = $pdo_auth->prepare("SELECT * FROM playtime_rewards WHERE account_id = :id FOR UPDATE");
+        $sel = $pdo_auth->prepare("SELECT * FROM web_playtime_rewards WHERE account_id = :id FOR UPDATE");
         $sel->execute(['id' => $account_id]);
         $r = $sel->fetch();
 
@@ -182,7 +182,7 @@ function pr_claim(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config
         if ($hours_available < 1 || $remaining_cap <= 0) {
             // Refresh today_date if needed and exit
             if ($r['today_date'] < $today) {
-                $u = $pdo_auth->prepare("UPDATE playtime_rewards SET today_dp_claimed = 0, today_date = :td WHERE account_id = :id");
+                $u = $pdo_auth->prepare("UPDATE web_playtime_rewards SET today_dp_claimed = 0, today_date = :td WHERE account_id = :id");
                 $u->execute(['td' => $today, 'id' => $account_id]);
             }
             $pdo_auth->commit();
@@ -201,9 +201,9 @@ function pr_claim(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config
             return 0;
         }
 
-        // Update playtime_rewards (advance baseline + bump today's tally)
+        // Update web_playtime_rewards (advance baseline + bump today's tally)
         $u = $pdo_auth->prepare(
-            "UPDATE playtime_rewards
+            "UPDATE web_playtime_rewards
              SET last_total_seconds = last_total_seconds + :s,
                  today_dp_claimed   = :tdc,
                  today_date         = :td,
@@ -225,7 +225,7 @@ function pr_claim(int $account_id, PDO $pdo_auth, ?PDO $pdo_chars, array $config
 
         // Audit log
         $log = $pdo_auth->prepare(
-            "INSERT INTO playtime_reward_log (account_id, dp_amount, seconds_claimed, total_seconds_at_claim)
+            "INSERT INTO web_playtime_reward_log (account_id, dp_amount, seconds_claimed, total_seconds_at_claim)
              VALUES (:id, :dp, :s, :total)"
         );
         $log->execute([
@@ -251,7 +251,7 @@ function pr_get_history(int $account_id, PDO $pdo_auth, int $limit = 10): array
     try {
         $stmt = $pdo_auth->prepare(
             "SELECT dp_amount, seconds_claimed, total_seconds_at_claim, created_at
-             FROM playtime_reward_log
+             FROM web_playtime_reward_log
              WHERE account_id = :id
              ORDER BY created_at DESC
              LIMIT :lim"

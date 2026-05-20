@@ -19,7 +19,7 @@
 | **Emails not sending** | Verify SMTP credentials; for Gmail use an [App Password](https://support.google.com/accounts/answer/185833) |
 | **Blank page / 500 error** | Check `C:\xampp\php\logs\php_error_log` for details |
 | **Admin dashboard not loading** | Your account needs GM level ≥ 9 in the `account_access` table, and the route is `/admin_dashboard` |
-| **`/news` shows "No news posts yet"** | The `news_posts` table is empty or missing. Re-run `sql/setup.sql` (idempotent), then refresh. The seed creates a starter "Welcome!" post. |
+| **`/news` shows "No news posts yet"** | The `web_news_posts` table is empty or missing. Re-run `sql/setup.sql` (idempotent), then refresh. The seed creates a starter "Welcome!" post. |
 | **EasyMDE editor doesn't load on `/admin_news?new=1`** | The editor is loaded from `cdn.jsdelivr.net`. Check that your browser can reach the CDN, that nothing is blocking the script (corporate proxy, ad-blocker rules), and that JavaScript is enabled. The public news pages don't depend on the CDN. |
 | **Image upload returns 415 "Unsupported"** | Server-side MIME sniff didn't recognize the file as one of jpg/png/webp/gif. Re-export from your image tool or convert with `magick input.bmp output.png`. The PHP `fileinfo` extension must be enabled (it is by default). |
 | **Image upload returns 413** | File is over the 5 MB cap. Resize or re-compress and try again. |

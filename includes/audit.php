@@ -8,7 +8,7 @@ function log_admin_action(PDO $pdo, int $admin_id, string $admin_name, string $a
 {
     try {
         $stmt = $pdo->prepare(
-            "INSERT INTO admin_audit_log (admin_id, admin_name, action, target, details, ip_address, created_at)
+            "INSERT INTO web_admin_audit_log (admin_id, admin_name, action, target, details, ip_address, created_at)
              VALUES (:aid, :aname, :action, :target, :details, :ip, NOW())"
         );
         return $stmt->execute([

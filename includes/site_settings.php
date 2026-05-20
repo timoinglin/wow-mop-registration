@@ -1,7 +1,7 @@
 <?php
 /**
  * Site customization settings — generic key → JSON store (auth DB,
- * `site_settings` table).
+ * `web_site_settings` table).
  *
  * Model (same as the donation-rate override): the DB row, when present, is
  * the admin's override; otherwise the caller's $default (typically derived
@@ -41,7 +41,7 @@ if (!function_exists('site_setting')) {
             return $default;
         }
         try {
-            $stmt = $pdo->prepare("SELECT v FROM site_settings WHERE k = :k LIMIT 1");
+            $stmt = $pdo->prepare("SELECT v FROM web_site_settings WHERE k = :k LIMIT 1");
             $stmt->execute(['k' => $key]);
             $raw = $stmt->fetchColumn();
             if ($raw === false) {
@@ -72,7 +72,7 @@ if (!function_exists('site_setting_set')) {
                 return false;
             }
             $stmt = $pdo->prepare(
-                "INSERT INTO site_settings (k, v) VALUES (:k, :v)
+                "INSERT INTO web_site_settings (k, v) VALUES (:k, :v)
                  ON DUPLICATE KEY UPDATE v = VALUES(v)"
             );
             $ok = $stmt->execute(['k' => $key, 'v' => $json]);

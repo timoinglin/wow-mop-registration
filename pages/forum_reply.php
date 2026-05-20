@@ -31,8 +31,8 @@ $thread    = null;
 if ($thread_id > 0) {
     $stmt = $pdo_auth->prepare(
         "SELECT t.*, c.slug AS category_slug
-         FROM forum_threads t
-         JOIN forum_categories c ON c.id = t.category_id
+         FROM web_forum_threads t
+         JOIN web_forum_categories c ON c.id = t.category_id
          WHERE t.id = :id AND t.status = 'published'
          LIMIT 1"
     );

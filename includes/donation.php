@@ -58,7 +58,7 @@ function donation_config(array $config, ?PDO $pdo = null): array
 /**
  * The admin-overridable Battle Coins per 1.00 currency-unit rate.
  *
- * Source of truth: the single `shop_settings` row (id=1), set from
+ * Source of truth: the single `web_shop_settings` row (id=1), set from
  * /admin_shop. When that row is absent (fresh install, admin never touched
  * the UI) the config default (`donation.eur_to_dp_rate`) applies — so config
  * stays the documented bootstrap and the DB row is purely the UI override.
@@ -72,14 +72,14 @@ function donation_rate(PDO $pdo_auth, array $config): int
 }
 
 /**
- * The raw stored override rate, or null when no `shop_settings` row exists
+ * The raw stored override rate, or null when no `web_shop_settings` row exists
  * (or the table isn't there yet). Lets callers distinguish "admin set this"
  * from "falling back to config".
  */
 function donation_stored_rate(PDO $pdo_auth): ?int
 {
     try {
-        $v = $pdo_auth->query("SELECT eur_to_dp_rate FROM shop_settings WHERE id = 1 LIMIT 1")
+        $v = $pdo_auth->query("SELECT eur_to_dp_rate FROM web_shop_settings WHERE id = 1 LIMIT 1")
                       ->fetchColumn();
         return $v === false ? null : (int)$v;
     } catch (PDOException $e) {
@@ -97,7 +97,7 @@ function donation_set_rate(PDO $pdo_auth, int $rate): bool
     $rate = max(1, min(100000000, $rate));
     try {
         $stmt = $pdo_auth->prepare(
-            "INSERT INTO shop_settings (id, eur_to_dp_rate) VALUES (1, :r)
+            "INSERT INTO web_shop_settings (id, eur_to_dp_rate) VALUES (1, :r)
              ON DUPLICATE KEY UPDATE eur_to_dp_rate = VALUES(eur_to_dp_rate)"
         );
         return $stmt->execute(['r' => $rate]);
@@ -141,7 +141,7 @@ function donation_make_code(): string
 function donation_get_code(PDO $pdo_auth, int $account_id): ?string
 {
     try {
-        $sel = $pdo_auth->prepare("SELECT code FROM donation_codes WHERE account_id = :id LIMIT 1");
+        $sel = $pdo_auth->prepare("SELECT code FROM web_donation_codes WHERE account_id = :id LIMIT 1");
         $sel->execute(['id' => $account_id]);
         $existing = $sel->fetchColumn();
         if ($existing !== false) {
@@ -151,7 +151,7 @@ function donation_get_code(PDO $pdo_auth, int $account_id): ?string
         // Mint. Retry on the (rare) unique-code collision; re-check by
         // account_id each loop so a concurrent insert is honoured.
         $ins = $pdo_auth->prepare(
-            "INSERT INTO donation_codes (account_id, code) VALUES (:id, :code)"
+            "INSERT INTO web_donation_codes (account_id, code) VALUES (:id, :code)"
         );
         for ($attempt = 0; $attempt < 6; $attempt++) {
             $code = donation_make_code();
@@ -204,7 +204,7 @@ function donation_account_for_code(PDO $pdo_auth, string $code): ?array
     try {
         $stmt = $pdo_auth->prepare(
             "SELECT a.id, a.username
-               FROM donation_codes dc
+               FROM web_donation_codes dc
                JOIN account a ON a.id = dc.account_id
               WHERE dc.code = :c
               LIMIT 1"
@@ -288,7 +288,7 @@ function donation_process_webhook(PDO $pdo_auth, array $config, array $data, ?st
         $pdo_auth->beginTransaction();
 
         $ins = $pdo_auth->prepare(
-            "INSERT INTO donation_log
+            "INSERT INTO web_donation_log
                (kofi_transaction_id, account_id, username, amount, currency,
                 dp_credited, kofi_type, from_name, email, message, status)
              VALUES
@@ -318,7 +318,7 @@ function donation_process_webhook(PDO $pdo_auth, array $config, array $data, ?st
                 // Account vanished between code lookup and credit — downgrade
                 // to unattributed rather than crediting a ghost row.
                 $fix = $pdo_auth->prepare(
-                    "UPDATE donation_log
+                    "UPDATE web_donation_log
                         SET status = 'unattributed', dp_credited = 0, account_id = NULL
                       WHERE kofi_transaction_id = :txn"
                 );
@@ -375,7 +375,7 @@ function donation_recent_for_account(PDO $pdo_auth, int $account_id, int $limit 
         $limit = max(1, min(50, $limit));
         $stmt  = $pdo_auth->prepare(
             "SELECT amount, currency, dp_credited, created_at
-               FROM donation_log
+               FROM web_donation_log
               WHERE account_id = :id AND status = 'credited'
               ORDER BY created_at DESC, id DESC
               LIMIT $limit"

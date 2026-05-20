@@ -101,7 +101,7 @@ try {
             $pdo_auth->beginTransaction();
             try {
                 $stmt = $pdo_auth->prepare(
-                    "UPDATE tickets SET admin_reply = :reply, replied_by = :by, status = :status, updated_at = NOW()
+                    "UPDATE web_tickets SET admin_reply = :reply, replied_by = :by, status = :status, updated_at = NOW()
                      WHERE id = :id"
                 );
                 $stmt->execute([
@@ -112,7 +112,7 @@ try {
                 ]);
 
                 $msg = $pdo_auth->prepare(
-                    "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
+                    "INSERT INTO web_ticket_messages (ticket_id, sender_type, sender_username, message, created_at)
                      VALUES (:tid, 'admin', :name, :reply, NOW())"
                 );
                 $msg->execute(['tid' => $ticket_id, 'name' => $admin_name, 'reply' => $reply]);
@@ -125,7 +125,7 @@ try {
             }
 
             // Get ticket info for email notification
-            $t = $pdo_auth->prepare("SELECT username, email, subject FROM tickets WHERE id = :id");
+            $t = $pdo_auth->prepare("SELECT username, email, subject FROM web_tickets WHERE id = :id");
             $t->execute(['id' => $ticket_id]);
             $ticket = $t->fetch();
 
@@ -158,7 +158,7 @@ try {
                 echo json_encode(['error' => 'Invalid parameters']); exit;
             }
 
-            $stmt = $pdo_auth->prepare("UPDATE tickets SET status = :status, updated_at = NOW() WHERE id = :id");
+            $stmt = $pdo_auth->prepare("UPDATE web_tickets SET status = :status, updated_at = NOW() WHERE id = :id");
             $stmt->execute(['status' => $new_status, 'id' => $ticket_id]);
 
             log_admin_action($pdo_auth, $admin_id, $admin_name, 'ticket_status', "Ticket #$ticket_id", "New status: $new_status", $ip);
@@ -322,9 +322,9 @@ try {
             $limit = 25;
             $offset = ($page - 1) * $limit;
 
-            $total = (int)$pdo_auth->query("SELECT COUNT(*) FROM admin_audit_log")->fetchColumn();
+            $total = (int)$pdo_auth->query("SELECT COUNT(*) FROM web_admin_audit_log")->fetchColumn();
             $rows  = $pdo_auth->query(
-                "SELECT * FROM admin_audit_log ORDER BY created_at DESC LIMIT $limit OFFSET $offset"
+                "SELECT * FROM web_admin_audit_log ORDER BY created_at DESC LIMIT $limit OFFSET $offset"
             )->fetchAll(PDO::FETCH_ASSOC);
 
             echo json_encode(['success' => true, 'entries' => $rows, 'total' => $total, 'pages' => ceil($total / $limit), 'page' => $page]);
@@ -351,7 +351,7 @@ try {
         // ─── ALL TICKETS (for admin) ─────────────────────────────────────
         case 'get_tickets':
             $status_filter = $_GET['status'] ?? '';
-            $sql = "SELECT * FROM tickets";
+            $sql = "SELECT * FROM web_tickets";
             $params = [];
             if ($status_filter && in_array($status_filter, ['open', 'in_progress', 'closed'])) {
                 $sql .= " WHERE status = :status";
@@ -369,7 +369,7 @@ try {
                 $placeholders = implode(',', array_fill(0, count($ids), '?'));
                 $msg_stmt = $pdo_auth->prepare(
                     "SELECT ticket_id, sender_type, sender_username, message, created_at
-                     FROM ticket_messages
+                     FROM web_ticket_messages
                      WHERE ticket_id IN ($placeholders)
                      ORDER BY created_at ASC, id ASC"
                 );

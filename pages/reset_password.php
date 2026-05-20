@@ -30,7 +30,7 @@ if (empty($token) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
     $errors[] = $TEXT['invalid_token'];
 } else {
     try {
-        $stmt = $pdo_auth->prepare("SELECT token_key, created_at FROM password_resets WHERE email = :email");
+        $stmt = $pdo_auth->prepare("SELECT token_key, created_at FROM web_password_resets WHERE email = :email");
         $stmt->execute(['email' => $email]);
         $reset_data = $stmt->fetch();
 
@@ -40,7 +40,7 @@ if (empty($token) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
             $errors[] = $TEXT['invalid_token'];
         } elseif (time() - strtotime($reset_data['created_at']) > 3600) {
             // Expired — clean up and tell user
-            $pdo_auth->prepare("DELETE FROM password_resets WHERE email = :email")->execute(['email' => $email]);
+            $pdo_auth->prepare("DELETE FROM web_password_resets WHERE email = :email")->execute(['email' => $email]);
             $errors[] = $TEXT['invalid_token'];
         } else {
             $showForm = true;
@@ -86,7 +86,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo_auth->beginTransaction();
             $pdo_auth->prepare("UPDATE account SET sha_pass_hash = :hash, v = '', s = '' WHERE email = :email")
                      ->execute(['hash' => $new_hash, 'email' => $email]);
-            $pdo_auth->prepare("DELETE FROM password_resets WHERE email = :email")
+            $pdo_auth->prepare("DELETE FROM web_password_resets WHERE email = :email")
                      ->execute(['email' => $email]);
             $pdo_auth->commit();
 

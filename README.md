@@ -187,6 +187,7 @@ Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold i
 - **Armory Talents — in-game-style 6×3 grid** for all 11 classes (every cell verified against Wowhead's mop-classic redirect slugs; 198/198). Chosen talent glows in the class colour; unchosen options dimmed. Mobile: 1-column stack.
 - **Armory Glyphs panel** — 3 major + 3 minor slots per spec, Wowhead chips for chosen glyphs, "Unlocked at Lv N" hint for empty unlocked slots. Repack-defensive (hides if `character_glyphs` is absent).
 - **Armory Professions — icons** — each profession row now shows the in-game tradeskill icon (Wowhead CDN) alongside the skill name + value bar, matching the visual rhythm of the equipment slots.
+- **Portal tables get a `web_` prefix** — every table the registration portal owns is now namespaced (`web_forum_posts`, `web_tickets`, `web_news_posts`, …) so it's visually distinct from the worldserver's auth/character/world tables that live in the same database. `sql/setup.sql` auto-renames any pre-v0.7.x unprefixed tables in place (`RENAME TABLE` preserves data + indexes — no rebuild, no row-by-row copy). Idempotent: re-running setup.sql is a no-op on already-migrated installs.
 
 *Empty = the latest tagged release is fully current.*
 

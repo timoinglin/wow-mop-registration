@@ -4,7 +4,7 @@
  *
  * First section: Footer. Toggle the built-in quick-links and add custom
  * label+URL rows (e.g. a donations-disclaimer link). Stored in the
- * `site_settings` table via includes/site_settings.php — config.php stays
+ * `web_site_settings` table via includes/site_settings.php — config.php stays
  * the bootstrap; this is a DB override that survives updates.
  *
  * Built on the shared site_settings foundation so future sections

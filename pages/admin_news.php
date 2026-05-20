@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     if ($id > 0) {
                         $stmt = $pdo_auth->prepare(
-                            "UPDATE news_posts
+                            "UPDATE web_news_posts
                              SET slug=:slug, title=:title, excerpt=:excerpt, body=:body, icon=:icon,
                                  status=:status, published_at=:pub
                              WHERE id=:id"
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $success = $TEXT['news_saved'] ?? 'Post saved.';
                     } else {
                         $stmt = $pdo_auth->prepare(
-                            "INSERT INTO news_posts (slug, title, excerpt, body, icon, author_id, author_name, status, published_at)
+                            "INSERT INTO web_news_posts (slug, title, excerpt, body, icon, author_id, author_name, status, published_at)
                              VALUES (:slug, :title, :excerpt, :body, :icon, :aid, :aname, :status, :pub)"
                         );
                         $stmt->execute([
@@ -116,11 +116,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
                 try {
-                    $info = $pdo_auth->prepare("SELECT slug FROM news_posts WHERE id = :id");
+                    $info = $pdo_auth->prepare("SELECT slug FROM web_news_posts WHERE id = :id");
                     $info->execute(['id' => $id]);
                     $del_slug = $info->fetchColumn() ?: ('id:' . $id);
 
-                    $del = $pdo_auth->prepare("DELETE FROM news_posts WHERE id = :id");
+                    $del = $pdo_auth->prepare("DELETE FROM web_news_posts WHERE id = :id");
                     $del->execute(['id' => $id]);
                     log_admin_action($pdo_auth, $admin_id, $admin_name, 'news_delete', "id:$id ($del_slug)", null, null);
                 } catch (PDOException $e) {
@@ -133,15 +133,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
                 try {
-                    $cur = $pdo_auth->prepare("SELECT status, slug FROM news_posts WHERE id = :id");
+                    $cur = $pdo_auth->prepare("SELECT status, slug FROM web_news_posts WHERE id = :id");
                     $cur->execute(['id' => $id]);
                     $row = $cur->fetch();
                     if ($row) {
                         $new_status = $row['status'] === 'published' ? 'draft' : 'published';
                         if ($new_status === 'published') {
-                            $upd = $pdo_auth->prepare("UPDATE news_posts SET status='published', published_at = COALESCE(published_at, NOW()) WHERE id = :id");
+                            $upd = $pdo_auth->prepare("UPDATE web_news_posts SET status='published', published_at = COALESCE(published_at, NOW()) WHERE id = :id");
                         } else {
-                            $upd = $pdo_auth->prepare("UPDATE news_posts SET status='draft' WHERE id = :id");
+                            $upd = $pdo_auth->prepare("UPDATE web_news_posts SET status='draft' WHERE id = :id");
                         }
                         $upd->execute(['id' => $id]);
                         log_admin_action($pdo_auth, $admin_id, $admin_name, 'news_toggle', "id:$id ({$row['slug']})", "→ $new_status", null);
@@ -163,7 +163,7 @@ $edit_id = (int)($_GET['id'] ?? 0);
 $is_new  = !empty($_GET['new']);
 
 if ($edit_id > 0) {
-    $stmt = $pdo_auth->prepare("SELECT * FROM news_posts WHERE id = :id");
+    $stmt = $pdo_auth->prepare("SELECT * FROM web_news_posts WHERE id = :id");
     $stmt->execute(['id' => $edit_id]);
     $post = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($post) $mode = 'edit';
@@ -247,7 +247,7 @@ $csrf = generate_csrf_token();
         </div>
 
         <?php
-        $all = $pdo_auth->query("SELECT id, slug, title, status, published_at, updated_at FROM news_posts ORDER BY COALESCE(published_at, updated_at) DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $all = $pdo_auth->query("SELECT id, slug, title, status, published_at, updated_at FROM web_news_posts ORDER BY COALESCE(published_at, updated_at) DESC")->fetchAll(PDO::FETCH_ASSOC);
         ?>
 
         <div class="news-admin-card">
