@@ -274,6 +274,52 @@ if ($is_profile) {
     }
     $active_spec = (int)($char['activespec'] ?? 0);
 
+    // ── PvP / Title / Professions — repack-defensive ──────────────────────
+    // Each block hides gracefully if its column/table doesn't exist on the
+    // server (try/catch per fetch). All read-only.
+    require_once __DIR__ . '/../includes/wow_skills.php';
+    require_once __DIR__ . '/../includes/wow_titles.php';
+
+    $pvp_total_kills = null;
+    $pvp_rated       = [];
+    $char_title_id   = 0;
+    $char_skills     = [];
+
+    try {
+        $stmt = $pdo_chars->prepare("SELECT totalKills FROM characters WHERE guid = :g LIMIT 1");
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $v = $stmt->fetchColumn();
+        if ($v !== false) $pvp_total_kills = (int)$v;
+    } catch (PDOException $e) { /* column missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT slot, rating, season_wins
+             FROM rated_pvp_info
+             WHERE guid = :g
+               AND season = (SELECT MAX(season) FROM rated_pvp_info)
+               AND rating > 0
+             ORDER BY slot ASC"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $pvp_rated = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) { /* table missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare("SELECT chosenTitle FROM characters WHERE guid = :g LIMIT 1");
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $v = $stmt->fetchColumn();
+        if ($v !== false) $char_title_id = (int)$v;
+    } catch (PDOException $e) { /* column missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT skill, value, max FROM character_skills WHERE guid = :g ORDER BY skill ASC"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $char_skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) { /* table missing — skip */ }
+
     // Account info (join date) — read-only bit from auth DB
     $account_join = null;
     try {
@@ -721,6 +767,12 @@ if ($is_profile) {
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_class'] ?? 'Class') ?></span>
                         <span class="v" style="color:<?= $clr ?>"><?= htmlspecialchars(get_class_name($cid)) ?></span>
                     </div>
+                    <?php $title_text = $char_title_id > 0 ? wl_title_text($char_title_id) : null; if ($title_text): ?>
+                    <div class="stat-row">
+                        <span class="k"><?= htmlspecialchars($TEXT['armory_info_title'] ?? 'Title') ?></span>
+                        <span class="v" style="color:var(--accent)"><?= htmlspecialchars($title_text) ?></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="stat-row">
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_gender'] ?? 'Gender') ?></span>
                         <span class="v"><?= htmlspecialchars($gid === 1 ? ($TEXT['armory_gender_female'] ?? 'Female') : ($TEXT['armory_gender_male'] ?? 'Male')) ?></span>
@@ -786,6 +838,129 @@ if ($is_profile) {
         <?php endforeach; ?>
         <div style="color:#4a5568;font-size:.76rem;margin-top:.8rem">
             <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_talents_hint'] ?? 'Talent details come from Wowhead (Mists of Pandaria). Heavily customised server spells may not resolve.') ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- PvP — total HKs + rated bracket ratings (current season). Hidden
+         when there's no data (e.g., rated_pvp_info table absent or no rows). -->
+    <?php
+    $pvp_has = ($pvp_total_kills !== null) || !empty($pvp_rated);
+    if ($pvp_has):
+        $bracket_label = [0 => '2v2', 1 => '3v3', 3 => 'Rated BG'];
+    ?>
+    <style>
+    .pvp-grid { display:grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap:1rem; }
+    .pvp-card { background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.3); border-radius:10px; padding:1rem 1.1rem; }
+    .pvp-card .lbl { color:#8899aa; font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.4rem; }
+    .pvp-card .big { font-size:2rem; font-weight:800; color:#f87e8a; line-height:1; font-variant-numeric: tabular-nums; }
+    .pvp-tbl { width:100%; border-collapse: collapse; }
+    .pvp-tbl th { text-align:left; font-size:.7rem; color:#6c7a8c; text-transform:uppercase; letter-spacing:1px; padding:.35rem .6rem; font-weight:600; }
+    .pvp-tbl td { padding:.55rem .6rem; border-top:1px solid rgba(255,255,255,.04); font-size:.92rem; }
+    .pvp-tbl tr:first-child td { border-top: none; }
+    .pvp-bracket { display:inline-flex; align-items:center; gap:.45rem; }
+    .pvp-bracket .pill { padding:.18rem .55rem; border-radius:50px; background: rgba(var(--accent-rgb),.14); color:var(--accent); border:1px solid rgba(var(--accent-rgb),.4); font-size:.72rem; font-weight:700; letter-spacing:.5px; }
+    .pvp-rating { color:#dee2e6; font-weight:800; font-variant-numeric: tabular-nums; }
+    .pvp-empty  { color:#6c7a8c; font-size:.85rem; padding:.6rem; }
+    @media (max-width: 768px) {
+        .pvp-grid { grid-template-columns: 1fr; }
+    }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-crosshair me-2"></i><?= htmlspecialchars($TEXT['armory_panel_pvp'] ?? 'PvP') ?></div>
+        <div class="pvp-grid">
+            <div class="pvp-card">
+                <div class="lbl"><?= htmlspecialchars($TEXT['armory_pvp_total_hk'] ?? 'Total Honorable Kills') ?></div>
+                <div class="big"><?= number_format((int)($pvp_total_kills ?? 0)) ?></div>
+            </div>
+            <div class="pvp-card">
+                <div class="lbl" style="margin-bottom:.55rem"><?= htmlspecialchars($TEXT['armory_pvp_rated'] ?? 'Rated PvP (current season)') ?></div>
+                <?php if (!empty($pvp_rated)): ?>
+                    <table class="pvp-tbl">
+                        <thead>
+                            <tr>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_bracket'] ?? 'Bracket') ?></th>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_rating'] ?? 'Rating') ?></th>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_wins'] ?? 'Wins') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($pvp_rated as $row):
+                                $slot = (int)$row['slot'];
+                                $lbl  = $bracket_label[$slot] ?? ('Slot ' . $slot);
+                            ?>
+                            <tr>
+                                <td><span class="pvp-bracket"><span class="pill"><?= htmlspecialchars($lbl) ?></span></span></td>
+                                <td class="pvp-rating"><?= number_format((int)$row['rating']) ?></td>
+                                <td><?= number_format((int)$row['season_wins']) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="pvp-empty"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_pvp_no_rated'] ?? 'No rated PvP recorded for the current season.') ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Professions — primary + secondary skills with value/max bars.
+         Filtered through wl_skill_name() so we only show known skills
+         (no "Skill #1234" noise). Hidden when nothing matches. -->
+    <?php
+    $prof_primary = []; $prof_secondary = [];
+    foreach ($char_skills as $s) {
+        $sid = (int)$s['skill'];
+        $name = wl_skill_name($sid);
+        if ($name === null) continue;
+        $row = ['name' => $name, 'value' => (int)$s['value'], 'max' => max(1, (int)$s['max'])];
+        if (wl_skill_is_primary($sid)) $prof_primary[]   = $row;
+        else                            $prof_secondary[] = $row;
+    }
+    $prof_has = !empty($prof_primary) || !empty($prof_secondary);
+    if ($prof_has):
+    ?>
+    <style>
+    .prof-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+    .prof-col-title { color:#8899aa; font-size:.72rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.6rem; }
+    .prof-row { background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; padding:.55rem .75rem; margin-bottom:.5rem; }
+    .prof-row .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3rem; font-size:.9rem; }
+    .prof-row .nm { color:#dee2e6; font-weight:700; }
+    .prof-row .vl { color:var(--accent); font-weight:700; font-variant-numeric: tabular-nums; font-size:.85rem; }
+    .prof-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.05); overflow: hidden; }
+    .prof-bar > i { display:block; height:100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:999px; }
+    @media (max-width: 768px) {
+        .prof-grid { grid-template-columns: 1fr; }
+    }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-hammer me-2"></i><?= htmlspecialchars($TEXT['armory_panel_professions'] ?? 'Professions') ?></div>
+        <div class="prof-grid">
+            <div>
+                <div class="prof-col-title"><?= htmlspecialchars($TEXT['armory_prof_primary'] ?? 'Primary') ?></div>
+                <?php if (!empty($prof_primary)): foreach ($prof_primary as $p):
+                    $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
+                    <div class="prof-row">
+                        <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                        <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                    </div>
+                <?php endforeach; else: ?>
+                    <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_primary'] ?? 'No primary professions learned.') ?></div>
+                <?php endif; ?>
+            </div>
+            <div>
+                <div class="prof-col-title"><?= htmlspecialchars($TEXT['armory_prof_secondary'] ?? 'Secondary') ?></div>
+                <?php if (!empty($prof_secondary)): foreach ($prof_secondary as $p):
+                    $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
+                    <div class="prof-row">
+                        <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                        <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                    </div>
+                <?php endforeach; else: ?>
+                    <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_secondary'] ?? 'No secondary skills.') ?></div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     <?php endif; ?>
