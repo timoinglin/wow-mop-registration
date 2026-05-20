@@ -234,12 +234,54 @@ if ($is_profile) {
         // Table may not exist on this core, silently skip
     }
 
-    // Achievements
+    // Achievements — total count + the most recent 12 for the Achievements panel.
+    // achievement_id → Wowhead tooltip in the renderer (no DBC parse needed).
     $achievement_count = 0;
+    $recent_achievements = [];
     try {
         $ac = $pdo_chars->prepare("SELECT COUNT(*) FROM character_achievement WHERE guid = :g");
         $ac->execute(['g' => $char['guid']]);
         $achievement_count = (int)$ac->fetchColumn();
+
+        $rac = $pdo_chars->prepare(
+            "SELECT achievement, date FROM character_achievement
+             WHERE guid = :g ORDER BY date DESC, achievement DESC LIMIT 12"
+        );
+        $rac->execute(['g' => $char['guid']]);
+        $recent_achievements = $rac->fetchAll();
+    } catch (PDOException $e) {}
+
+    // Reputation — pull every faction; the renderer filters by wl_faction_name()
+    // so unknown ids never surface as "Faction #1234" garbage. flags & 0x01 = visible,
+    // & 0x02 = inactive, & 0x04 = at-war — we only filter out the at-war/hidden mess.
+    require_once __DIR__ . '/../includes/wow_factions.php';
+    $reputations = [];
+    try {
+        $rp = $pdo_chars->prepare(
+            "SELECT faction, standing, flags FROM character_reputation
+             WHERE guid = :g"
+        );
+        $rp->execute(['g' => $char['guid']]);
+        foreach ($rp->fetchAll() as $row) {
+            $name = wl_faction_name((int)$row['faction']);
+            if ($name === null) continue;
+            $standing = (int)$row['standing'];
+            $rank     = wl_rep_rank($standing);
+            // Skip purely-neutral with no progress — they clutter the panel.
+            if ($rank === 3 && $standing === 0) continue;
+            $reputations[] = [
+                'id'       => (int)$row['faction'],
+                'name'     => $name,
+                'standing' => $standing,
+                'rank'     => $rank,
+            ];
+        }
+        // Sort: highest rank first, then highest standing within rank.
+        usort($reputations, function ($a, $b) {
+            return $b['rank'] === $a['rank']
+                ? $b['standing'] - $a['standing']
+                : $b['rank'] - $a['rank'];
+        });
     } catch (PDOException $e) {}
 
     // Other characters on the same account
@@ -1074,6 +1116,97 @@ if ($is_profile) {
                     <div class="pvp-empty"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_pvp_no_rated'] ?? 'No rated PvP recorded for the current season.') ?></div>
                 <?php endif; ?>
             </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Achievements — total + recent 12, each chip is a Wowhead tooltip
+         (no DBC parse needed; achievement_id maps cleanly via mop-classic).
+         Hidden if the table isn't queryable on this repack. -->
+    <?php if ($achievement_count > 0): ?>
+    <style>
+    .ach-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:.85rem; }
+    .ach-count { display:flex; align-items:baseline; gap:.55rem; }
+    .ach-count .num { font-size:2rem; font-weight:800; color:var(--accent); line-height:1; font-variant-numeric: tabular-nums; }
+    .ach-count .lbl { color:#8899aa; font-size:.78rem; text-transform:uppercase; letter-spacing:1.5px; }
+    .ach-recent-title { color:#6c7a8c; font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.55rem; }
+    .ach-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:.5rem; }
+    .ach-chip { display:flex; align-items:center; gap:.55rem; padding:.5rem .65rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; min-width:0; text-decoration:none; transition:border-color .15s, background .15s; }
+    .ach-chip:hover { border-color: rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.08); }
+    .ach-chip .ach-id { color:var(--accent); font-weight:700; font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .ach-chip .ach-date { color:#6c7a8c; font-size:.7rem; font-variant-numeric: tabular-nums; flex-shrink:0; }
+    @media (max-width: 768px) { .ach-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .ach-grid { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-trophy-fill me-2"></i><?= htmlspecialchars($TEXT['armory_panel_achievements'] ?? 'Achievements') ?></div>
+        <div class="ach-head">
+            <div class="ach-count">
+                <span class="num"><?= number_format($achievement_count) ?></span>
+                <span class="lbl"><?= htmlspecialchars($TEXT['armory_ach_earned'] ?? 'Earned') ?></span>
+            </div>
+        </div>
+        <?php if (!empty($recent_achievements)): ?>
+        <div class="ach-recent-title"><?= htmlspecialchars($TEXT['armory_ach_recent'] ?? 'Most recent') ?></div>
+        <div class="ach-grid">
+            <?php foreach ($recent_achievements as $a):
+                $aid  = (int)$a['achievement'];
+                $when = (int)$a['date'];
+                $dstr = $when > 0 ? date('Y-m-d', $when) : '';
+            ?>
+            <a class="ach-chip"
+               href="https://www.wowhead.com/mop-classic/achievement=<?= $aid ?>"
+               data-wh-icon-size="small"
+               target="_blank" rel="noopener">
+                <span class="ach-id">#<?= $aid ?></span>
+                <?php if ($dstr): ?><span class="ach-date"><?= htmlspecialchars($dstr) ?></span><?php endif; ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Reputation — major MoP factions (Klaxxi, Shado-Pan Assault, Black
+         Prince, August Celestials, etc.) with a rank label + progress bar.
+         Filtered through wl_faction_name() so unknown faction ids never
+         surface as "Faction #1234". Hidden when no major faction has any
+         meaningful standing (pure-Neutral entries are skipped at fetch). -->
+    <?php if (!empty($reputations)): ?>
+    <style>
+    .rep-grid { display:grid; grid-template-columns: 1fr 1fr; gap:.55rem; }
+    .rep-row { padding:.55rem .75rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; }
+    .rep-hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.35rem; gap:.5rem; font-size:.9rem; }
+    .rep-nm { color:#dee2e6; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rep-rk { font-weight:700; font-size:.8rem; flex-shrink:0; }
+    .rep-bar { position:relative; height:6px; border-radius:999px; background: rgba(255,255,255,.05); overflow:hidden; }
+    .rep-bar > i { display:block; height:100%; border-radius:999px; }
+    .rep-val { color:#6c7a8c; font-size:.7rem; font-variant-numeric: tabular-nums; text-align:right; margin-top:.25rem; }
+    @media (max-width: 768px) { .rep-grid { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-shield-fill me-2"></i><?= htmlspecialchars($TEXT['armory_panel_reputation'] ?? 'Reputation') ?></div>
+        <div class="rep-grid">
+            <?php foreach ($reputations as $r):
+                $rank = $r['rank'];
+                $clr  = wl_rep_rank_color($rank);
+                $lbl  = wl_rep_rank_label($rank);
+                $prog = wl_rep_progress($r['standing']);
+                $pct  = $prog['max'] > 0 ? max(0, min(100, (int)round(($prog['value'] / $prog['max']) * 100))) : 0;
+            ?>
+            <div class="rep-row">
+                <div class="rep-hd">
+                    <a class="rep-nm" href="https://www.wowhead.com/mop-classic/faction=<?= (int)$r['id'] ?>" target="_blank" rel="noopener" style="color:#dee2e6;text-decoration:none"><?= htmlspecialchars($r['name']) ?></a>
+                    <span class="rep-rk" style="color:<?= $clr ?>"><?= htmlspecialchars($lbl) ?></span>
+                </div>
+                <div class="rep-bar"><i style="width:<?= $pct ?>%;background:linear-gradient(90deg, <?= $clr ?>, <?= $clr ?>)"></i></div>
+                <?php if ($rank < 7): ?>
+                <div class="rep-val"><?= number_format($prog['value']) ?> / <?= number_format($prog['max']) ?></div>
+                <?php else: ?>
+                <div class="rep-val" style="color:<?= $clr ?>"><?= htmlspecialchars($TEXT['armory_rep_maxed'] ?? 'Maxed') ?></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php endif; ?>
