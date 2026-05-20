@@ -327,11 +327,11 @@ if ($hp_hero_on) echo $hp_blocks['hero'];
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="counter-card">
+                    <a href="/online" class="counter-card counter-link text-decoration-none" title="<?= htmlspecialchars($TEXT['online_title'] ?? "Who's Online") ?>">
                         <div class="counter-icon" style="color:#5dd87c"><i class="bi bi-lightning-charge-fill"></i></div>
                         <div class="counter-value" data-target="<?= is_numeric($player_count_r1) ? $player_count_r1 : 0 ?>" style="color:#5dd87c">0</div>
-                        <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_online'] ?? 'Players Online') ?></div>
-                    </div>
+                        <div class="counter-label"><?= htmlspecialchars($TEXT['home_counter_online'] ?? 'Players Online') ?> <i class="bi bi-arrow-right-short"></i></div>
+                    </a>
                 </div>
             </div>
         </div>
@@ -522,7 +522,20 @@ foreach ($hp_layout as $hp_s) {
 /* Animated counter */
 .counter-card {
     padding: 2rem 1rem;
+    border-radius: 12px;
 }
+/* The "Players Online" counter is now a click-through to /online. */
+a.counter-link {
+    display: block; color: inherit; transition: all .2s ease;
+    border: 1px solid transparent;
+}
+a.counter-link:hover {
+    background: rgba(93,216,124,.06);
+    border-color: rgba(93,216,124,.35);
+    transform: translateY(-3px);
+    color: inherit;
+}
+a.counter-link:hover .counter-label { color: #5dd87c; }
 .counter-icon {
     font-size: 2.5rem;
     color: var(--accent);

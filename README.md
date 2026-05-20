@@ -180,6 +180,7 @@ Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold i
 
 - **Armory character portrait** — HQ race/gender art in a class-coloured ring with a faction-tinted glow and a class-emblem badge, used both as the **hero avatar** beside the character name and as the **equipment-panel centre** so the profile reads as one piece. Accent-themed, no fragile 3D model, repack-safe.
 - **"Update available" notice (admin)** — the admin dashboard always shows a small **`Portal vX.Y.Z · up to date / update available`** chip under the title, and when you're behind it also surfaces a prominent banner with the release-notes link and the one-paste `update.ps1` command (copy button). Version = `WL_VERSION` (overridden by an updater-written `/VERSION` when higher); GitHub check cached ~6h, fail-silent, **advisory only — it never updates anything itself**. No DB migration.
+- **Who's online** (`/online`) — live roster of currently-logged-in characters: name (class-coloured), level, race · class, guild, faction, clickable into the Armory. Faction filter, mobile-first responsive (table → cards on phones). The homepage **Players Online** counter is now a click-through to this page. Read-only, defensive (graceful when the characters DB is unavailable), no migration.
 
 *Empty = the latest tagged release is fully current.*
 
