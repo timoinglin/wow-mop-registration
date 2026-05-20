@@ -17,6 +17,9 @@ RewriteRule ^ - [L]
 # 2a. Armory profile: /armory/{character-name} → pages/armory.php?char={name}
 RewriteRule ^armory/([^/]+)/?$ pages/armory.php?char=$1 [L,QSA]
 
+# 2a-bis. Guild profile: /guild/{guild-name} → pages/guild.php?name={name}
+RewriteRule ^guild/([^/]+)/?$ pages/guild.php?name=$1 [L,QSA]
+
 # 2b. Ticket detail (user side): /tickets/{id} → pages/ticket_view.php?id={id}
 RewriteRule ^tickets/(\d+)/?$ pages/ticket_view.php?id=$1 [L,QSA]
 

@@ -244,7 +244,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <td class="ol-cell-row ol-meta"><?= htmlspecialchars(get_race_name($rid)) ?> · <?= htmlspecialchars(get_class_name($cid)) ?></td>
                     <td class="ol-cell-row">
                         <?php if (!empty($r['guild_name'])): ?>
-                            <span class="ol-guild">&lt;<?= htmlspecialchars($r['guild_name']) ?>&gt;</span>
+                            <a href="/guild/<?= rawurlencode($r['guild_name']) ?>" class="ol-guild" style="text-decoration:none" onclick="event.stopPropagation()">&lt;<?= htmlspecialchars($r['guild_name']) ?>&gt;</a>
                         <?php else: ?>
                             <span style="color:#4a5568;font-size:.8rem">—</span>
                         <?php endif; ?>

@@ -558,7 +558,8 @@ if ($is_profile) {
                         <?= htmlspecialchars(get_race_name($rid)) ?>
                         <?= htmlspecialchars(get_class_name($cid)) ?>
                         <?php if (!empty($char['guild_name'])): ?>
-                            &middot; <i class="bi bi-people-fill"></i> &lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;
+                            &middot; <i class="bi bi-people-fill"></i>
+                            <a href="/guild/<?= rawurlencode($char['guild_name']) ?>" style="color:inherit;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.25)">&lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -1356,7 +1357,7 @@ function build_qs(array $overrides = []): string {
                     </div>
                     <div class="extra">
                         <?php if (!empty($row['guild_name'])): ?>
-                            <i class="bi bi-people-fill"></i> &lt;<?= htmlspecialchars($row['guild_name']) ?>&gt;
+                            <i class="bi bi-people-fill"></i> <a href="/guild/<?= rawurlencode($row['guild_name']) ?>" style="color:inherit;text-decoration:none">&lt;<?= htmlspecialchars($row['guild_name']) ?>&gt;</a>
                         <?php elseif (!empty($row['zone'])): ?>
                             <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($row['zone']) ?>
                         <?php else: ?>
