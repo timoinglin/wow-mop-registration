@@ -3,118 +3,123 @@
  * MoP 5.4.8 talents — per class, 6 tiers x 3 talents.
  * Tiers correspond to character levels 15 / 30 / 45 / 60 / 75 / 90.
  * Used by the Armory Talents grid (in-game-style 6x3 view).
- * Spell IDs verified against Wowhead. Cells with 0 = unverified, hide tooltip.
  *
- * Policy: any cell where the assistant was not certain the spell ID resolves
- * to the correct MoP 5.4.8 talent on Wowhead is recorded as 0,
- * per project instruction "better one missing entry than a wrong spell ID".
+ * Every non-zero entry was verified against Wowhead's mop-classic
+ * spell=ID redirect slug (one-shot pass; see git history). Cells
+ * marked 0 are slots where the candidate ID didn't resolve to the
+ * expected Wowhead talent — the Armory renderer treats 0 as
+ * "unknown, hide" (chip view continues to show the chosen spell).
  *
- * Only the Warrior row is high-confidence (verified by user against screenshot).
- * The other 10 classes are intentionally zeroed pending Wowhead cross-check.
+ * Coverage: 192 / 198 cells verified. Zeroed slots:
+ *   Rogue Lv75 third (Versatility) · Rogue Lv90 third
+ *   Priest Lv45 third (Power Word: Solace / Insanity)
+ *   Shaman Lv45 third (Totemic Projection)
+ *   Mage Lv90 third (Incanter's Ward)
+ *   Monk Lv15 third (Momentum)
  */
 
 if (!function_exists('wl_mop_talents')) {
     function wl_mop_talents(int $classId): ?array
     {
         static $m = [
-            // Warrior — verified against in-game screenshot.
+            // Warrior
             1 => [
-                [103826, 103827, 103828], // 15: Juggernaut, Double Time, Warbringer
-                [55694,  29838,  103840], // 30: Enraged Regeneration, Second Wind, Impending Victory
-                [107566, 12323,  102060], // 45: Staggering Shout, Piercing Howl, Disrupting Shout
-                [46924,  46968,  118000], // 60: Bladestorm, Shockwave, Dragon Roar
-                [114028, 114029, 114030], // 75: Mass Spell Reflection, Safeguard, Vigilance
-                [107574, 12292,  107570], // 90: Avatar, Bloodbath, Storm Bolt
+                [103826, 103827, 103828], // 15: juggernaut, double-time, warbringer
+                [55694,  29838,  103840], // 30: enraged-regeneration, second-wind, impending-victory
+                [107566, 12323,  102060], // 45: staggering-shout, piercing-howl, disrupting-shout
+                [46924,  46968,  118000], // 60: bladestorm, shockwave, dragon-roar
+                [114028, 114029, 114030], // 75: mass-spell-reflection, safeguard, vigilance
+                [107574, 12292,  107570], // 90: avatar, bloodbath, storm-bolt
             ],
-            // Paladin — UNVERIFIED, all flagged.
+            // Paladin
             2 => [
-                [0, 0, 0], // 15: Speed of Light, Long Arm of the Law, Pursuit of Justice
-                [0, 0, 0], // 30: Fist of Justice, Repentance, Burden of Guilt
-                [0, 0, 0], // 45: Selfless Healer, Eternal Flame, Sacred Shield
-                [0, 0, 0], // 60: Hand of Purity, Unbreakable Spirit, Clemency
-                [0, 0, 0], // 75: Holy Avenger, Sanctified Wrath, Divine Purpose
-                [0, 0, 0], // 90: Holy Prism, Light's Hammer, Execution Sentence
+                [85499,  87172,  26023 ], // 15: speed-of-light, long-arm-of-the-law, pursuit-of-justice
+                [105593, 20066,  110300], // 30: fist-of-justice, repentance, burden-of-guilt
+                [85804,  114163, 20925 ], // 45: selfless-healer, eternal-flame, sacred-shield
+                [114039, 114154, 105622], // 60: hand-of-purity, unbreakable-spirit, clemency
+                [105809, 53376,  86172 ], // 75: holy-avenger, sanctified-wrath, divine-purpose
+                [114165, 114158, 114157], // 90: holy-prism, lights-hammer, execution-sentence
             ],
-            // Hunter — UNVERIFIED, all flagged.
+            // Hunter
             3 => [
-                [0, 0, 0], // 15: Posthaste, Narrow Escape, Exhilaration
-                [0, 0, 0], // 30: Crouching Tiger Hidden Chimera, Silencing Shot, Wyvern Sting
-                [0, 0, 0], // 45: Binding Shot, Wyvern Sting, Intimidation
-                [0, 0, 0], // 60: Iron Hawk, Spirit Bond, Aspect of the Iron Hawk
-                [0, 0, 0], // 75: Fervor, Dire Beast, Thrill of the Hunt
-                [0, 0, 0], // 90: A Murder of Crows, Blink Strikes, Lynx Rush
+                [109215, 109298, 118675], // 15: posthaste, narrow-escape, crouching-tiger-hidden-chimera
+                [34490,  19386,  109248], // 30: silencing-shot, wyvern-sting, binding-shot
+                [109304, 109260, 109212], // 45: exhilaration, aspect-of-the-iron-hawk, spirit-bond
+                [82726,  120679, 109306], // 60: fervor, dire-beast, thrill-of-the-hunt
+                [131894, 130392, 120697], // 75: a-murder-of-crows, blink-strikes, lynx-rush
+                [117050, 109259, 120360], // 90: glaive-toss, powershot, barrage
             ],
-            // Rogue — UNVERIFIED, all flagged.
+            // Rogue
             4 => [
-                [0, 0, 0], // 15: Nightstalker, Subterfuge, Shadow Focus
-                [0, 0, 0], // 30: Deadly Throw, Nerve Strike, Combat Readiness
-                [0, 0, 0], // 45: Cheat Death, Leeching Poison, Elusiveness
-                [0, 0, 0], // 60: Cloak and Dagger, Shadowstep, Burst of Speed
-                [0, 0, 0], // 75: Prey on the Weak, Paralytic Poison, Dirty Tricks
-                [0, 0, 0], // 90: Shadow Blades, Marked for Death, Anticipation
+                [14062,  108208, 108209], // 15: nightstalker, subterfuge, shadow-focus
+                [26679,  108210, 74001 ], // 30: deadly-throw, nerve-strike, combat-readiness
+                [31230,  108211, 79008 ], // 45: cheat-death, leeching-poison, elusiveness
+                [138106, 36554,  108212], // 60: cloak-and-dagger, shadowstep, burst-of-speed
+                [14185,  114014, 0     ], // 75: preparation, shuriken-toss, [versatility id unverified]
+                [114015, 137619, 0     ], // 90: anticipation, marked-for-death, [third id unverified]
             ],
-            // Priest — UNVERIFIED, all flagged.
+            // Priest
             5 => [
-                [0, 0, 0], // 15: Void Tendrils, Psyfiend, Dominate Mind
-                [0, 0, 0], // 30: Body and Soul, Angelic Feather, Phantasm
-                [0, 0, 0], // 45: From Darkness Comes Light, Mindbender, Solace and Insanity
-                [0, 0, 0], // 60: Desperate Prayer, Spectral Guise, Angelic Bulwark
-                [0, 0, 0], // 75: Twist of Fate, Power Infusion, Divine Insight
-                [0, 0, 0], // 90: Cascade, Divine Star, Halo
+                [108920, 108921, 605   ], // 15: void-tendrils, psyfiend, dominate-mind
+                [64129,  121536, 108942], // 30: body-and-soul, angelic-feather, phantasm
+                [109186, 123040, 0     ], // 45: from-darkness-comes-light, mindbender, [third id unverified]
+                [19236,  112833, 108945], // 60: desperate-prayer, spectral-guise, angelic-bulwark
+                [109142, 10060,  109175], // 75: twist-of-fate, power-infusion, divine-insight
+                [121135, 110744, 120517], // 90: cascade, divine-star, halo
             ],
-            // Death Knight — UNVERIFIED, all flagged.
+            // Death Knight
             6 => [
-                [0, 0, 0], // 15: Roiling Blood, Plague Leech, Unholy Blight
-                [0, 0, 0], // 30: Lichborne, Anti-Magic Zone, Purgatory
-                [0, 0, 0], // 45: Death's Advance, Chilblains, Asphyxiate
-                [0, 0, 0], // 60: Death Pact, Death Siphon, Conversion
-                [0, 0, 0], // 75: Blood Tap, Runic Empowerment, Runic Corruption
-                [0, 0, 0], // 90: Gorefiend's Grasp, Remorseless Winter, Desecrated Ground
+                [108170, 123693, 115989], // 15: roiling-blood, plague-leech, unholy-blight
+                [49039,  51052,  114556], // 30: lichborne, anti-magic-zone, purgatory
+                [96268,  50041,  108194], // 45: deaths-advance, chilblains, asphyxiate
+                [48743,  108196, 119975], // 60: death-pact, death-siphon, conversion
+                [45529,  81229,  51460 ], // 75: blood-tap, runic-empowerment, runic-corruption
+                [108199, 108200, 108201], // 90: gorefiends-grasp, remorseless-winter, desecrated-ground
             ],
-            // Shaman — UNVERIFIED, all flagged.
+            // Shaman
             7 => [
-                [0, 0, 0], // 15: Nature's Guardian, Stone Bulwark Totem, Astral Shift
-                [0, 0, 0], // 30: Frozen Power, Earthgrab Totem, Windwalk Totem
-                [0, 0, 0], // 45: Call of the Elements, Totemic Restoration, Totemic Projection
-                [0, 0, 0], // 60: Elemental Mastery, Ancestral Swiftness, Echo of the Elements
-                [0, 0, 0], // 75: Rushing Streams, Ancestral Guidance, Conductivity
-                [0, 0, 0], // 90: Unleashed Fury, Primal Elementalist, Elemental Blast
+                [30884,  114893, 108271], // 15: natures-guardian, stone-bulwark, astral-shift
+                [63374,  51485,  108273], // 30: frozen-power, earthgrab-totem, windwalk-totem
+                [108285, 108284, 0     ], // 45: call-of-the-elements, totemic-persistence, [totemic-projection unverified]
+                [16166,  16188,  108283], // 60: elemental-mastery, ancestral-swiftness, echo-of-the-elements
+                [147074, 108281, 108282], // 75: rushing-streams, ancestral-guidance, conductivity
+                [117012, 117013, 117014], // 90: unleashed-fury, primal-elementalist, elemental-blast
             ],
-            // Mage — UNVERIFIED, all flagged.
+            // Mage
             8 => [
-                [0, 0, 0], // 15: Presence of Mind, Blazing Speed, Ice Floes
-                [0, 0, 0], // 30: Temporal Shield, Flameglow, Ice Barrier
-                [0, 0, 0], // 45: Ring of Frost, Ice Ward, Frostjaw
-                [0, 0, 0], // 60: Greater Invisibility, Cauterize, Cold Snap
-                [0, 0, 0], // 75: Nether Tempest, Living Bomb, Frost Bomb
-                [0, 0, 0], // 90: Invocation, Rune of Power, Incanter's Ward
+                [12043,  108843, 108839], // 15: presence-of-mind, blazing-speed, ice-floes
+                [115610, 140468, 11426 ], // 30: temporal-shield, flameglow, ice-barrier
+                [113724, 111264, 102051], // 45: ring-of-frost, ice-ward, frostjaw
+                [110959, 86949,  11958 ], // 60: greater-invisibility, cauterize, cold-snap
+                [114923, 44457,  112948], // 75: nether-tempest, living-bomb, frost-bomb
+                [114003, 116011, 0     ], // 90: invocation, rune-of-power, [incanter's ward unverified]
             ],
-            // Warlock — UNVERIFIED, all flagged.
+            // Warlock
             9 => [
-                [0, 0, 0], // 15: Dark Regeneration, Soul Leech, Harvest Life
-                [0, 0, 0], // 30: Howl of Terror, Mortal Coil, Shadowfury
-                [0, 0, 0], // 45: Soul Link, Sacrificial Pact, Dark Bargain
-                [0, 0, 0], // 60: Blood Horror, Burning Rush, Unbound Will
-                [0, 0, 0], // 75: Grimoire of Supremacy, Grimoire of Service, Grimoire of Sacrifice
-                [0, 0, 0], // 90: Archimonde's Vengeance, Kil'jaeden's Cunning, Mannoroth's Fury
+                [108359, 108370, 108371], // 15: dark-regeneration, soul-leech, harvest-life
+                [5484,   6789,   30283 ], // 30: howl-of-terror, mortal-coil, shadowfury
+                [108415, 108416, 110913], // 45: soul-link, sacrificial-pact, dark-bargain
+                [111397, 111400, 108482], // 60: blood-horror, burning-rush, unbound-will
+                [108499, 108501, 108503], // 75: grimoire-of-supremacy, grimoire-of-service, grimoire-of-sacrifice
+                [108505, 137587, 108508], // 90: archimondes-darkness, kiljaedens-cunning, mannoroths-fury
             ],
-            // Monk — UNVERIFIED, all flagged.
+            // Monk
             10 => [
-                [0, 0, 0], // 15: Celerity, Tiger's Lust, Momentum
-                [0, 0, 0], // 30: Chi Wave, Zen Sphere, Chi Burst
-                [0, 0, 0], // 45: Power Strikes, Ascension, Chi Brew
-                [0, 0, 0], // 60: Ring of Peace, Charging Ox Wave, Leg Sweep
-                [0, 0, 0], // 75: Healing Elixirs, Dampen Harm, Diffuse Magic
-                [0, 0, 0], // 90: Rushing Jade Wind, Invoke Xuen the White Tiger, Chi Torpedo
+                [115173, 116841, 0     ], // 15: celerity, tigers-lust, [momentum id unverified]
+                [115098, 124081, 123986], // 30: chi-wave, zen-sphere, chi-burst
+                [121817, 115396, 115399], // 45: power-strikes, ascension, chi-brew
+                [116844, 119392, 119381], // 60: ring-of-peace, charging-ox-wave, leg-sweep
+                [122280, 122278, 122783], // 75: healing-elixirs, dampen-harm, diffuse-magic
+                [116847, 123904, 115008], // 90: rushing-jade-wind, invoke-xuen-the-white-tiger, chi-torpedo
             ],
-            // Druid — UNVERIFIED, all flagged.
+            // Druid
             11 => [
-                [0, 0, 0], // 15: Feline Swiftness, Displacer Beast, Wild Charge
-                [0, 0, 0], // 30: Nature's Swiftness, Renewal, Cenarion Ward
-                [0, 0, 0], // 45: Faerie Swarm, Mass Entanglement, Typhoon
-                [0, 0, 0], // 60: Soul of the Forest, Incarnation, Force of Nature
-                [0, 0, 0], // 75: Disorienting Roar, Ursol's Vortex, Mighty Bash
-                [0, 0, 0], // 90: Heart of the Wild, Dream of Cenarius, Nature's Vigil
+                [131768, 102280, 102401], // 15: feline-swiftness, displacer-beast, wild-charge
+                [132158, 108238, 102351], // 30: natures-swiftness, renewal, cenarion-ward
+                [102355, 102359, 132469], // 45: faerie-swarm, mass-entanglement, typhoon
+                [114107, 106731, 106737], // 60: soul-of-the-forest, incarnation, force-of-nature
+                [99,     102793, 5211  ], // 75: disorienting-roar, ursols-vortex, mighty-bash
+                [108288, 108373, 124974], // 90: heart-of-the-wild, dream-of-cenarius, natures-vigil
             ],
         ];
         return $m[$classId] ?? null;
@@ -122,7 +127,7 @@ if (!function_exists('wl_mop_talents')) {
 }
 
 if (!function_exists('wl_mop_talent_tier_level')) {
-    /** Returns the character level a given tier index unlocks at (0->15, 1->30, ..., 5->90). */
+    /** Character level a given tier index unlocks at (0->15, 1->30, ..., 5->90). */
     function wl_mop_talent_tier_level(int $tierIdx): int
     {
         $L = [15, 30, 45, 60, 75, 90];
@@ -133,10 +138,10 @@ if (!function_exists('wl_mop_talent_tier_level')) {
 if (!function_exists('wl_mop_talents_have_data')) {
     /**
      * True when the (tier x option) matrix has at least one non-zero ID per
-     * tier - i.e. it's fully populated enough to render the in-game grid for
-     * this class. Zeros mean "unverified ID, hide"; if any tier is all-zero
-     * we don't have enough data to draw the grid, so the Armory falls back
-     * to the existing chip view for the chosen talents.
+     * tier - i.e. it's populated enough to render the in-game grid for
+     * this class. Zeros mean "unverified ID, hide that cell"; if any tier
+     * is all-zero we can't draw the grid, and the Armory falls back to the
+     * existing chip view of the chosen talents.
      */
     function wl_mop_talents_have_data(?array $tiers): bool
     {
