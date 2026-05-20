@@ -4,18 +4,11 @@
  * Tiers correspond to character levels 15 / 30 / 45 / 60 / 75 / 90.
  * Used by the Armory Talents grid (in-game-style 6x3 view).
  *
- * Every non-zero entry was verified against Wowhead's mop-classic
- * spell=ID redirect slug (one-shot pass; see git history). Cells
- * marked 0 are slots where the candidate ID didn't resolve to the
- * expected Wowhead talent — the Armory renderer treats 0 as
- * "unknown, hide" (chip view continues to show the chosen spell).
- *
- * Coverage: 192 / 198 cells verified. Zeroed slots:
- *   Rogue Lv75 third (Versatility) · Rogue Lv90 third
- *   Priest Lv45 third (Power Word: Solace / Insanity)
- *   Shaman Lv45 third (Totemic Projection)
- *   Mage Lv90 third (Incanter's Ward)
- *   Monk Lv15 third (Momentum)
+ * Every entry was verified against Wowhead's mop-classic redirect
+ * slug (HEAD request, Location header). Coverage: 198 / 198 cells.
+ * If a custom-server repack ever changes an ID, set that cell to 0
+ * — the renderer treats 0 as "unknown, hide" and the chip view
+ * underneath continues to surface the chosen spell.
  */
 
 if (!function_exists('wl_mop_talents')) {
@@ -55,14 +48,14 @@ if (!function_exists('wl_mop_talents')) {
                 [26679,  108210, 74001 ], // 30: deadly-throw, nerve-strike, combat-readiness
                 [31230,  108211, 79008 ], // 45: cheat-death, leeching-poison, elusiveness
                 [138106, 36554,  108212], // 60: cloak-and-dagger, shadowstep, burst-of-speed
-                [14185,  114014, 0     ], // 75: preparation, shuriken-toss, [versatility id unverified]
-                [114015, 137619, 0     ], // 90: anticipation, marked-for-death, [third id unverified]
+                [131511, 108215, 108216], // 75: prey-on-the-weak, paralytic-poison, dirty-tricks
+                [114014, 137619, 114015], // 90: shuriken-toss, marked-for-death, anticipation
             ],
             // Priest
             5 => [
                 [108920, 108921, 605   ], // 15: void-tendrils, psyfiend, dominate-mind
                 [64129,  121536, 108942], // 30: body-and-soul, angelic-feather, phantasm
-                [109186, 123040, 0     ], // 45: from-darkness-comes-light, mindbender, [third id unverified]
+                [109186, 123040, 129250], // 45: from-darkness-comes-light, mindbender, power-word-solace
                 [19236,  112833, 108945], // 60: desperate-prayer, spectral-guise, angelic-bulwark
                 [109142, 10060,  109175], // 75: twist-of-fate, power-infusion, divine-insight
                 [121135, 110744, 120517], // 90: cascade, divine-star, halo
@@ -80,7 +73,7 @@ if (!function_exists('wl_mop_talents')) {
             7 => [
                 [30884,  114893, 108271], // 15: natures-guardian, stone-bulwark, astral-shift
                 [63374,  51485,  108273], // 30: frozen-power, earthgrab-totem, windwalk-totem
-                [108285, 108284, 0     ], // 45: call-of-the-elements, totemic-persistence, [totemic-projection unverified]
+                [108285, 108284, 108287], // 45: call-of-the-elements, totemic-persistence, totemic-projection
                 [16166,  16188,  108283], // 60: elemental-mastery, ancestral-swiftness, echo-of-the-elements
                 [147074, 108281, 108282], // 75: rushing-streams, ancestral-guidance, conductivity
                 [117012, 117013, 117014], // 90: unleashed-fury, primal-elementalist, elemental-blast
@@ -92,7 +85,7 @@ if (!function_exists('wl_mop_talents')) {
                 [113724, 111264, 102051], // 45: ring-of-frost, ice-ward, frostjaw
                 [110959, 86949,  11958 ], // 60: greater-invisibility, cauterize, cold-snap
                 [114923, 44457,  112948], // 75: nether-tempest, living-bomb, frost-bomb
-                [114003, 116011, 0     ], // 90: invocation, rune-of-power, [incanter's ward unverified]
+                [114003, 116011, 1463  ], // 90: invocation, rune-of-power, incanters-ward
             ],
             // Warlock
             9 => [
@@ -105,7 +98,7 @@ if (!function_exists('wl_mop_talents')) {
             ],
             // Monk
             10 => [
-                [115173, 116841, 0     ], // 15: celerity, tigers-lust, [momentum id unverified]
+                [115173, 116841, 115174], // 15: celerity, tigers-lust, momentum
                 [115098, 124081, 123986], // 30: chi-wave, zen-sphere, chi-burst
                 [121817, 115396, 115399], // 45: power-strikes, ascension, chi-brew
                 [116844, 119392, 119381], // 60: ring-of-peace, charging-ox-wave, leg-sweep

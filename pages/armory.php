@@ -1087,7 +1087,13 @@ if ($is_profile) {
         $sid = (int)$s['skill'];
         $name = wl_skill_name($sid);
         if ($name === null) continue;
-        $row = ['name' => $name, 'value' => (int)$s['value'], 'max' => max(1, (int)$s['max'])];
+        $row = [
+            'id'    => $sid,
+            'name'  => $name,
+            'value' => (int)$s['value'],
+            'max'   => max(1, (int)$s['max']),
+            'icon'  => wl_skill_icon($sid),
+        ];
         if (wl_skill_is_primary($sid)) $prof_primary[]   = $row;
         else                            $prof_secondary[] = $row;
     }
@@ -1100,10 +1106,13 @@ if ($is_profile) {
     <style>
     .prof-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
     .prof-col-title { color:#8899aa; font-size:.72rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.6rem; }
-    .prof-row { background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; padding:.55rem .75rem; margin-bottom:.5rem; }
-    .prof-row .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3rem; font-size:.9rem; }
-    .prof-row .nm { color:#dee2e6; font-weight:700; }
-    .prof-row .vl { color:var(--accent); font-weight:700; font-variant-numeric: tabular-nums; font-size:.85rem; }
+    .prof-row { display:grid; grid-template-columns: 38px 1fr; gap:.65rem; align-items:center; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; padding:.5rem .75rem; margin-bottom:.5rem; }
+    .prof-row .ic { width:32px; height:32px; border-radius:6px; border:1px solid rgba(var(--accent-rgb,255,209,89),.35); box-shadow: 0 0 0 1px rgba(0,0,0,.6) inset; background: #1a1f2b center/cover no-repeat; flex-shrink:0; }
+    .prof-row .ic.no-img { display:flex; align-items:center; justify-content:center; color: var(--accent); font-size:1.1rem; background: rgba(var(--btn-bg-rgb),.18); }
+    .prof-row .meta { min-width:0; }
+    .prof-row .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3rem; font-size:.9rem; gap:.5rem; }
+    .prof-row .nm { color:#dee2e6; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .prof-row .vl { color:var(--accent); font-weight:700; font-variant-numeric: tabular-nums; font-size:.85rem; flex-shrink:0; }
     .prof-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.05); overflow: hidden; }
     .prof-bar > i { display:block; height:100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:999px; }
     @media (max-width: 768px) {
@@ -1118,8 +1127,15 @@ if ($is_profile) {
                 <?php if (!empty($prof_primary)): foreach ($prof_primary as $p):
                     $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
                     <div class="prof-row">
-                        <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
-                        <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        <?php if (!empty($p['icon'])): ?>
+                        <div class="ic" style="background-image:url('<?= htmlspecialchars($p['icon']) ?>')" aria-hidden="true"></div>
+                        <?php else: ?>
+                        <div class="ic no-img" aria-hidden="true"><i class="bi bi-hammer"></i></div>
+                        <?php endif; ?>
+                        <div class="meta">
+                            <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                            <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        </div>
                     </div>
                 <?php endforeach; else: ?>
                     <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_primary'] ?? 'No primary professions learned.') ?></div>
@@ -1130,8 +1146,15 @@ if ($is_profile) {
                 <?php if (!empty($prof_secondary)): foreach ($prof_secondary as $p):
                     $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
                     <div class="prof-row">
-                        <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
-                        <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        <?php if (!empty($p['icon'])): ?>
+                        <div class="ic" style="background-image:url('<?= htmlspecialchars($p['icon']) ?>')" aria-hidden="true"></div>
+                        <?php else: ?>
+                        <div class="ic no-img" aria-hidden="true"><i class="bi bi-bandaid"></i></div>
+                        <?php endif; ?>
+                        <div class="meta">
+                            <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                            <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        </div>
                     </div>
                 <?php endforeach; else: ?>
                     <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_secondary'] ?? 'No secondary skills.') ?></div>
