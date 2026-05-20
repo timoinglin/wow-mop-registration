@@ -238,15 +238,28 @@ if (!empty($config['features']['maintenance'])) {
                         <i class="bi bi-newspaper me-1"></i> <?= $TEXT['news_nav'] ?? 'News' ?>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
-                        <i class="bi bi-search me-1"></i> <?= $TEXT['armory'] ?? 'Armory' ?>
+                <?php
+                // "Players" dropdown — consolidates Armory / Leaderboards / Online
+                // (and future Guilds, etc.) into one nav slot so the bar stays
+                // small as we add more player-facing pages.
+                $nav_players_pages = ['armory.php', 'leaderboards.php', 'online.php'];
+                $nav_players_active = in_array($current_page, $nav_players_pages, true);
+                ?>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle <?= $nav_players_active ? 'active' : '' ?>" href="#" id="playersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-people-fill me-1"></i> <?= $TEXT['nav_players'] ?? 'Players' ?>
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page === 'leaderboards.php') ? 'active' : '' ?>" href="/leaderboards">
-                        <i class="bi bi-trophy-fill me-1"></i> <?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
-                    </a>
+                    <ul class="dropdown-menu game-dropdown" aria-labelledby="playersDropdown">
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'armory.php') ? 'active' : '' ?>" href="/armory">
+                            <i class="bi bi-search me-3 text-primary"></i><?= $TEXT['armory'] ?? 'Armory' ?>
+                        </a></li>
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'leaderboards.php') ? 'active' : '' ?>" href="/leaderboards">
+                            <i class="bi bi-trophy-fill me-3 text-warning"></i><?= $TEXT['leaderboards'] ?? 'Leaderboards' ?>
+                        </a></li>
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'online.php') ? 'active' : '' ?>" href="/online">
+                            <i class="bi bi-broadcast me-3 text-success"></i><?= $TEXT['nav_online'] ?? "Who's Online" ?>
+                        </a></li>
+                    </ul>
                 </li>
                 <?php if ($nav_forum_enabled): ?>
                 <li class="nav-item">

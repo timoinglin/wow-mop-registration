@@ -473,6 +473,8 @@ return [
   'home_counter_accounts'    => 'Registered Accounts',
   'home_counter_characters'  => 'Characters Created',
   'home_counter_online'      => 'Players Online',
+  'nav_players'              => 'Players',
+  'nav_online'               => "Who's Online",
   'online_title'             => "Who's Online",
   'online_og_title'          => "Who's Online",
   'online_subtitle'          => 'Characters logged in right now — click any row to view the Armory profile.',

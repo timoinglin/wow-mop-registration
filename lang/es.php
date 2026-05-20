@@ -473,6 +473,8 @@ return [
   'home_counter_accounts'    => 'Cuentas Registradas',
   'home_counter_characters'  => 'Personajes Creados',
   'home_counter_online'      => 'Jugadores en Línea',
+  'nav_players'              => 'Jugadores',
+  'nav_online'               => 'En línea',
   'online_title'             => 'Quién está en línea',
   'online_og_title'          => 'Quién está en línea',
   'online_subtitle'          => 'Personajes conectados en este momento — haz clic en una fila para ver su perfil de Armería.',
