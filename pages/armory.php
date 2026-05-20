@@ -284,6 +284,8 @@ if ($is_profile) {
     $pvp_rated       = [];
     $char_title_id   = 0;
     $char_skills     = [];
+    $skills_query_ok = false; // true when character_skills was queryable, even if 0 rows
+                              // — drives whether the Professions panel renders an empty state
 
     try {
         $stmt = $pdo_chars->prepare("SELECT totalKills FROM characters WHERE guid = :g LIMIT 1");
@@ -318,6 +320,7 @@ if ($is_profile) {
         );
         $stmt->execute(['g' => (int)$char['guid']]);
         $char_skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $skills_query_ok = true; // table exists — panel will render even with 0 known skills
     } catch (PDOException $e) { /* table missing — skip */ }
 
     // Account info (join date) — read-only bit from auth DB
@@ -768,6 +771,12 @@ if ($is_profile) {
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_class'] ?? 'Class') ?></span>
                         <span class="v" style="color:<?= $clr ?>"><?= htmlspecialchars(get_class_name($cid)) ?></span>
                     </div>
+                    <?php if (!empty($char['guild_name'])): ?>
+                    <div class="stat-row">
+                        <span class="k"><?= htmlspecialchars($TEXT['armory_info_guild'] ?? 'Guild') ?></span>
+                        <span class="v"><a href="/guild/<?= rawurlencode($char['guild_name']) ?>" style="color:var(--accent);text-decoration:none">&lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;</a></span>
+                    </div>
+                    <?php endif; ?>
                     <?php $title_text = $char_title_id > 0 ? wl_title_text($char_title_id) : null; if ($title_text): ?>
                     <div class="stat-row">
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_title'] ?? 'Title') ?></span>
@@ -919,7 +928,10 @@ if ($is_profile) {
         if (wl_skill_is_primary($sid)) $prof_primary[]   = $row;
         else                            $prof_secondary[] = $row;
     }
-    $prof_has = !empty($prof_primary) || !empty($prof_secondary);
+    // Render the panel whenever the table exists (even with 0 known skills) so
+    // it sits in the layout consistently — matches how PvP shows at 0 HKs.
+    // Only hide it when character_skills isn't queryable on this repack.
+    $prof_has = $skills_query_ok;
     if ($prof_has):
     ?>
     <style>

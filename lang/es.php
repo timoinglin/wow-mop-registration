@@ -832,6 +832,7 @@ return [
   'armory_panel_siblings'           => 'Más Personajes de Esta Cuenta',
   'armory_panel_talents'            => 'Talentos',
   'armory_info_title'               => 'Título',
+  'armory_info_guild'               => 'Hermandad',
   'armory_panel_pvp'                => 'JcJ',
   'armory_pvp_total_hk'             => 'Bajas Honorables totales',
   'armory_pvp_rated'                => 'JcJ clasificado (temporada actual)',

@@ -844,6 +844,7 @@ return [
   'armory_panel_siblings'           => 'More Characters on This Account',
   'armory_panel_talents'            => 'Talents',
   'armory_info_title'               => 'Title',
+  'armory_info_guild'               => 'Guild',
   'armory_panel_pvp'                => 'PvP',
   'armory_pvp_total_hk'             => 'Total Honorable Kills',
   'armory_pvp_rated'                => 'Rated PvP (current season)',
