@@ -279,6 +279,7 @@ if ($is_profile) {
     // server (try/catch per fetch). All read-only.
     require_once __DIR__ . '/../includes/wow_skills.php';
     require_once __DIR__ . '/../includes/wow_titles.php';
+    require_once __DIR__ . '/../includes/wow_talents_mop.php';
 
     $pvp_total_kills = null;
     $pvp_rated       = [];
@@ -286,6 +287,8 @@ if ($is_profile) {
     $char_skills     = [];
     $skills_query_ok = false; // true when character_skills was queryable, even if 0 rows
                               // — drives whether the Professions panel renders an empty state
+    $char_glyphs     = [];    // talentGroup => [g1..g6]  (0 = empty slot)
+    $glyphs_query_ok = false;
 
     try {
         $stmt = $pdo_chars->prepare("SELECT totalKills FROM characters WHERE guid = :g LIMIT 1");
@@ -322,6 +325,23 @@ if ($is_profile) {
         $char_skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $skills_query_ok = true; // table exists — panel will render even with 0 known skills
     } catch (PDOException $e) { /* table missing — skip */ }
+
+    // Glyphs: TC-MoP standard schema is character_glyphs(guid, talentGroup,
+    // glyph1..glyph6). Slots 1-3 = major, 4-6 = minor. Per spec (talentGroup).
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT talentGroup, glyph1, glyph2, glyph3, glyph4, glyph5, glyph6
+             FROM character_glyphs WHERE guid = :g"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $char_glyphs[(int)$r['talentGroup']] = [
+                (int)$r['glyph1'], (int)$r['glyph2'], (int)$r['glyph3'],
+                (int)$r['glyph4'], (int)$r['glyph5'], (int)$r['glyph6'],
+            ];
+        }
+        $glyphs_query_ok = true;
+    } catch (PDOException $e) { /* table missing or different schema — skip */ }
 
     // Account info (join date) — read-only bit from auth DB
     $account_join = null;
@@ -798,8 +818,14 @@ if ($is_profile) {
         </div>
     </div>
 
-    <!-- Talents & Specialization -->
-    <?php if (!empty($talent_groups)): ?>
+    <!-- Talents & Specialization — in-game-style 6×3 grid when we have a
+         verified MoP map for this class; falls back to the existing chip
+         cloud (chosen spells only) when not. -->
+    <?php
+    $mop_tiers   = wl_mop_talents($cid);
+    $use_grid    = wl_mop_talents_have_data($mop_tiers);
+    if (!empty($talent_groups) || $use_grid):
+    ?>
     <style>
     .tal-spec { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin:.2rem 0 .9rem; }
     .tal-spec .nm { color:var(--accent); font-weight:700; font-size:1rem; }
@@ -811,16 +837,49 @@ if ($is_profile) {
     .tal-chip a:hover { color:#fff; }
     .tal-group + .tal-group { margin-top:1.1rem; border-top:1px solid rgba(var(--btn-bg-rgb), .2); padding-top:1rem; }
     .tal-empty { color:#8899aa; font-size:.88rem; }
+
+    /* In-game-style 6×3 talent grid (when wl_mop_talents has data for the class) */
+    .tal-tiers { display:flex; flex-direction:column; gap:.5rem; }
+    .tal-tier  { display:grid; grid-template-columns: 56px repeat(3, minmax(0,1fr)); gap:.5rem; align-items:stretch; }
+    .tal-tier-lvl {
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(var(--accent-rgb), .08);
+        border:1px solid rgba(var(--accent-rgb), .2);
+        border-radius:8px; color:var(--accent); font-weight:800;
+        font-variant-numeric: tabular-nums; font-size:.95rem;
+    }
+    .tal-cell {
+        background:linear-gradient(145deg,#1a1a26,#12121b);
+        border:1px solid rgba(var(--btn-bg-rgb), .3);
+        border-radius:8px; padding:.55rem .75rem; min-width:0;
+        display:flex; align-items:center; gap:.5rem;
+        font-size:.85rem; transition: all .15s ease;
+        opacity:.55;
+    }
+    .tal-cell a { color:#cdd5e0; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .tal-cell.chosen {
+        opacity:1;
+        background: linear-gradient(145deg, <?= $clr ?>1f, <?= $clr ?>0d);
+        border-color: <?= $clr ?>;
+        box-shadow: 0 0 18px -6px <?= $clr ?>aa, inset 0 0 0 1px <?= $clr ?>33;
+    }
+    .tal-cell.chosen a { color:<?= $clr ?>; font-weight:700; }
+    .tal-cell.unknown { opacity:.25; }
+    @media (max-width: 575px) {
+        .tal-tier { grid-template-columns: 1fr; }
+        .tal-tier-lvl { padding:.25rem 0; }
+    }
     </style>
     <div class="armory-panel mt-3">
         <div class="armory-panel-title"><i class="bi bi-diagram-3 me-2"></i><?= htmlspecialchars($TEXT['armory_panel_talents'] ?? 'Talents') ?></div>
         <?php
         // Active talent group first, then any other group that has talents.
-        $tal_order = array_keys($talent_groups);
+        $tal_order = !empty($talent_groups) ? array_keys($talent_groups) : [$active_spec];
         usort($tal_order, fn($a, $b) => ($a === $active_spec ? -1 : ($b === $active_spec ? 1 : $a - $b)));
         foreach ($tal_order as $g):
-            $spells = $talent_groups[$g];
+            $spells = $talent_groups[$g] ?? [];
             $specNm = mop_spec_name($spec_ids[$g] ?? 0);
+            $chosen_set = array_flip(array_map('intval', $spells));
         ?>
         <div class="tal-group">
             <div class="tal-spec">
@@ -835,9 +894,38 @@ if ($is_profile) {
                     <span class="badge-alt"><?= htmlspecialchars($TEXT['armory_spec_offspec'] ?? 'Off-spec') ?></span>
                 <?php endif; ?>
             </div>
-            <?php if (empty($spells)): ?>
+
+            <?php if ($use_grid): ?>
+                <!-- New 6×3 in-game-style grid -->
+                <div class="tal-tiers">
+                    <?php foreach ($mop_tiers as $tierIdx => $row):
+                        $tierLvl = wl_mop_talent_tier_level($tierIdx);
+                    ?>
+                    <div class="tal-tier" title="<?= sprintf(htmlspecialchars($TEXT['armory_talents_tier'] ?? 'Tier %d (Lv %d)'), $tierIdx + 1, $tierLvl) ?>">
+                        <div class="tal-tier-lvl">Lv<br><?= $tierLvl ?></div>
+                        <?php foreach ($row as $sp):
+                            $sp = (int)$sp;
+                            $is_chosen = $sp > 0 && isset($chosen_set[$sp]);
+                            $cls = $sp <= 0 ? 'unknown' : ($is_chosen ? 'chosen' : '');
+                        ?>
+                            <?php if ($sp > 0): ?>
+                            <div class="tal-cell <?= $cls ?>">
+                                <a href="<?= htmlspecialchars(wowhead_spell_url($sp)) ?>" target="_blank" rel="noopener noreferrer">spell=<?= $sp ?></a>
+                            </div>
+                            <?php else: ?>
+                            <div class="tal-cell unknown" title="<?= htmlspecialchars($TEXT['armory_talents_unknown'] ?? 'No verified spell ID for this slot yet') ?>">
+                                <span style="color:#4a5568">—</span>
+                            </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php elseif (empty($spells)): ?>
                 <div class="tal-empty"><?= htmlspecialchars($TEXT['armory_no_talents'] ?? 'No talents chosen yet.') ?></div>
             <?php else: ?>
+                <!-- Fallback chip cloud (chosen spells only) — used when the class's
+                     MoP talent map isn't filled yet. -->
                 <div class="tal-grid">
                     <?php foreach ($spells as $sp): ?>
                         <span class="tal-chip"><a href="<?= htmlspecialchars(wowhead_spell_url($sp)) ?>" target="_blank" rel="noopener noreferrer">spell=<?= (int)$sp ?></a></span>
@@ -849,6 +937,81 @@ if ($is_profile) {
         <div style="color:#4a5568;font-size:.76rem;margin-top:.8rem">
             <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_talents_hint'] ?? 'Talent details come from Wowhead (Mists of Pandaria). Heavily customised server spells may not resolve.') ?>
         </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Glyphs — chosen major + minor per spec, Wowhead-resolved chips, with
+         "Unlocked at Lv N" hint for empty unlocked slots. Hidden when the
+         character_glyphs table isn't present on this repack. -->
+    <?php if ($glyphs_query_ok):
+        // MoP unlock thresholds: slots 1-3 (major) = Lv 25/50/75; slots 4-6 (minor) = 25/50/75
+        $g_unlock = [25, 50, 75, 25, 50, 75];
+        // Active spec first, then any other spec that has a glyph row.
+        $g_order = [];
+        if (isset($char_glyphs[$active_spec])) $g_order[] = $active_spec;
+        foreach ($char_glyphs as $spec => $_g) if ($spec !== $active_spec) $g_order[] = $spec;
+        $char_level = (int)$char['level'];
+    ?>
+    <style>
+    .gly-row { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:.55rem; margin-bottom:.55rem; }
+    .gly-row.minor { opacity: .92; }
+    .gly-slot {
+        background: linear-gradient(145deg,#1a1a26,#12121b); border:1px solid rgba(var(--btn-bg-rgb), .35);
+        border-radius:8px; padding:.5rem .7rem; font-size:.85rem;
+        display:flex; align-items:center; gap:.5rem; min-width:0;
+    }
+    .gly-slot.empty { opacity:.55; font-style:italic; color:#6c7a8c; }
+    .gly-slot a { color:#dee2e6; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gly-slot a:hover { color:#fff; }
+    .gly-tag { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:#6c7a8c; padding:.05rem .35rem; border-radius:4px; border:1px solid rgba(255,255,255,.08); flex-shrink:0; }
+    .gly-tag.major { color:var(--accent); border-color:rgba(var(--accent-rgb),.35); }
+    .gly-tag.minor { color:#8899aa; }
+    .gly-spec { display:flex; align-items:center; gap:.6rem; margin:.2rem 0 .8rem; flex-wrap:wrap; }
+    .gly-spec .nm { color:var(--accent); font-weight:700; font-size:1rem; }
+    .gly-spec .badge-act { background:rgba(105,204,240,.15); border:1px solid rgba(105,204,240,.45); color:#69ccf0; font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; padding:.12rem .55rem; border-radius:10px; }
+    @media (max-width: 575px) { .gly-row { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-gem me-2"></i><?= htmlspecialchars($TEXT['armory_panel_glyphs'] ?? 'Glyphs') ?></div>
+        <?php foreach ($g_order as $spec):
+            $g = $char_glyphs[$spec];
+            $spec_name = mop_spec_name($spec_ids[$spec] ?? 0) ?? sprintf($TEXT['armory_spec_n'] ?? 'Spec %d', $spec + 1);
+            $is_active = ($spec === $active_spec);
+        ?>
+            <div class="gly-spec">
+                <span class="nm"><?= htmlspecialchars($spec_name) ?></span>
+                <?php if ($is_active): ?><span class="badge-act"><?= htmlspecialchars($TEXT['armory_active_spec'] ?? 'Active') ?></span><?php endif; ?>
+            </div>
+            <?php foreach ([['major', 0, 1, 2], ['minor', 3, 4, 5]] as $group):
+                $kind = array_shift($group); ?>
+                <div class="gly-row <?= $kind ?>">
+                    <?php foreach ($group as $idx):
+                        $sid = (int)$g[$idx];
+                        $unlock = $g_unlock[$idx];
+                    ?>
+                        <?php if ($sid > 0): ?>
+                            <div class="gly-slot">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <a href="<?= 'https://www.wowhead.com/mop-classic/spell=' . (int)$sid ?>" target="_blank" rel="noopener noreferrer" data-wh-rename-link="true">spell=<?= (int)$sid ?></a>
+                            </div>
+                        <?php elseif ($char_level >= $unlock): ?>
+                            <div class="gly-slot empty">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <span><?= htmlspecialchars($TEXT['armory_gly_empty'] ?? 'Empty') ?></span>
+                            </div>
+                        <?php else: ?>
+                            <div class="gly-slot empty">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <span><?= sprintf(htmlspecialchars($TEXT['armory_gly_unlock_at'] ?? 'Unlocked at Lv %d'), $unlock) ?></span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+        <?php if (empty($g_order)): ?>
+            <div style="color:#6c7a8c;font-size:.85rem;padding:.4rem 0"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_gly_none'] ?? 'No glyphs recorded for this character.') ?></div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
