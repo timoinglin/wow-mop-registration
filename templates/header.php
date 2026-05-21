@@ -345,7 +345,7 @@ if (!empty($config['features']['maintenance'])) {
                 // so the bar stays small as features grow. Guilds points at
                 // the leaderboards "Guilds" ranking (the de facto guild index;
                 // each row now click-throughs to /guild/<name>).
-                $nav_players_pages = ['armory.php', 'leaderboards.php', 'online.php', 'guild.php'];
+                $nav_players_pages = ['armory.php', 'leaderboards.php', 'online.php', 'guild.php', 'stats.php'];
                 $nav_players_active = in_array($current_page, $nav_players_pages, true);
                 $on_guilds_lb = ($current_page === 'leaderboards.php' && (($_GET['type'] ?? '') === 'guilds'));
                 if ($on_guilds_lb) $nav_players_active = true;
@@ -366,6 +366,9 @@ if (!empty($config['features']['maintenance'])) {
                         </a></li>
                         <li><a class="dropdown-item py-2 <?= ($current_page === 'online.php') ? 'active' : '' ?>" href="/online">
                             <i class="bi bi-broadcast me-3" style="color:#5dd87c"></i><?= $TEXT['nav_online'] ?? "Who's Online" ?>
+                        </a></li>
+                        <li><a class="dropdown-item py-2 <?= ($current_page === 'stats.php') ? 'active' : '' ?>" href="/stats">
+                            <i class="bi bi-bar-chart-line-fill me-3" style="color:var(--accent)"></i><?= $TEXT['nav_stats'] ?? 'Statistics' ?>
                         </a></li>
                     </ul>
                 </li>
