@@ -8,6 +8,7 @@ require_once __DIR__ . '/../includes/playtime_rewards.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
 require_once __DIR__ . '/../includes/wl_2fa.php';
+require_once __DIR__ . '/../includes/news.php';
 
 // --- Auth ---
 if (!isset($_SESSION['user_id'])) {
@@ -149,6 +150,14 @@ foreach ($characters as $char) {
 }
 
 $tickets_enabled = !empty($config['features']['tickets']);
+
+// --- Latest news (Overview tab pair-with-chart panel) ---
+$latest_news = [];
+try {
+    $latest_news = function_exists('news_latest_published') ? news_latest_published($pdo_auth, 3) : [];
+} catch (Throwable $e) {
+    error_log('dashboard latest_news: ' . $e->getMessage());
+}
 
 // --- Playtime Reward state ---
 $pr_status        = pr_get_status((int)$_SESSION['user_id'], $pdo_auth, $pdo_chars, $config);
@@ -905,39 +914,63 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
 </section>
 <?php endif; ?>
 
-<!-- Most-played callout (Overview) — moved out of Quick Actions. -->
-<?php if ($most_played_char): ?>
-<div class="dash-panel mb-4" style="display:flex;align-items:center;gap:.85rem;background:rgba(var(--btn-bg-rgb), .12);border:1px solid rgba(var(--btn-bg-rgb), .3);">
-    <i class="bi bi-star-fill" style="font-size:1.4rem;color:var(--accent)"></i>
-    <div style="flex:1;min-width:0">
-        <div style="font-size:.7rem;color:#8899aa;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:.15rem">
-            <?= htmlspecialchars($TEXT['dash_most_time_on'] ?? 'Most time on') ?>
-        </div>
-        <a href="/armory/<?= rawurlencode($most_played_char['name']) ?>" style="font-weight:700;text-decoration:none;color:<?= $class_colors[(int)$most_played_char['class']] ?? 'var(--accent)' ?>">
-            <?= htmlspecialchars($most_played_char['name']) ?>
-        </a>
-        <span style="color:#8899aa;font-size:.88rem">· <?= format_playtime((int)$most_played_char['totaltime']) ?></span>
-    </div>
-</div>
-<?php endif; ?>
-
-<!-- Playtime distribution chart — centered + height-capped so the
-     doughnut sits in a calm visual block (was full-row-tall before). -->
-<?php if (!empty($chart_data)): ?>
+<!-- Bottom row of Overview: playtime distribution + latest news.
+     Pair fills the horizontal vacuum the centered chart used to leave.
+     The 'Most time on' callout that lived here was redundant with the
+     'Most Played Character' stat card above and was dropped. -->
+<style>
+.playtime-chart-wrap { position: relative; height: 260px; }
+.news-feed { display:flex; flex-direction:column; gap:.5rem; }
+.news-item { display:flex; align-items:center; gap:.7rem; padding:.6rem .75rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; text-decoration:none; color:inherit; transition: border-color .15s, background .15s; }
+.news-item:hover { border-color: rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.08); }
+.news-item .ic { width:36px; height:36px; border-radius:8px; background: rgba(var(--accent-rgb),.14); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.news-item .ic i { color: var(--accent); font-size:1.05rem; }
+.news-item .meta { min-width:0; flex:1; }
+.news-item .ttl { color:#dee2e6; font-weight:700; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.news-item .when { color:#8899aa; font-size:.75rem; margin-top:.1rem; }
+.news-empty { color:#6c7a8c; font-size:.85rem; padding:.6rem .2rem; }
+.news-seeall { display:inline-block; margin-top:.5rem; font-size:.82rem; color:var(--accent); text-decoration:none; }
+.news-seeall:hover { color: var(--accent); text-decoration:underline; }
+</style>
 <div class="row g-3 mb-4">
-    <div class="col-md-8 col-lg-6 mx-auto">
-        <div class="dash-panel">
+    <?php if (!empty($chart_data)): ?>
+    <div class="col-lg-6">
+        <div class="dash-panel h-100">
             <div class="panel-title"><i class="bi bi-pie-chart me-2"></i><?= $TEXT['playtime_distribution_title'] ?></div>
             <div class="playtime-chart-wrap">
                 <canvas id="playtimePieChart"></canvas>
             </div>
         </div>
     </div>
+    <?php endif; ?>
+
+    <div class="col-lg-<?= !empty($chart_data) ? '6' : '8 mx-auto' ?>">
+        <div class="dash-panel h-100">
+            <div class="panel-title"><i class="bi bi-megaphone-fill me-2"></i><?= htmlspecialchars($TEXT['dash_latest_news'] ?? 'Latest news') ?></div>
+            <?php if (!empty($latest_news)): ?>
+            <div class="news-feed">
+                <?php foreach ($latest_news as $post):
+                    $icon = !empty($post['icon']) ? htmlspecialchars($post['icon']) : 'bi-megaphone';
+                    $when = !empty($post['published_at']) ? date('M j, Y', strtotime($post['published_at'])) : '';
+                ?>
+                <a class="news-item" href="/news/<?= rawurlencode($post['slug']) ?>">
+                    <div class="ic"><i class="bi <?= $icon ?>"></i></div>
+                    <div class="meta">
+                        <div class="ttl"><?= htmlspecialchars($post['title']) ?></div>
+                        <?php if ($when): ?><div class="when"><?= htmlspecialchars($when) ?></div><?php endif; ?>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <a class="news-seeall" href="/news"><?= htmlspecialchars($TEXT['dash_news_see_all'] ?? 'See all news') ?> →</a>
+            <?php else: ?>
+            <div class="news-empty">
+                <i class="bi bi-info-circle me-1"></i> <?= htmlspecialchars($TEXT['dash_news_empty'] ?? 'No news posts yet.') ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
-<style>
-.playtime-chart-wrap { position: relative; height: 260px; }
-</style>
-<?php endif; ?>
 
 </div><!-- /tab-overview -->
 
