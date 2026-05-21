@@ -14,5 +14,5 @@
  */
 
 if (!defined('WL_VERSION')) {
-    define('WL_VERSION', 'v0.7.0');
+    define('WL_VERSION', 'v0.8.0');
 }
