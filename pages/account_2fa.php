@@ -14,13 +14,18 @@
  * current account password (defense against session-hijack → silent 2FA-off).
  */
 
+require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/wl_2fa.php';
 require_once __DIR__ . '/../includes/audit.php';
-// header.php starts the session + loads lang.
-require_once __DIR__ . '/../templates/header.php';
+
+// Start session BEFORE the template, so the auth check + every POST
+// branch that calls header('Location: ...') can redirect cleanly
+// (templates/header.php emits HTML — any header() call after it warns
+// "headers already sent" and silently drops the redirect).
+if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
@@ -145,6 +150,9 @@ if ($pending) {
     $totp_uri = wl_totp_uri($row['secret'], $username . '@' . preg_replace('~^https?://~', '', $config['site']['base_url'] ?? 'wow-legends'), $site_title);
     $totp_secret_pretty = trim(chunk_split($row['secret'], 4, ' '));
 }
+
+// All POST handlers / redirects done — safe to emit HTML.
+require_once __DIR__ . '/../templates/header.php';
 ?>
 
 <style>

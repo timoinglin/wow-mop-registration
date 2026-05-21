@@ -14,13 +14,16 @@
  * the legitimate owner of the old address still gets a chance to deny.
  */
 
+require_once __DIR__ . '/../includes/lang.php';
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/wl_2fa.php';
 require_once __DIR__ . '/../includes/audit.php';
-require_once __DIR__ . '/../templates/header.php';
 
+// Session + auth BEFORE the template (which emits HTML and would break
+// any header() redirect after it).
+if (session_status() === PHP_SESSION_NONE) session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login');
     exit;
@@ -130,6 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// All POST handlers / redirects done — safe to emit HTML.
+require_once __DIR__ . '/../templates/header.php';
 ?>
 
 <style>
