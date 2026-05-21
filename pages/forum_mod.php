@@ -81,9 +81,9 @@ switch ($action) {
             // Look up so we can build the redirect target before deletion
             $info_q = $pdo_auth->prepare(
                 "SELECT p.is_op, t.slug AS thread_slug, c.slug AS category_slug
-                 FROM forum_posts p
-                 JOIN forum_threads t ON t.id = p.thread_id
-                 JOIN forum_categories c ON c.id = t.category_id
+                 FROM web_forum_posts p
+                 JOIN web_forum_threads t ON t.id = p.thread_id
+                 JOIN web_forum_categories c ON c.id = t.category_id
                  WHERE p.id = :id"
             );
             $info_q->execute(['id' => $post_id]);
@@ -113,7 +113,7 @@ switch ($action) {
         if ($thread_id > 0) {
             $info_q = $pdo_auth->prepare(
                 "SELECT t.title, c.slug AS category_slug
-                 FROM forum_threads t JOIN forum_categories c ON c.id = t.category_id
+                 FROM web_forum_threads t JOIN web_forum_categories c ON c.id = t.category_id
                  WHERE t.id = :id"
             );
             $info_q->execute(['id' => $thread_id]);

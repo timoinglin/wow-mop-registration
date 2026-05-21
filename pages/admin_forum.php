@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'reject_thread') {
             $tid = (int)($_POST['thread_id'] ?? 0);
             if ($tid > 0) {
-                $info = $pdo_auth->prepare("SELECT title, author_name FROM forum_threads WHERE id = :id");
+                $info = $pdo_auth->prepare("SELECT title, author_name FROM web_forum_threads WHERE id = :id");
                 $info->execute(['id' => $tid]);
                 $row = $info->fetch(PDO::FETCH_ASSOC);
                 if (forum_reject_thread($pdo_auth, $tid)) {
@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'reject_post') {
             $pid = (int)($_POST['post_id'] ?? 0);
             if ($pid > 0) {
-                $info = $pdo_auth->prepare("SELECT thread_id, author_name FROM forum_posts WHERE id = :id");
+                $info = $pdo_auth->prepare("SELECT thread_id, author_name FROM web_forum_posts WHERE id = :id");
                 $info->execute(['id' => $pid]);
                 $row = $info->fetch(PDO::FETCH_ASSOC);
                 if (forum_reject_post($pdo_auth, $pid)) {

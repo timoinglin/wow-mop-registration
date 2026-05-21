@@ -50,9 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $token_hash = password_hash($token, PASSWORD_DEFAULT);
 
                 $pdo_auth->beginTransaction();
-                $pdo_auth->prepare("DELETE FROM password_resets WHERE email = :email")
+                $pdo_auth->prepare("DELETE FROM web_password_resets WHERE email = :email")
                          ->execute(['email' => $submitted_email]);
-                $pdo_auth->prepare("INSERT INTO password_resets (email, token_key, created_at) VALUES (:email, :token_hash, NOW())")
+                $pdo_auth->prepare("INSERT INTO web_password_resets (email, token_key, created_at) VALUES (:email, :token_hash, NOW())")
                          ->execute(['email' => $submitted_email, 'token_hash' => $token_hash]);
                 $pdo_auth->commit();
 

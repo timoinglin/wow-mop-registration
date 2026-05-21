@@ -98,6 +98,14 @@ return [
         'instagram' => 'https://www.instagram.com/',
     ],
 
+    // Discord widget — when set, renders a live "Online on Discord" block on
+    // the homepage with member count + Join button. Server admins enable the
+    // widget in Discord: Server Settings → Widget → ON, copy the Server ID.
+    // Leave server_id = '' to hide the block. Cached server-side ~60s.
+    'discord' => [
+        'server_id' => '',   // numeric Discord server (guild) ID, as a string
+    ],
+
     // FAQ entries shown on the home page
     'faq' => [
         ['q' => 'Is it free to play?',      'a' => 'Yes! Registration and gameplay are completely free.'],

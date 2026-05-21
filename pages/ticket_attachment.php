@@ -63,8 +63,8 @@ if (!$authorized) {
 
         // ticket_messages → tickets, where ticket.user_id = current
         $q1 = $pdo_auth->prepare(
-            "SELECT 1 FROM ticket_messages tm
-             JOIN tickets t ON t.id = tm.ticket_id
+            "SELECT 1 FROM web_ticket_messages tm
+             JOIN web_tickets t ON t.id = tm.ticket_id
              WHERE t.user_id = :uid
                AND tm.attachments LIKE :like
              LIMIT 1"
@@ -76,7 +76,7 @@ if (!$authorized) {
 
         if (!$authorized) {
             $q2 = $pdo_auth->prepare(
-                "SELECT 1 FROM tickets WHERE user_id = :uid AND attachments LIKE :like LIMIT 1"
+                "SELECT 1 FROM web_tickets WHERE user_id = :uid AND attachments LIKE :like LIMIT 1"
             );
             $q2->execute(['uid' => $_SESSION['user_id'], 'like' => $like]);
             if ($q2->fetchColumn()) $authorized = true;

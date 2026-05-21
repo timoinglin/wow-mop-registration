@@ -10,6 +10,7 @@ if (isset($_SESSION['user_id'])) {
 $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/wl_2fa.php';
 
 // Feature guard
 if (empty($config['features']['recover_password'])) {
@@ -30,7 +31,7 @@ if (empty($token) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
     $errors[] = $TEXT['invalid_token'];
 } else {
     try {
-        $stmt = $pdo_auth->prepare("SELECT token_key, created_at FROM password_resets WHERE email = :email");
+        $stmt = $pdo_auth->prepare("SELECT token_key, created_at FROM web_password_resets WHERE email = :email");
         $stmt->execute(['email' => $email]);
         $reset_data = $stmt->fetch();
 
@@ -40,7 +41,7 @@ if (empty($token) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
             $errors[] = $TEXT['invalid_token'];
         } elseif (time() - strtotime($reset_data['created_at']) > 3600) {
             // Expired — clean up and tell user
-            $pdo_auth->prepare("DELETE FROM password_resets WHERE email = :email")->execute(['email' => $email]);
+            $pdo_auth->prepare("DELETE FROM web_password_resets WHERE email = :email")->execute(['email' => $email]);
             $errors[] = $TEXT['invalid_token'];
         } else {
             $showForm = true;
@@ -51,10 +52,28 @@ if (empty($token) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)
     }
 }
 
+// When 2FA is on for this email's account, the reset form also requires
+// a code. Closes the "own the email → bypass 2FA" hole.
+$twofa_required = false;
+$twofa_account_id = 0;
+if ($showForm) {
+    try {
+        $stmt_acc = $pdo_auth->prepare("SELECT id FROM account WHERE email = :email");
+        $stmt_acc->execute(['email' => $email]);
+        $twofa_account_id = (int)$stmt_acc->fetchColumn();
+        if ($twofa_account_id > 0) {
+            $twofa_required = wl_2fa_is_enabled($pdo_auth, $twofa_account_id);
+        }
+    } catch (PDOException $e) {
+        error_log('reset_password 2fa lookup: ' . $e->getMessage());
+    }
+}
+
 // --- Handle new password submission ---
 if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password     = $_POST['new_password']     ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $twofa_code       = (string)($_POST['twofa_code'] ?? '');
     $csrf             = $_POST['csrf_token']        ?? null;
 
     if (!validate_csrf_token($csrf)) {
@@ -69,6 +88,11 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (strlen($new_password) < 6) {
         $errors[] = $TEXT['new_password_min_length'];
+    }
+    if (empty($errors) && $twofa_required) {
+        if (!wl_2fa_verify($pdo_auth, $twofa_account_id, $twofa_code)) {
+            $errors[] = $TEXT['twofa_err_code_bad'] ?? 'That 2FA code is wrong. Try again.';
+        }
     }
 
     if (empty($errors)) {
@@ -86,7 +110,7 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo_auth->beginTransaction();
             $pdo_auth->prepare("UPDATE account SET sha_pass_hash = :hash, v = '', s = '' WHERE email = :email")
                      ->execute(['hash' => $new_hash, 'email' => $email]);
-            $pdo_auth->prepare("DELETE FROM password_resets WHERE email = :email")
+            $pdo_auth->prepare("DELETE FROM web_password_resets WHERE email = :email")
                      ->execute(['email' => $email]);
             $pdo_auth->commit();
 
@@ -206,6 +230,19 @@ if ($showForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" class="auth-input" name="confirm_password"
                        minlength="6" autocomplete="new-password" required>
             </div>
+
+            <?php if ($twofa_required): ?>
+            <div class="mb-3">
+                <label class="auth-label">
+                    <i class="bi bi-shield-lock-fill" style="color:var(--accent)"></i>
+                    <?= htmlspecialchars($TEXT['twofa_code_or_backup'] ?? '2FA code (or backup code)') ?>
+                </label>
+                <input type="text" class="auth-input" name="twofa_code"
+                       inputmode="numeric" autocomplete="one-time-code" required
+                       style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.25em;text-align:center">
+                <div class="strength-hint"><?= htmlspecialchars($TEXT['twofa_reset_hint'] ?? '2FA is on for this account — confirm a code to set a new password.') ?></div>
+            </div>
+            <?php endif; ?>
 
             <button type="submit" class="auth-btn">
                 <i class="bi bi-shield-lock me-2"></i><?= $TEXT['submit'] ?>

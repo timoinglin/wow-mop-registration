@@ -484,9 +484,9 @@ function lb_rank_badge(int $rank): string {
                         <td><?= lb_rank_badge($rank) ?></td>
                         <td>
                             <div class="guild-cell">
-                                &lt;<?= htmlspecialchars($g['name']) ?>&gt;
+                                <a href="/guild/<?= rawurlencode($g['name']) ?>" style="color:inherit;text-decoration:none">&lt;<?= htmlspecialchars($g['name']) ?>&gt;</a>
                                 <?php if (!empty($g['leader_name'])): ?>
-                                    <span class="gleader"><?= htmlspecialchars($TEXT['lb_leader'] ?? 'Leader') ?>: <?= htmlspecialchars($g['leader_name']) ?></span>
+                                    <span class="gleader"><?= htmlspecialchars($TEXT['lb_leader'] ?? 'Leader') ?>: <a href="/armory/<?= rawurlencode($g['leader_name']) ?>" style="color:inherit;text-decoration:none"><?= htmlspecialchars($g['leader_name']) ?></a></span>
                                 <?php endif; ?>
                             </div>
                         </td>

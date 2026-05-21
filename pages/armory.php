@@ -203,6 +203,9 @@ if ($is_profile) {
     $gid     = (int)$char['gender'];
     $clr     = $class_colors[$cid] ?? 'var(--accent)';
     $faction = faction_for_race($rid, $alliance_races, $horde_races);
+    // Faction RGB for portrait halos (matches the hero background tint).
+    $fac_rgb = $faction === 'alliance' ? '0,112,222'
+             : ($faction === 'horde'   ? '196,31,59' : '139,69,19');
 
     // Equipped items (bag=0, slot 0..18). Pull item entry per slot.
     $equipped = [];
@@ -231,12 +234,54 @@ if ($is_profile) {
         // Table may not exist on this core, silently skip
     }
 
-    // Achievements
+    // Achievements — total count + the most recent 12 for the Achievements panel.
+    // achievement_id → Wowhead tooltip in the renderer (no DBC parse needed).
     $achievement_count = 0;
+    $recent_achievements = [];
     try {
         $ac = $pdo_chars->prepare("SELECT COUNT(*) FROM character_achievement WHERE guid = :g");
         $ac->execute(['g' => $char['guid']]);
         $achievement_count = (int)$ac->fetchColumn();
+
+        $rac = $pdo_chars->prepare(
+            "SELECT achievement, date FROM character_achievement
+             WHERE guid = :g ORDER BY date DESC, achievement DESC LIMIT 12"
+        );
+        $rac->execute(['g' => $char['guid']]);
+        $recent_achievements = $rac->fetchAll();
+    } catch (PDOException $e) {}
+
+    // Reputation — pull every faction; the renderer filters by wl_faction_name()
+    // so unknown ids never surface as "Faction #1234" garbage. flags & 0x01 = visible,
+    // & 0x02 = inactive, & 0x04 = at-war — we only filter out the at-war/hidden mess.
+    require_once __DIR__ . '/../includes/wow_factions.php';
+    $reputations = [];
+    try {
+        $rp = $pdo_chars->prepare(
+            "SELECT faction, standing, flags FROM character_reputation
+             WHERE guid = :g"
+        );
+        $rp->execute(['g' => $char['guid']]);
+        foreach ($rp->fetchAll() as $row) {
+            $name = wl_faction_name((int)$row['faction']);
+            if ($name === null) continue;
+            $standing = (int)$row['standing'];
+            $rank     = wl_rep_rank($standing);
+            // Skip purely-neutral with no progress — they clutter the panel.
+            if ($rank === 3 && $standing === 0) continue;
+            $reputations[] = [
+                'id'       => (int)$row['faction'],
+                'name'     => $name,
+                'standing' => $standing,
+                'rank'     => $rank,
+            ];
+        }
+        // Sort: highest rank first, then highest standing within rank.
+        usort($reputations, function ($a, $b) {
+            return $b['rank'] === $a['rank']
+                ? $b['standing'] - $a['standing']
+                : $b['rank'] - $a['rank'];
+        });
     } catch (PDOException $e) {}
 
     // Other characters on the same account
@@ -270,6 +315,75 @@ if ($is_profile) {
         if ($sid !== '') $spec_ids[$i] = (int)$sid;
     }
     $active_spec = (int)($char['activespec'] ?? 0);
+
+    // ── PvP / Title / Professions — repack-defensive ──────────────────────
+    // Each block hides gracefully if its column/table doesn't exist on the
+    // server (try/catch per fetch). All read-only.
+    require_once __DIR__ . '/../includes/wow_skills.php';
+    require_once __DIR__ . '/../includes/wow_titles.php';
+    require_once __DIR__ . '/../includes/wow_talents_mop.php';
+
+    $pvp_total_kills = null;
+    $pvp_rated       = [];
+    $char_title_id   = 0;
+    $char_skills     = [];
+    $skills_query_ok = false; // true when character_skills was queryable, even if 0 rows
+                              // — drives whether the Professions panel renders an empty state
+    $char_glyphs     = [];    // talentGroup => [g1..g6]  (0 = empty slot)
+    $glyphs_query_ok = false;
+
+    try {
+        $stmt = $pdo_chars->prepare("SELECT totalKills FROM characters WHERE guid = :g LIMIT 1");
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $v = $stmt->fetchColumn();
+        if ($v !== false) $pvp_total_kills = (int)$v;
+    } catch (PDOException $e) { /* column missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT slot, rating, season_wins
+             FROM rated_pvp_info
+             WHERE guid = :g
+               AND season = (SELECT MAX(season) FROM rated_pvp_info)
+               AND rating > 0
+             ORDER BY slot ASC"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $pvp_rated = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) { /* table missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare("SELECT chosenTitle FROM characters WHERE guid = :g LIMIT 1");
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $v = $stmt->fetchColumn();
+        if ($v !== false) $char_title_id = (int)$v;
+    } catch (PDOException $e) { /* column missing — skip */ }
+
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT skill, value, max FROM character_skills WHERE guid = :g ORDER BY skill ASC"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        $char_skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $skills_query_ok = true; // table exists — panel will render even with 0 known skills
+    } catch (PDOException $e) { /* table missing — skip */ }
+
+    // Glyphs: TC-MoP standard schema is character_glyphs(guid, talentGroup,
+    // glyph1..glyph6). Slots 1-3 = major, 4-6 = minor. Per spec (talentGroup).
+    try {
+        $stmt = $pdo_chars->prepare(
+            "SELECT talentGroup, glyph1, glyph2, glyph3, glyph4, glyph5, glyph6
+             FROM character_glyphs WHERE guid = :g"
+        );
+        $stmt->execute(['g' => (int)$char['guid']]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $char_glyphs[(int)$r['talentGroup']] = [
+                (int)$r['glyph1'], (int)$r['glyph2'], (int)$r['glyph3'],
+                (int)$r['glyph4'], (int)$r['glyph5'], (int)$r['glyph6'],
+            ];
+        }
+        $glyphs_query_ok = true;
+    } catch (PDOException $e) { /* table missing or different schema — skip */ }
 
     // Account info (join date) — read-only bit from auth DB
     $account_join = null;
@@ -318,8 +432,32 @@ if ($is_profile) {
     letter-spacing: .8px;
     margin-top: .35rem;
 }
-.armory-icons { display: flex; gap: .5rem; align-items: center; }
-.armory-icons img { width: 38px; height: 38px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background:#000; }
+/* ── Shared character portrait (HQ race art) — used in the hero header
+   and the equipment centre so the page reads as one piece. ───────────── */
+.wl-portrait { position: relative; flex-shrink: 0; }
+.wl-portrait::after {                       /* faction-tinted halo */
+    content: ''; position: absolute; inset: -14%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(<?= $fac_rgb ?>,.45), transparent 70%);
+    z-index: 0; pointer-events: none;
+}
+.wl-portrait .pf {                          /* the race art disc */
+    position: relative; z-index: 1; display: block;
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    object-position: center 18%;            /* frame the face, not the chest */
+    background: #0a0a0f;
+    border: 3px solid <?= $clr ?>;
+    box-shadow: 0 0 26px -4px <?= $clr ?>cc, inset 0 0 0 2px rgba(0,0,0,.55);
+}
+.wl-portrait .pc {                          /* class-icon badge */
+    position: absolute; z-index: 2; right: -2px; bottom: -2px;
+    border-radius: 50%; background: #0a0a0f;
+    border: 2px solid <?= $clr ?>; padding: 2px;
+    box-shadow: 0 2px 7px rgba(0,0,0,.7);
+}
+/* hero header instance */
+.armory-avatar { width: 104px; height: 104px; }
+.armory-avatar .pc { width: 38px; height: 38px; }
+@media (max-width: 575px) { .armory-avatar { width: 84px; height: 84px; } }
 .faction-badge {
     display: inline-flex; align-items: center; gap: .4rem;
     padding: .35rem .8rem; border-radius: 50px;
@@ -379,15 +517,16 @@ if ($is_profile) {
 .gear-col   { display: flex; flex-direction: column; gap: .55rem; }
 .gear-col-r { align-items: flex-end; }
 .gear-center {
-    width: 130px; height: 270px;
-    background: radial-gradient(circle at center, rgba(var(--accent-rgb), .18), transparent 70%);
-    border-radius: 80px;
+    width: 150px; min-height: 270px;
     display: flex; align-items: center; justify-content: center;
-    flex-direction: column; gap:.5rem;
-    color: rgba(var(--accent-rgb), .5);
-    font-size: 4rem;
+    flex-direction: column; gap: .7rem; text-align: center;
 }
-.gear-center-icon i { filter: drop-shadow(0 0 12px <?= $clr ?>aa); color: <?= $clr ?>; }
+/* equipment-centre instance of .wl-portrait (same look as the hero avatar) */
+.gear-avatar { width: 132px; height: 132px; }
+.gear-avatar .pc { width: 44px; height: 44px; }
+.gear-id-class { font-size: 1.15rem; font-weight: 800; letter-spacing: .5px; color: <?= $clr ?>; }
+.gear-id-race  { font-size: .74rem; text-transform: uppercase; letter-spacing: 1.5px; color: #8899aa; margin-top: 1px; }
+.gear-id-lvl   { font-size: .72rem; color: #6c7a8c; margin-top: 2px; }
 
 .gear-slot {
     display: flex; align-items: center; gap: .6rem;
@@ -472,10 +611,10 @@ if ($is_profile) {
     <!-- HERO -->
     <div class="armory-hero">
         <div class="armory-hero-inner">
-            <div class="d-flex flex-wrap align-items-end gap-3 mb-2">
-                <div class="armory-icons">
-                    <img src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" title="<?= htmlspecialchars(get_race_name($rid)) ?>">
-                    <img src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                <div class="wl-portrait armory-avatar">
+                    <img class="pf" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid) . ' ' . get_class_name($cid)) ?>">
+                    <img class="pc" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>">
                 </div>
                 <div>
                     <h1 class="armory-name"><?= htmlspecialchars($char['name']) ?></h1>
@@ -484,7 +623,8 @@ if ($is_profile) {
                         <?= htmlspecialchars(get_race_name($rid)) ?>
                         <?= htmlspecialchars(get_class_name($cid)) ?>
                         <?php if (!empty($char['guild_name'])): ?>
-                            &middot; <i class="bi bi-people-fill"></i> &lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;
+                            &middot; <i class="bi bi-people-fill"></i>
+                            <a href="/guild/<?= rawurlencode($char['guild_name']) ?>" style="color:inherit;text-decoration:none;border-bottom:1px dotted rgba(255,255,255,.25)">&lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -573,12 +713,18 @@ if ($is_profile) {
                         <?php endforeach; ?>
                     </div>
 
-                    <!-- Center silhouette -->
+                    <!-- Centre character portrait — HQ race art, class-colour ring,
+                         faction halo; matches the hero avatar (.wl-portrait). -->
                     <div class="gear-center">
-                        <div class="gear-center-icon">
-                            <i class="bi <?= $cid === 1 ? 'bi-shield-fill' : ($cid === 8 || $cid === 9 ? 'bi-magic' : ($cid === 5 || $cid === 7 ? 'bi-stars' : 'bi-person-fill')) ?>"></i>
+                        <div class="wl-portrait gear-avatar">
+                            <img class="pf" src="<?= '/' . get_race_icon_path($rid, $gid) ?>" alt="<?= htmlspecialchars(get_race_name($rid)) ?>" loading="lazy">
+                            <img class="pc" src="<?= '/' . get_class_icon_path($cid) ?>" alt="<?= htmlspecialchars(get_class_name($cid)) ?>" title="<?= htmlspecialchars(get_class_name($cid)) ?>" loading="lazy">
                         </div>
-                        <div style="font-size:.7rem;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--accent-rgb), .6)"><?= htmlspecialchars(class_role_label($cid)) ?></div>
+                        <div>
+                            <div class="gear-id-class"><?= htmlspecialchars(get_class_name($cid)) ?></div>
+                            <div class="gear-id-race"><?= htmlspecialchars(get_race_name($rid)) ?></div>
+                            <div class="gear-id-lvl">Lv <?= (int)$char['level'] ?> · <?= htmlspecialchars(class_role_label($cid)) ?></div>
+                        </div>
                     </div>
 
                     <!-- Right column -->
@@ -687,6 +833,18 @@ if ($is_profile) {
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_class'] ?? 'Class') ?></span>
                         <span class="v" style="color:<?= $clr ?>"><?= htmlspecialchars(get_class_name($cid)) ?></span>
                     </div>
+                    <?php if (!empty($char['guild_name'])): ?>
+                    <div class="stat-row">
+                        <span class="k"><?= htmlspecialchars($TEXT['armory_info_guild'] ?? 'Guild') ?></span>
+                        <span class="v"><a href="/guild/<?= rawurlencode($char['guild_name']) ?>" style="color:var(--accent);text-decoration:none">&lt;<?= htmlspecialchars($char['guild_name']) ?>&gt;</a></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php $title_text = $char_title_id > 0 ? wl_title_text($char_title_id) : null; if ($title_text): ?>
+                    <div class="stat-row">
+                        <span class="k"><?= htmlspecialchars($TEXT['armory_info_title'] ?? 'Title') ?></span>
+                        <span class="v" style="color:var(--accent)"><?= htmlspecialchars($title_text) ?></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="stat-row">
                         <span class="k"><?= htmlspecialchars($TEXT['armory_info_gender'] ?? 'Gender') ?></span>
                         <span class="v"><?= htmlspecialchars($gid === 1 ? ($TEXT['armory_gender_female'] ?? 'Female') : ($TEXT['armory_gender_male'] ?? 'Male')) ?></span>
@@ -702,8 +860,14 @@ if ($is_profile) {
         </div>
     </div>
 
-    <!-- Talents & Specialization -->
-    <?php if (!empty($talent_groups)): ?>
+    <!-- Talents & Specialization — in-game-style 6×3 grid when we have a
+         verified MoP map for this class; falls back to the existing chip
+         cloud (chosen spells only) when not. -->
+    <?php
+    $mop_tiers   = wl_mop_talents($cid);
+    $use_grid    = wl_mop_talents_have_data($mop_tiers);
+    if (!empty($talent_groups) || $use_grid):
+    ?>
     <style>
     .tal-spec { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin:.2rem 0 .9rem; }
     .tal-spec .nm { color:var(--accent); font-weight:700; font-size:1rem; }
@@ -715,16 +879,49 @@ if ($is_profile) {
     .tal-chip a:hover { color:#fff; }
     .tal-group + .tal-group { margin-top:1.1rem; border-top:1px solid rgba(var(--btn-bg-rgb), .2); padding-top:1rem; }
     .tal-empty { color:#8899aa; font-size:.88rem; }
+
+    /* In-game-style 6×3 talent grid (when wl_mop_talents has data for the class) */
+    .tal-tiers { display:flex; flex-direction:column; gap:.5rem; }
+    .tal-tier  { display:grid; grid-template-columns: 56px repeat(3, minmax(0,1fr)); gap:.5rem; align-items:stretch; }
+    .tal-tier-lvl {
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(var(--accent-rgb), .08);
+        border:1px solid rgba(var(--accent-rgb), .2);
+        border-radius:8px; color:var(--accent); font-weight:800;
+        font-variant-numeric: tabular-nums; font-size:.95rem;
+    }
+    .tal-cell {
+        background:linear-gradient(145deg,#1a1a26,#12121b);
+        border:1px solid rgba(var(--btn-bg-rgb), .3);
+        border-radius:8px; padding:.55rem .75rem; min-width:0;
+        display:flex; align-items:center; gap:.5rem;
+        font-size:.85rem; transition: all .15s ease;
+        opacity:.55;
+    }
+    .tal-cell a { color:#cdd5e0; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .tal-cell.chosen {
+        opacity:1;
+        background: linear-gradient(145deg, <?= $clr ?>1f, <?= $clr ?>0d);
+        border-color: <?= $clr ?>;
+        box-shadow: 0 0 18px -6px <?= $clr ?>aa, inset 0 0 0 1px <?= $clr ?>33;
+    }
+    .tal-cell.chosen a { color:<?= $clr ?>; font-weight:700; }
+    .tal-cell.unknown { opacity:.25; }
+    @media (max-width: 575px) {
+        .tal-tier { grid-template-columns: 1fr; }
+        .tal-tier-lvl { padding:.25rem 0; }
+    }
     </style>
     <div class="armory-panel mt-3">
         <div class="armory-panel-title"><i class="bi bi-diagram-3 me-2"></i><?= htmlspecialchars($TEXT['armory_panel_talents'] ?? 'Talents') ?></div>
         <?php
         // Active talent group first, then any other group that has talents.
-        $tal_order = array_keys($talent_groups);
+        $tal_order = !empty($talent_groups) ? array_keys($talent_groups) : [$active_spec];
         usort($tal_order, fn($a, $b) => ($a === $active_spec ? -1 : ($b === $active_spec ? 1 : $a - $b)));
         foreach ($tal_order as $g):
-            $spells = $talent_groups[$g];
+            $spells = $talent_groups[$g] ?? [];
             $specNm = mop_spec_name($spec_ids[$g] ?? 0);
+            $chosen_set = array_flip(array_map('intval', $spells));
         ?>
         <div class="tal-group">
             <div class="tal-spec">
@@ -739,9 +936,38 @@ if ($is_profile) {
                     <span class="badge-alt"><?= htmlspecialchars($TEXT['armory_spec_offspec'] ?? 'Off-spec') ?></span>
                 <?php endif; ?>
             </div>
-            <?php if (empty($spells)): ?>
+
+            <?php if ($use_grid): ?>
+                <!-- New 6×3 in-game-style grid -->
+                <div class="tal-tiers">
+                    <?php foreach ($mop_tiers as $tierIdx => $row):
+                        $tierLvl = wl_mop_talent_tier_level($tierIdx);
+                    ?>
+                    <div class="tal-tier" title="<?= sprintf(htmlspecialchars($TEXT['armory_talents_tier'] ?? 'Tier %d (Lv %d)'), $tierIdx + 1, $tierLvl) ?>">
+                        <div class="tal-tier-lvl">Lv<br><?= $tierLvl ?></div>
+                        <?php foreach ($row as $sp):
+                            $sp = (int)$sp;
+                            $is_chosen = $sp > 0 && isset($chosen_set[$sp]);
+                            $cls = $sp <= 0 ? 'unknown' : ($is_chosen ? 'chosen' : '');
+                        ?>
+                            <?php if ($sp > 0): ?>
+                            <div class="tal-cell <?= $cls ?>">
+                                <a href="<?= htmlspecialchars(wowhead_spell_url($sp)) ?>" target="_blank" rel="noopener noreferrer">spell=<?= $sp ?></a>
+                            </div>
+                            <?php else: ?>
+                            <div class="tal-cell unknown" title="<?= htmlspecialchars($TEXT['armory_talents_unknown'] ?? 'No verified spell ID for this slot yet') ?>">
+                                <span style="color:#4a5568">—</span>
+                            </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php elseif (empty($spells)): ?>
                 <div class="tal-empty"><?= htmlspecialchars($TEXT['armory_no_talents'] ?? 'No talents chosen yet.') ?></div>
             <?php else: ?>
+                <!-- Fallback chip cloud (chosen spells only) — used when the class's
+                     MoP talent map isn't filled yet. -->
                 <div class="tal-grid">
                     <?php foreach ($spells as $sp): ?>
                         <span class="tal-chip"><a href="<?= htmlspecialchars(wowhead_spell_url($sp)) ?>" target="_blank" rel="noopener noreferrer">spell=<?= (int)$sp ?></a></span>
@@ -752,6 +978,321 @@ if ($is_profile) {
         <?php endforeach; ?>
         <div style="color:#4a5568;font-size:.76rem;margin-top:.8rem">
             <i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_talents_hint'] ?? 'Talent details come from Wowhead (Mists of Pandaria). Heavily customised server spells may not resolve.') ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Glyphs — chosen major + minor per spec, Wowhead-resolved chips, with
+         "Unlocked at Lv N" hint for empty unlocked slots. Hidden when the
+         character_glyphs table isn't present on this repack. -->
+    <?php if ($glyphs_query_ok):
+        // MoP unlock thresholds: slots 1-3 (major) = Lv 25/50/75; slots 4-6 (minor) = 25/50/75
+        $g_unlock = [25, 50, 75, 25, 50, 75];
+        // Active spec first, then any other spec that has a glyph row.
+        $g_order = [];
+        if (isset($char_glyphs[$active_spec])) $g_order[] = $active_spec;
+        foreach ($char_glyphs as $spec => $_g) if ($spec !== $active_spec) $g_order[] = $spec;
+        $char_level = (int)$char['level'];
+    ?>
+    <style>
+    .gly-row { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:.55rem; margin-bottom:.55rem; }
+    .gly-row.minor { opacity: .92; }
+    .gly-slot {
+        background: linear-gradient(145deg,#1a1a26,#12121b); border:1px solid rgba(var(--btn-bg-rgb), .35);
+        border-radius:8px; padding:.5rem .7rem; font-size:.85rem;
+        display:flex; align-items:center; gap:.5rem; min-width:0;
+    }
+    .gly-slot.empty { opacity:.55; font-style:italic; color:#6c7a8c; }
+    .gly-slot a { color:#dee2e6; text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gly-slot a:hover { color:#fff; }
+    .gly-tag { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:#6c7a8c; padding:.05rem .35rem; border-radius:4px; border:1px solid rgba(255,255,255,.08); flex-shrink:0; }
+    .gly-tag.major { color:var(--accent); border-color:rgba(var(--accent-rgb),.35); }
+    .gly-tag.minor { color:#8899aa; }
+    .gly-spec { display:flex; align-items:center; gap:.6rem; margin:.2rem 0 .8rem; flex-wrap:wrap; }
+    .gly-spec .nm { color:var(--accent); font-weight:700; font-size:1rem; }
+    .gly-spec .badge-act { background:rgba(105,204,240,.15); border:1px solid rgba(105,204,240,.45); color:#69ccf0; font-size:.65rem; text-transform:uppercase; letter-spacing:.5px; padding:.12rem .55rem; border-radius:10px; }
+    @media (max-width: 575px) { .gly-row { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-gem me-2"></i><?= htmlspecialchars($TEXT['armory_panel_glyphs'] ?? 'Glyphs') ?></div>
+        <?php foreach ($g_order as $spec):
+            $g = $char_glyphs[$spec];
+            $spec_name = mop_spec_name($spec_ids[$spec] ?? 0) ?? sprintf($TEXT['armory_spec_n'] ?? 'Spec %d', $spec + 1);
+            $is_active = ($spec === $active_spec);
+        ?>
+            <div class="gly-spec">
+                <span class="nm"><?= htmlspecialchars($spec_name) ?></span>
+                <?php if ($is_active): ?><span class="badge-act"><?= htmlspecialchars($TEXT['armory_active_spec'] ?? 'Active') ?></span><?php endif; ?>
+            </div>
+            <?php foreach ([['major', 0, 1, 2], ['minor', 3, 4, 5]] as $group):
+                $kind = array_shift($group); ?>
+                <div class="gly-row <?= $kind ?>">
+                    <?php foreach ($group as $idx):
+                        $sid = (int)$g[$idx];
+                        $unlock = $g_unlock[$idx];
+                    ?>
+                        <?php if ($sid > 0): ?>
+                            <div class="gly-slot">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <a href="<?= 'https://www.wowhead.com/mop-classic/spell=' . (int)$sid ?>" target="_blank" rel="noopener noreferrer" data-wh-rename-link="true">spell=<?= (int)$sid ?></a>
+                            </div>
+                        <?php elseif ($char_level >= $unlock): ?>
+                            <div class="gly-slot empty">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <span><?= htmlspecialchars($TEXT['armory_gly_empty'] ?? 'Empty') ?></span>
+                            </div>
+                        <?php else: ?>
+                            <div class="gly-slot empty">
+                                <span class="gly-tag <?= $kind ?>"><?= htmlspecialchars(strtoupper($kind === 'major' ? ($TEXT['armory_gly_major'] ?? 'Major') : ($TEXT['armory_gly_minor'] ?? 'Minor'))) ?></span>
+                                <span><?= sprintf(htmlspecialchars($TEXT['armory_gly_unlock_at'] ?? 'Unlocked at Lv %d'), $unlock) ?></span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+        <?php if (empty($g_order)): ?>
+            <div style="color:#6c7a8c;font-size:.85rem;padding:.4rem 0"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_gly_none'] ?? 'No glyphs recorded for this character.') ?></div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- PvP — total HKs + rated bracket ratings (current season). Hidden
+         when there's no data (e.g., rated_pvp_info table absent or no rows). -->
+    <?php
+    $pvp_has = ($pvp_total_kills !== null) || !empty($pvp_rated);
+    if ($pvp_has):
+        $bracket_label = [0 => '2v2', 1 => '3v3', 3 => 'Rated BG'];
+    ?>
+    <style>
+    .pvp-grid { display:grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap:1rem; }
+    .pvp-card { background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.3); border-radius:10px; padding:1rem 1.1rem; }
+    .pvp-card .lbl { color:#8899aa; font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.4rem; }
+    .pvp-card .big { font-size:2rem; font-weight:800; color:#f87e8a; line-height:1; font-variant-numeric: tabular-nums; }
+    .pvp-tbl { width:100%; border-collapse: collapse; }
+    .pvp-tbl th { text-align:left; font-size:.7rem; color:#6c7a8c; text-transform:uppercase; letter-spacing:1px; padding:.35rem .6rem; font-weight:600; }
+    .pvp-tbl td { padding:.55rem .6rem; border-top:1px solid rgba(255,255,255,.04); font-size:.92rem; }
+    .pvp-tbl tr:first-child td { border-top: none; }
+    .pvp-bracket { display:inline-flex; align-items:center; gap:.45rem; }
+    .pvp-bracket .pill { padding:.18rem .55rem; border-radius:50px; background: rgba(var(--accent-rgb),.14); color:var(--accent); border:1px solid rgba(var(--accent-rgb),.4); font-size:.72rem; font-weight:700; letter-spacing:.5px; }
+    .pvp-rating { color:#dee2e6; font-weight:800; font-variant-numeric: tabular-nums; }
+    .pvp-empty  { color:#6c7a8c; font-size:.85rem; padding:.6rem; }
+    @media (max-width: 768px) {
+        .pvp-grid { grid-template-columns: 1fr; }
+    }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-crosshair me-2"></i><?= htmlspecialchars($TEXT['armory_panel_pvp'] ?? 'PvP') ?></div>
+        <div class="pvp-grid">
+            <div class="pvp-card">
+                <div class="lbl"><?= htmlspecialchars($TEXT['armory_pvp_total_hk'] ?? 'Total Honorable Kills') ?></div>
+                <div class="big"><?= number_format((int)($pvp_total_kills ?? 0)) ?></div>
+            </div>
+            <div class="pvp-card">
+                <div class="lbl" style="margin-bottom:.55rem"><?= htmlspecialchars($TEXT['armory_pvp_rated'] ?? 'Rated PvP (current season)') ?></div>
+                <?php if (!empty($pvp_rated)): ?>
+                    <table class="pvp-tbl">
+                        <thead>
+                            <tr>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_bracket'] ?? 'Bracket') ?></th>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_rating'] ?? 'Rating') ?></th>
+                                <th><?= htmlspecialchars($TEXT['armory_pvp_wins'] ?? 'Wins') ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($pvp_rated as $row):
+                                $slot = (int)$row['slot'];
+                                $lbl  = $bracket_label[$slot] ?? ('Slot ' . $slot);
+                            ?>
+                            <tr>
+                                <td><span class="pvp-bracket"><span class="pill"><?= htmlspecialchars($lbl) ?></span></span></td>
+                                <td class="pvp-rating"><?= number_format((int)$row['rating']) ?></td>
+                                <td><?= number_format((int)$row['season_wins']) ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <div class="pvp-empty"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($TEXT['armory_pvp_no_rated'] ?? 'No rated PvP recorded for the current season.') ?></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Achievements — total + recent 12, each chip is a Wowhead tooltip
+         (no DBC parse needed; achievement_id maps cleanly via mop-classic).
+         Hidden if the table isn't queryable on this repack. -->
+    <?php if ($achievement_count > 0): ?>
+    <style>
+    .ach-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:.85rem; }
+    .ach-count { display:flex; align-items:baseline; gap:.55rem; }
+    .ach-count .num { font-size:2rem; font-weight:800; color:var(--accent); line-height:1; font-variant-numeric: tabular-nums; }
+    .ach-count .lbl { color:#8899aa; font-size:.78rem; text-transform:uppercase; letter-spacing:1.5px; }
+    .ach-recent-title { color:#6c7a8c; font-size:.7rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.55rem; }
+    .ach-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:.5rem; }
+    .ach-chip { display:flex; align-items:center; gap:.55rem; padding:.5rem .65rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; min-width:0; text-decoration:none; transition:border-color .15s, background .15s; }
+    .ach-chip:hover { border-color: rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.08); }
+    .ach-chip .ach-id { color:var(--accent); font-weight:700; font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+    .ach-chip .ach-date { color:#6c7a8c; font-size:.7rem; font-variant-numeric: tabular-nums; flex-shrink:0; }
+    @media (max-width: 768px) { .ach-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .ach-grid { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-trophy-fill me-2"></i><?= htmlspecialchars($TEXT['armory_panel_achievements'] ?? 'Achievements') ?></div>
+        <div class="ach-head">
+            <div class="ach-count">
+                <span class="num"><?= number_format($achievement_count) ?></span>
+                <span class="lbl"><?= htmlspecialchars($TEXT['armory_ach_earned'] ?? 'Earned') ?></span>
+            </div>
+        </div>
+        <?php if (!empty($recent_achievements)): ?>
+        <div class="ach-recent-title"><?= htmlspecialchars($TEXT['armory_ach_recent'] ?? 'Most recent') ?></div>
+        <div class="ach-grid">
+            <?php foreach ($recent_achievements as $a):
+                $aid  = (int)$a['achievement'];
+                $when = (int)$a['date'];
+                $dstr = $when > 0 ? date('Y-m-d', $when) : '';
+            ?>
+            <a class="ach-chip"
+               href="https://www.wowhead.com/mop-classic/achievement=<?= $aid ?>"
+               data-wh-icon-size="small"
+               target="_blank" rel="noopener">
+                <span class="ach-id">#<?= $aid ?></span>
+                <?php if ($dstr): ?><span class="ach-date"><?= htmlspecialchars($dstr) ?></span><?php endif; ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Reputation — major MoP factions (Klaxxi, Shado-Pan Assault, Black
+         Prince, August Celestials, etc.) with a rank label + progress bar.
+         Filtered through wl_faction_name() so unknown faction ids never
+         surface as "Faction #1234". Hidden when no major faction has any
+         meaningful standing (pure-Neutral entries are skipped at fetch). -->
+    <?php if (!empty($reputations)): ?>
+    <style>
+    .rep-grid { display:grid; grid-template-columns: 1fr 1fr; gap:.55rem; }
+    .rep-row { padding:.55rem .75rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; }
+    .rep-hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.35rem; gap:.5rem; font-size:.9rem; }
+    .rep-nm { color:#dee2e6; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .rep-rk { font-weight:700; font-size:.8rem; flex-shrink:0; }
+    .rep-bar { position:relative; height:6px; border-radius:999px; background: rgba(255,255,255,.05); overflow:hidden; }
+    .rep-bar > i { display:block; height:100%; border-radius:999px; }
+    .rep-val { color:#6c7a8c; font-size:.7rem; font-variant-numeric: tabular-nums; text-align:right; margin-top:.25rem; }
+    @media (max-width: 768px) { .rep-grid { grid-template-columns: 1fr; } }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-shield-fill me-2"></i><?= htmlspecialchars($TEXT['armory_panel_reputation'] ?? 'Reputation') ?></div>
+        <div class="rep-grid">
+            <?php foreach ($reputations as $r):
+                $rank = $r['rank'];
+                $clr  = wl_rep_rank_color($rank);
+                $lbl  = wl_rep_rank_label($rank);
+                $prog = wl_rep_progress($r['standing']);
+                $pct  = $prog['max'] > 0 ? max(0, min(100, (int)round(($prog['value'] / $prog['max']) * 100))) : 0;
+            ?>
+            <div class="rep-row">
+                <div class="rep-hd">
+                    <a class="rep-nm" href="https://www.wowhead.com/mop-classic/faction=<?= (int)$r['id'] ?>" target="_blank" rel="noopener" style="color:#dee2e6;text-decoration:none"><?= htmlspecialchars($r['name']) ?></a>
+                    <span class="rep-rk" style="color:<?= $clr ?>"><?= htmlspecialchars($lbl) ?></span>
+                </div>
+                <div class="rep-bar"><i style="width:<?= $pct ?>%;background:linear-gradient(90deg, <?= $clr ?>, <?= $clr ?>)"></i></div>
+                <?php if ($rank < 7): ?>
+                <div class="rep-val"><?= number_format($prog['value']) ?> / <?= number_format($prog['max']) ?></div>
+                <?php else: ?>
+                <div class="rep-val" style="color:<?= $clr ?>"><?= htmlspecialchars($TEXT['armory_rep_maxed'] ?? 'Maxed') ?></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Professions — primary + secondary skills with value/max bars.
+         Filtered through wl_skill_name() so we only show known skills
+         (no "Skill #1234" noise). Hidden when nothing matches. -->
+    <?php
+    $prof_primary = []; $prof_secondary = [];
+    foreach ($char_skills as $s) {
+        $sid = (int)$s['skill'];
+        $name = wl_skill_name($sid);
+        if ($name === null) continue;
+        $row = [
+            'id'    => $sid,
+            'name'  => $name,
+            'value' => (int)$s['value'],
+            'max'   => max(1, (int)$s['max']),
+            'icon'  => wl_skill_icon($sid),
+        ];
+        if (wl_skill_is_primary($sid)) $prof_primary[]   = $row;
+        else                            $prof_secondary[] = $row;
+    }
+    // Render the panel whenever the table exists (even with 0 known skills) so
+    // it sits in the layout consistently — matches how PvP shows at 0 HKs.
+    // Only hide it when character_skills isn't queryable on this repack.
+    $prof_has = $skills_query_ok;
+    if ($prof_has):
+    ?>
+    <style>
+    .prof-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+    .prof-col-title { color:#8899aa; font-size:.72rem; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:.6rem; }
+    .prof-row { display:grid; grid-template-columns: 38px 1fr; gap:.65rem; align-items:center; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; padding:.5rem .75rem; margin-bottom:.5rem; }
+    .prof-row .ic { width:32px; height:32px; border-radius:6px; border:1px solid rgba(var(--accent-rgb,255,209,89),.35); box-shadow: 0 0 0 1px rgba(0,0,0,.6) inset; background: #1a1f2b center/cover no-repeat; flex-shrink:0; }
+    .prof-row .ic.no-img { display:flex; align-items:center; justify-content:center; color: var(--accent); font-size:1.1rem; background: rgba(var(--btn-bg-rgb),.18); }
+    .prof-row .meta { min-width:0; }
+    .prof-row .hd { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.3rem; font-size:.9rem; gap:.5rem; }
+    .prof-row .nm { color:#dee2e6; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .prof-row .vl { color:var(--accent); font-weight:700; font-variant-numeric: tabular-nums; font-size:.85rem; flex-shrink:0; }
+    .prof-bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,.05); overflow: hidden; }
+    .prof-bar > i { display:block; height:100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:999px; }
+    @media (max-width: 768px) {
+        .prof-grid { grid-template-columns: 1fr; }
+    }
+    </style>
+    <div class="armory-panel mt-3">
+        <div class="armory-panel-title"><i class="bi bi-hammer me-2"></i><?= htmlspecialchars($TEXT['armory_panel_professions'] ?? 'Professions') ?></div>
+        <div class="prof-grid">
+            <div>
+                <div class="prof-col-title"><?= htmlspecialchars($TEXT['armory_prof_primary'] ?? 'Primary') ?></div>
+                <?php if (!empty($prof_primary)): foreach ($prof_primary as $p):
+                    $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
+                    <div class="prof-row">
+                        <?php if (!empty($p['icon'])): ?>
+                        <div class="ic" style="background-image:url('<?= htmlspecialchars($p['icon']) ?>')" aria-hidden="true"></div>
+                        <?php else: ?>
+                        <div class="ic no-img" aria-hidden="true"><i class="bi bi-hammer"></i></div>
+                        <?php endif; ?>
+                        <div class="meta">
+                            <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                            <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        </div>
+                    </div>
+                <?php endforeach; else: ?>
+                    <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_primary'] ?? 'No primary professions learned.') ?></div>
+                <?php endif; ?>
+            </div>
+            <div>
+                <div class="prof-col-title"><?= htmlspecialchars($TEXT['armory_prof_secondary'] ?? 'Secondary') ?></div>
+                <?php if (!empty($prof_secondary)): foreach ($prof_secondary as $p):
+                    $pct = max(0, min(100, (int)round(($p['value'] / $p['max']) * 100))); ?>
+                    <div class="prof-row">
+                        <?php if (!empty($p['icon'])): ?>
+                        <div class="ic" style="background-image:url('<?= htmlspecialchars($p['icon']) ?>')" aria-hidden="true"></div>
+                        <?php else: ?>
+                        <div class="ic no-img" aria-hidden="true"><i class="bi bi-bandaid"></i></div>
+                        <?php endif; ?>
+                        <div class="meta">
+                            <div class="hd"><span class="nm"><?= htmlspecialchars($p['name']) ?></span><span class="vl"><?= (int)$p['value'] ?> / <?= (int)$p['max'] ?></span></div>
+                            <div class="prof-bar"><i style="width:<?= $pct ?>%"></i></div>
+                        </div>
+                    </div>
+                <?php endforeach; else: ?>
+                    <div style="color:#6c7a8c;font-size:.85rem"><i class="bi bi-dash-circle me-1"></i><?= htmlspecialchars($TEXT['armory_prof_none_secondary'] ?? 'No secondary skills.') ?></div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
     <?php endif; ?>
@@ -1148,6 +1689,9 @@ function build_qs(array $overrides = []): string {
                     <div class="extra">
                         <?php if (!empty($row['guild_name'])): ?>
                             <i class="bi bi-people-fill"></i> &lt;<?= htmlspecialchars($row['guild_name']) ?>&gt;
+                            <?php /* No nested <a> — the entire result-card is already an <a href="/armory/...">.
+                                     The /guild/<name> click-through is available on the character profile
+                                     hero, the Leaderboards Guilds tab, and Who's Online. */ ?>
                         <?php elseif (!empty($row['zone'])): ?>
                             <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($row['zone']) ?>
                         <?php else: ?>

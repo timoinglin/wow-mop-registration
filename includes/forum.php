@@ -15,7 +15,7 @@ if (!function_exists('forum_settings_get')) {
     function forum_settings_get(PDO $pdo): array
     {
         try {
-            $row = $pdo->query("SELECT enabled, auto_approve_threshold FROM forum_settings WHERE id = 1 LIMIT 1")
+            $row = $pdo->query("SELECT enabled, auto_approve_threshold FROM web_forum_settings WHERE id = 1 LIMIT 1")
                        ->fetch(PDO::FETCH_ASSOC);
             if ($row) {
                 return [
@@ -36,7 +36,7 @@ if (!function_exists('forum_settings_update')) {
         $threshold = max(0, min(1000, $threshold));
         try {
             $stmt = $pdo->prepare(
-                "INSERT INTO forum_settings (id, enabled, auto_approve_threshold)
+                "INSERT INTO web_forum_settings (id, enabled, auto_approve_threshold)
                  VALUES (1, :en, :th)
                  ON DUPLICATE KEY UPDATE enabled = VALUES(enabled),
                                          auto_approve_threshold = VALUES(auto_approve_threshold)"
@@ -57,7 +57,7 @@ if (!function_exists('forum_is_enabled')) {
     function forum_is_enabled(PDO $pdo): bool
     {
         try {
-            $v = $pdo->query("SELECT enabled FROM forum_settings WHERE id = 1 LIMIT 1")->fetchColumn();
+            $v = $pdo->query("SELECT enabled FROM web_forum_settings WHERE id = 1 LIMIT 1")->fetchColumn();
             return (bool)$v;
         } catch (PDOException $e) {
             return false;
@@ -105,9 +105,9 @@ if (!function_exists('forum_categories_list')) {
         try {
             return $pdo->query(
                 "SELECT c.id, c.slug, c.name, c.description, c.icon, c.sort_order, c.created_at,
-                        (SELECT COUNT(*) FROM forum_threads t
+                        (SELECT COUNT(*) FROM web_forum_threads t
                          WHERE t.category_id = c.id AND t.status = 'published') AS thread_count
-                 FROM forum_categories c
+                 FROM web_forum_categories c
                  ORDER BY c.sort_order ASC, c.name ASC"
             )->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -121,7 +121,7 @@ if (!function_exists('forum_category_get')) {
     function forum_category_get(PDO $pdo, int $id): ?array
     {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM forum_categories WHERE id = :id LIMIT 1");
+            $stmt = $pdo->prepare("SELECT * FROM web_forum_categories WHERE id = :id LIMIT 1");
             $stmt->execute(['id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
@@ -154,7 +154,7 @@ if (!function_exists('forum_category_save')) {
         try {
             if ($id) {
                 $stmt = $pdo->prepare(
-                    "UPDATE forum_categories
+                    "UPDATE web_forum_categories
                      SET slug = :slug, name = :name, description = :desc, icon = :icon,
                          sort_order = :sort, admin_only = :ao, allow_replies = :ar
                      WHERE id = :id"
@@ -167,7 +167,7 @@ if (!function_exists('forum_category_save')) {
                 return $id;
             } else {
                 $stmt = $pdo->prepare(
-                    "INSERT INTO forum_categories (slug, name, description, icon, sort_order, admin_only, allow_replies)
+                    "INSERT INTO web_forum_categories (slug, name, description, icon, sort_order, admin_only, allow_replies)
                      VALUES (:slug, :name, :desc, :icon, :sort, :ao, :ar)"
                 );
                 $stmt->execute([
@@ -195,16 +195,16 @@ if (!function_exists('forum_category_delete')) {
             $pdo->beginTransaction();
             // Posts → Threads in this category
             $del_posts = $pdo->prepare(
-                "DELETE p FROM forum_posts p
-                 JOIN forum_threads t ON t.id = p.thread_id
+                "DELETE p FROM web_forum_posts p
+                 JOIN web_forum_threads t ON t.id = p.thread_id
                  WHERE t.category_id = :id"
             );
             $del_posts->execute(['id' => $id]);
 
-            $del_threads = $pdo->prepare("DELETE FROM forum_threads WHERE category_id = :id");
+            $del_threads = $pdo->prepare("DELETE FROM web_forum_threads WHERE category_id = :id");
             $del_threads->execute(['id' => $id]);
 
-            $del_cat = $pdo->prepare("DELETE FROM forum_categories WHERE id = :id");
+            $del_cat = $pdo->prepare("DELETE FROM web_forum_categories WHERE id = :id");
             $del_cat->execute(['id' => $id]);
 
             $pdo->commit();
@@ -224,7 +224,7 @@ if (!function_exists('forum_bans_list')) {
         try {
             return $pdo->query(
                 "SELECT account_id, username, banned_by, reason, banned_at, expires_at
-                 FROM forum_bans
+                 FROM web_forum_bans
                  ORDER BY banned_at DESC"
             )->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -239,7 +239,7 @@ if (!function_exists('forum_is_user_banned')) {
     {
         try {
             $stmt = $pdo->prepare(
-                "SELECT 1 FROM forum_bans
+                "SELECT 1 FROM web_forum_bans
                  WHERE account_id = :id
                    AND (expires_at IS NULL OR expires_at > NOW())
                  LIMIT 1"
@@ -270,7 +270,7 @@ if (!function_exists('forum_ban_user')) {
 
         try {
             $stmt = $pdo->prepare(
-                "INSERT INTO forum_bans (account_id, username, banned_by, reason, expires_at)
+                "INSERT INTO web_forum_bans (account_id, username, banned_by, reason, expires_at)
                  VALUES (:id, :u, :by, :r, :e)
                  ON DUPLICATE KEY UPDATE
                     username = VALUES(username),
@@ -296,7 +296,7 @@ if (!function_exists('forum_unban_user')) {
     function forum_unban_user(PDO $pdo, int $account_id): bool
     {
         try {
-            $stmt = $pdo->prepare("DELETE FROM forum_bans WHERE account_id = :id");
+            $stmt = $pdo->prepare("DELETE FROM web_forum_bans WHERE account_id = :id");
             $stmt->execute(['id' => $account_id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
@@ -317,7 +317,7 @@ if (!function_exists('forum_user_approved_post_count')) {
     {
         try {
             $stmt = $pdo->prepare(
-                "SELECT COUNT(*) FROM forum_posts
+                "SELECT COUNT(*) FROM web_forum_posts
                  WHERE author_id = :id AND status = 'published'"
             );
             $stmt->execute(['id' => $account_id]);
@@ -357,19 +357,19 @@ if (!function_exists('forum_categories_with_stats')) {
             return $pdo->query(
                 "SELECT c.id, c.slug, c.name, c.description, c.icon, c.sort_order,
                         c.admin_only, c.allow_replies,
-                        (SELECT COUNT(*) FROM forum_threads t
+                        (SELECT COUNT(*) FROM web_forum_threads t
                          WHERE t.category_id = c.id AND t.status = 'published') AS thread_count,
                         latest.title          AS latest_title,
                         latest.slug           AS latest_slug,
                         latest.last_reply_at  AS latest_at,
                         latest.last_reply_by  AS latest_by
-                 FROM forum_categories c
+                 FROM web_forum_categories c
                  LEFT JOIN (
                      SELECT t1.category_id, t1.title, t1.slug, t1.last_reply_at, t1.last_reply_by
-                     FROM forum_threads t1
+                     FROM web_forum_threads t1
                      JOIN (
                          SELECT category_id, MAX(last_reply_at) AS max_at
-                         FROM forum_threads
+                         FROM web_forum_threads
                          WHERE status = 'published' AND last_reply_at IS NOT NULL
                          GROUP BY category_id
                      ) m ON m.category_id = t1.category_id AND m.max_at = t1.last_reply_at
@@ -402,8 +402,8 @@ if (!function_exists('forum_recent_threads')) {
                         t.last_reply_at, t.last_reply_by,
                         c.slug AS category_slug, c.name AS category_name,
                         c.icon AS category_icon
-                 FROM forum_threads t
-                 JOIN forum_categories c ON c.id = t.category_id
+                 FROM web_forum_threads t
+                 JOIN web_forum_categories c ON c.id = t.category_id
                  WHERE t.status = 'published'
                  ORDER BY COALESCE(t.last_reply_at, t.created_at) DESC, t.id DESC
                  LIMIT $limit"
@@ -419,7 +419,7 @@ if (!function_exists('forum_category_get_by_slug')) {
     function forum_category_get_by_slug(PDO $pdo, string $slug): ?array
     {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM forum_categories WHERE slug = :s LIMIT 1");
+            $stmt = $pdo->prepare("SELECT * FROM web_forum_categories WHERE slug = :s LIMIT 1");
             $stmt->execute(['s' => $slug]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
@@ -434,7 +434,7 @@ if (!function_exists('forum_threads_count_in_category')) {
     {
         try {
             $stmt = $pdo->prepare(
-                "SELECT COUNT(*) FROM forum_threads WHERE category_id = :id AND status = 'published'"
+                "SELECT COUNT(*) FROM web_forum_threads WHERE category_id = :id AND status = 'published'"
             );
             $stmt->execute(['id' => $category_id]);
             return (int)$stmt->fetchColumn();
@@ -458,7 +458,7 @@ if (!function_exists('forum_threads_in_category')) {
             $stmt = $pdo->prepare(
                 "SELECT id, slug, title, author_id, author_name, is_sticky, is_locked,
                         view_count, reply_count, last_reply_at, last_reply_by, created_at
-                 FROM forum_threads
+                 FROM web_forum_threads
                  WHERE category_id = :id AND status = 'published'
                  ORDER BY is_sticky DESC, last_reply_at DESC
                  LIMIT $per_page OFFSET $offset"
@@ -492,8 +492,8 @@ if (!function_exists('forum_thread_get_by_slug')) {
             }
             $sql = "SELECT t.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
                            c.admin_only AS category_admin_only, c.allow_replies AS category_allow_replies
-                    FROM forum_threads t
-                    JOIN forum_categories c ON c.id = t.category_id
+                    FROM web_forum_threads t
+                    JOIN web_forum_categories c ON c.id = t.category_id
                     WHERE $where LIMIT 1";
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
@@ -531,7 +531,7 @@ if (!function_exists('forum_threads_in_category_for_user')) {
         try {
             $sql = "SELECT id, slug, title, author_id, author_name, status, is_sticky, is_locked,
                            view_count, reply_count, last_reply_at, last_reply_by, created_at
-                    FROM forum_threads
+                    FROM web_forum_threads
                     WHERE $where
                     ORDER BY is_sticky DESC, last_reply_at DESC, created_at DESC
                     LIMIT $per_page OFFSET $offset";
@@ -559,7 +559,7 @@ if (!function_exists('forum_threads_count_in_category_for_user')) {
             $where .= " AND status = 'published'";
         }
         try {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM forum_threads WHERE $where");
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM web_forum_threads WHERE $where");
             $stmt->execute($params);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
@@ -572,7 +572,7 @@ if (!function_exists('forum_thread_increment_views')) {
     function forum_thread_increment_views(PDO $pdo, int $thread_id): void
     {
         try {
-            $stmt = $pdo->prepare("UPDATE forum_threads SET view_count = view_count + 1 WHERE id = :id");
+            $stmt = $pdo->prepare("UPDATE web_forum_threads SET view_count = view_count + 1 WHERE id = :id");
             $stmt->execute(['id' => $thread_id]);
         } catch (PDOException $e) {
             // non-fatal
@@ -615,7 +615,7 @@ if (!function_exists('forum_user_can_post_now')) {
     {
         if ($cooldown_seconds <= 0 || $account_id <= 0) return [true, 0];
         try {
-            $stmt = $pdo->prepare("SELECT MAX(created_at) FROM forum_posts WHERE author_id = :id");
+            $stmt = $pdo->prepare("SELECT MAX(created_at) FROM web_forum_posts WHERE author_id = :id");
             $stmt->execute(['id' => $account_id]);
             $last = $stmt->fetchColumn();
             if (!$last) return [true, 0];
@@ -635,7 +635,7 @@ if (!function_exists('forum_posts_count_in_thread')) {
     {
         try {
             $stmt = $pdo->prepare(
-                "SELECT COUNT(*) FROM forum_posts WHERE thread_id = :id AND status = 'published'"
+                "SELECT COUNT(*) FROM web_forum_posts WHERE thread_id = :id AND status = 'published'"
             );
             $stmt->execute(['id' => $thread_id]);
             return (int)$stmt->fetchColumn();
@@ -660,7 +660,7 @@ if (!function_exists('forum_posts_in_thread')) {
             $stmt = $pdo->prepare(
                 "SELECT id, thread_id, author_id, author_name, body, status, is_op,
                         edited_at, edited_by, created_at
-                 FROM forum_posts
+                 FROM web_forum_posts
                  WHERE thread_id = :id AND status = 'published'
                  ORDER BY is_op DESC, created_at ASC
                  LIMIT $per_page OFFSET $offset"
@@ -725,7 +725,7 @@ if (!function_exists('forum_create_thread')) {
             $pdo->beginTransaction();
 
             $ins_t = $pdo->prepare(
-                "INSERT INTO forum_threads
+                "INSERT INTO web_forum_threads
                    (category_id, slug, title, author_id, author_name, status, last_reply_at, last_reply_by)
                  VALUES
                    (:cid, :slug, :title, :aid, :aname, :status,
@@ -741,7 +741,7 @@ if (!function_exists('forum_create_thread')) {
             $thread_id = (int)$pdo->lastInsertId();
 
             $ins_p = $pdo->prepare(
-                "INSERT INTO forum_posts
+                "INSERT INTO web_forum_posts
                    (thread_id, author_id, author_name, body, status, is_op)
                  VALUES
                    (:tid, :aid, :aname, :body, :status, 1)"
@@ -776,7 +776,7 @@ if (!function_exists('forum_create_reply')) {
             $pdo->beginTransaction();
 
             $ins = $pdo->prepare(
-                "INSERT INTO forum_posts
+                "INSERT INTO web_forum_posts
                    (thread_id, author_id, author_name, body, status, is_op)
                  VALUES
                    (:tid, :aid, :aname, :body, :status, 0)"
@@ -789,7 +789,7 @@ if (!function_exists('forum_create_reply')) {
 
             if ($auto_approve) {
                 $upd = $pdo->prepare(
-                    "UPDATE forum_threads
+                    "UPDATE web_forum_threads
                      SET reply_count   = reply_count + 1,
                          last_reply_at = NOW(),
                          last_reply_by = :name
@@ -823,9 +823,9 @@ if (!function_exists('forum_post_get')) {
                         t.is_locked,
                         c.name  AS category_name,
                         c.slug  AS category_slug
-                 FROM forum_posts p
-                 JOIN forum_threads t ON t.id = p.thread_id
-                 JOIN forum_categories c ON c.id = t.category_id
+                 FROM web_forum_posts p
+                 JOIN web_forum_threads t ON t.id = p.thread_id
+                 JOIN web_forum_categories c ON c.id = t.category_id
                  WHERE p.id = :id
                  LIMIT 1"
             );
@@ -849,7 +849,7 @@ if (!function_exists('forum_post_edit')) {
         if ($body === '') return false;
         try {
             $stmt = $pdo->prepare(
-                "UPDATE forum_posts
+                "UPDATE web_forum_posts
                  SET body = :body, edited_at = NOW(), edited_by = :who
                  WHERE id = :id"
             );
@@ -875,9 +875,9 @@ if (!function_exists('forum_pending_threads_list')) {
                 "SELECT t.id, t.slug, t.title, t.author_id, t.author_name, t.created_at,
                         t.category_id, c.name AS category_name, c.slug AS category_slug,
                         p.id AS op_post_id, p.body AS op_body
-                 FROM forum_threads t
-                 JOIN forum_categories c ON c.id = t.category_id
-                 LEFT JOIN forum_posts p ON p.thread_id = t.id AND p.is_op = 1
+                 FROM web_forum_threads t
+                 JOIN web_forum_categories c ON c.id = t.category_id
+                 LEFT JOIN web_forum_posts p ON p.thread_id = t.id AND p.is_op = 1
                  WHERE t.status = 'pending'
                  ORDER BY t.created_at ASC
                  LIMIT $limit"
@@ -902,9 +902,9 @@ if (!function_exists('forum_pending_posts_list')) {
                 "SELECT p.id, p.thread_id, p.author_id, p.author_name, p.body, p.created_at,
                         t.title AS thread_title, t.slug AS thread_slug,
                         c.name AS category_name, c.slug AS category_slug
-                 FROM forum_posts p
-                 JOIN forum_threads t ON t.id = p.thread_id
-                 JOIN forum_categories c ON c.id = t.category_id
+                 FROM web_forum_posts p
+                 JOIN web_forum_threads t ON t.id = p.thread_id
+                 JOIN web_forum_categories c ON c.id = t.category_id
                  WHERE p.status = 'pending' AND p.is_op = 0
                  ORDER BY p.created_at ASC
                  LIMIT $limit"
@@ -920,8 +920,8 @@ if (!function_exists('forum_pending_count')) {
     function forum_pending_count(PDO $pdo): int
     {
         try {
-            $n  = (int)$pdo->query("SELECT COUNT(*) FROM forum_threads WHERE status = 'pending'")->fetchColumn();
-            $n += (int)$pdo->query("SELECT COUNT(*) FROM forum_posts   WHERE status = 'pending' AND is_op = 0")->fetchColumn();
+            $n  = (int)$pdo->query("SELECT COUNT(*) FROM web_forum_threads WHERE status = 'pending'")->fetchColumn();
+            $n += (int)$pdo->query("SELECT COUNT(*) FROM web_forum_posts   WHERE status = 'pending' AND is_op = 0")->fetchColumn();
             return $n;
         } catch (PDOException $e) {
             return 0;
@@ -940,7 +940,7 @@ if (!function_exists('forum_approve_thread')) {
         try {
             $pdo->beginTransaction();
             $u1 = $pdo->prepare(
-                "UPDATE forum_threads
+                "UPDATE web_forum_threads
                  SET status = 'published',
                      last_reply_at = COALESCE(last_reply_at, created_at),
                      last_reply_by = COALESCE(last_reply_by, author_name)
@@ -950,7 +950,7 @@ if (!function_exists('forum_approve_thread')) {
             $changed = $u1->rowCount() > 0;
 
             $u2 = $pdo->prepare(
-                "UPDATE forum_posts SET status = 'published' WHERE thread_id = :tid AND is_op = 1 AND status = 'pending'"
+                "UPDATE web_forum_posts SET status = 'published' WHERE thread_id = :tid AND is_op = 1 AND status = 'pending'"
             );
             $u2->execute(['tid' => $thread_id]);
 
@@ -973,7 +973,7 @@ if (!function_exists('forum_approve_post')) {
     {
         try {
             $pdo->beginTransaction();
-            $sel = $pdo->prepare("SELECT thread_id, author_name, status, is_op FROM forum_posts WHERE id = :id");
+            $sel = $pdo->prepare("SELECT thread_id, author_name, status, is_op FROM web_forum_posts WHERE id = :id");
             $sel->execute(['id' => $post_id]);
             $p = $sel->fetch(PDO::FETCH_ASSOC);
             if (!$p || $p['status'] !== 'pending' || (int)$p['is_op'] === 1) {
@@ -981,11 +981,11 @@ if (!function_exists('forum_approve_post')) {
                 return false;
             }
 
-            $u = $pdo->prepare("UPDATE forum_posts SET status = 'published' WHERE id = :id");
+            $u = $pdo->prepare("UPDATE web_forum_posts SET status = 'published' WHERE id = :id");
             $u->execute(['id' => $post_id]);
 
             $bump = $pdo->prepare(
-                "UPDATE forum_threads
+                "UPDATE web_forum_threads
                  SET reply_count = reply_count + 1,
                      last_reply_at = NOW(),
                      last_reply_by = :name
@@ -1013,14 +1013,14 @@ if (!function_exists('forum_reject_thread')) {
     {
         try {
             $pdo->beginTransaction();
-            $check = $pdo->prepare("SELECT status FROM forum_threads WHERE id = :id");
+            $check = $pdo->prepare("SELECT status FROM web_forum_threads WHERE id = :id");
             $check->execute(['id' => $thread_id]);
             if ($check->fetchColumn() !== 'pending') {
                 $pdo->rollBack();
                 return false;
             }
-            $pdo->prepare("DELETE FROM forum_posts WHERE thread_id = :id")->execute(['id' => $thread_id]);
-            $pdo->prepare("DELETE FROM forum_threads WHERE id = :id AND status = 'pending'")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM web_forum_posts WHERE thread_id = :id")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM web_forum_threads WHERE id = :id AND status = 'pending'")->execute(['id' => $thread_id]);
             $pdo->commit();
             return true;
         } catch (PDOException $e) {
@@ -1035,7 +1035,7 @@ if (!function_exists('forum_reject_post')) {
     function forum_reject_post(PDO $pdo, int $post_id): bool
     {
         try {
-            $stmt = $pdo->prepare("DELETE FROM forum_posts WHERE id = :id AND status = 'pending' AND is_op = 0");
+            $stmt = $pdo->prepare("DELETE FROM web_forum_posts WHERE id = :id AND status = 'pending' AND is_op = 0");
             $stmt->execute(['id' => $post_id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
@@ -1064,7 +1064,7 @@ if (!function_exists('forum_delete_post')) {
     function forum_delete_post(PDO $pdo, int $post_id): ?array
     {
         try {
-            $sel = $pdo->prepare("SELECT id, thread_id, status, is_op FROM forum_posts WHERE id = :id");
+            $sel = $pdo->prepare("SELECT id, thread_id, status, is_op FROM web_forum_posts WHERE id = :id");
             $sel->execute(['id' => $post_id]);
             $p = $sel->fetch(PDO::FETCH_ASSOC);
             if (!$p) return null;
@@ -1073,25 +1073,25 @@ if (!function_exists('forum_delete_post')) {
             $pdo->beginTransaction();
             if ((int)$p['is_op'] === 1) {
                 // OP delete = whole thread gone
-                $pdo->prepare("DELETE FROM forum_posts   WHERE thread_id = :id")->execute(['id' => $tid]);
-                $pdo->prepare("DELETE FROM forum_threads WHERE id = :id")->execute(['id' => $tid]);
+                $pdo->prepare("DELETE FROM web_forum_posts   WHERE thread_id = :id")->execute(['id' => $tid]);
+                $pdo->prepare("DELETE FROM web_forum_threads WHERE id = :id")->execute(['id' => $tid]);
                 $pdo->commit();
                 return ['deleted_thread' => true, 'thread_id' => $tid];
             }
 
             // Reply delete
-            $pdo->prepare("DELETE FROM forum_posts WHERE id = :id")->execute(['id' => $post_id]);
+            $pdo->prepare("DELETE FROM web_forum_posts WHERE id = :id")->execute(['id' => $post_id]);
 
             if ($p['status'] === 'published') {
                 // Refresh reply_count + last_reply from what's still there
-                $cnt = $pdo->prepare("SELECT COUNT(*) FROM forum_posts WHERE thread_id = :tid AND status = 'published' AND is_op = 0");
+                $cnt = $pdo->prepare("SELECT COUNT(*) FROM web_forum_posts WHERE thread_id = :tid AND status = 'published' AND is_op = 0");
                 $cnt->execute(['tid' => $tid]);
                 $new_count = (int)$cnt->fetchColumn();
 
                 // Most recent published activity in this thread (reply OR OP)
                 $last = $pdo->prepare(
                     "SELECT author_name, created_at
-                     FROM forum_posts
+                     FROM web_forum_posts
                      WHERE thread_id = :tid AND status = 'published'
                      ORDER BY created_at DESC LIMIT 1"
                 );
@@ -1099,7 +1099,7 @@ if (!function_exists('forum_delete_post')) {
                 $lr = $last->fetch(PDO::FETCH_ASSOC);
 
                 $upd = $pdo->prepare(
-                    "UPDATE forum_threads
+                    "UPDATE web_forum_threads
                      SET reply_count = :rc,
                          last_reply_at = :at,
                          last_reply_by = :by
@@ -1131,8 +1131,8 @@ if (!function_exists('forum_delete_thread')) {
     {
         try {
             $pdo->beginTransaction();
-            $pdo->prepare("DELETE FROM forum_posts   WHERE thread_id = :id")->execute(['id' => $thread_id]);
-            $pdo->prepare("DELETE FROM forum_threads WHERE id = :id")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM web_forum_posts   WHERE thread_id = :id")->execute(['id' => $thread_id]);
+            $pdo->prepare("DELETE FROM web_forum_threads WHERE id = :id")->execute(['id' => $thread_id]);
             $pdo->commit();
             return true;
         } catch (PDOException $e) {
@@ -1150,12 +1150,12 @@ if (!function_exists('forum_toggle_lock')) {
     function forum_toggle_lock(PDO $pdo, int $thread_id): ?bool
     {
         try {
-            $sel = $pdo->prepare("SELECT is_locked FROM forum_threads WHERE id = :id");
+            $sel = $pdo->prepare("SELECT is_locked FROM web_forum_threads WHERE id = :id");
             $sel->execute(['id' => $thread_id]);
             $cur = $sel->fetchColumn();
             if ($cur === false) return null;
             $new = ((int)$cur === 1) ? 0 : 1;
-            $upd = $pdo->prepare("UPDATE forum_threads SET is_locked = :v WHERE id = :id");
+            $upd = $pdo->prepare("UPDATE web_forum_threads SET is_locked = :v WHERE id = :id");
             $upd->execute(['v' => $new, 'id' => $thread_id]);
             return $new === 1;
         } catch (PDOException $e) {
@@ -1169,12 +1169,12 @@ if (!function_exists('forum_toggle_sticky')) {
     function forum_toggle_sticky(PDO $pdo, int $thread_id): ?bool
     {
         try {
-            $sel = $pdo->prepare("SELECT is_sticky FROM forum_threads WHERE id = :id");
+            $sel = $pdo->prepare("SELECT is_sticky FROM web_forum_threads WHERE id = :id");
             $sel->execute(['id' => $thread_id]);
             $cur = $sel->fetchColumn();
             if ($cur === false) return null;
             $new = ((int)$cur === 1) ? 0 : 1;
-            $upd = $pdo->prepare("UPDATE forum_threads SET is_sticky = :v WHERE id = :id");
+            $upd = $pdo->prepare("UPDATE web_forum_threads SET is_sticky = :v WHERE id = :id");
             $upd->execute(['v' => $new, 'id' => $thread_id]);
             return $new === 1;
         } catch (PDOException $e) {
@@ -1201,7 +1201,7 @@ if (!function_exists('forum_posts_in_thread_for_user')) {
                 : ("status = 'published'" . ($user_id ? " OR (status = 'pending' AND author_id = :uid)" : ""));
             $sql = "SELECT id, thread_id, author_id, author_name, body, status, is_op,
                            edited_at, edited_by, created_at
-                    FROM forum_posts
+                    FROM web_forum_posts
                     WHERE thread_id = :tid AND ($sql_visibility)
                     ORDER BY is_op DESC, created_at ASC
                     LIMIT $per_page OFFSET $offset";

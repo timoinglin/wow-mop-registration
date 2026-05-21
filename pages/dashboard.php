@@ -7,6 +7,8 @@ require_once __DIR__ . '/../includes/login_history.php';
 require_once __DIR__ . '/../includes/playtime_rewards.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/avatar.php';
+require_once __DIR__ . '/../includes/wl_2fa.php';
+require_once __DIR__ . '/../includes/news.php';
 
 // --- Auth ---
 if (!isset($_SESSION['user_id'])) {
@@ -148,6 +150,14 @@ foreach ($characters as $char) {
 }
 
 $tickets_enabled = !empty($config['features']['tickets']);
+
+// --- Latest news (Overview tab pair-with-chart panel) ---
+$latest_news = [];
+try {
+    $latest_news = function_exists('news_latest_published') ? news_latest_published($pdo_auth, 3) : [];
+} catch (Throwable $e) {
+    error_log('dashboard latest_news: ' . $e->getMessage());
+}
 
 // --- Playtime Reward state ---
 $pr_status        = pr_get_status((int)$_SESSION['user_id'], $pdo_auth, $pdo_chars, $config);
@@ -721,6 +731,32 @@ function closeAvatarModal() { document.getElementById('avatarModal').classList.r
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarModal(); });
 </script>
 
+<!-- ═══════════════ DASHBOARD TABS ═══════════════ -->
+<style>
+.dash-tabs { border-bottom: 1px solid rgba(255,255,255,.08); margin-bottom: 1.4rem; gap:.3rem; flex-wrap:nowrap; overflow-x:auto; }
+.dash-tabs .nav-link { color:#8899aa; background:transparent; border:0; border-bottom: 2px solid transparent; border-radius: 0; padding: .65rem 1.1rem; font-weight: 600; font-size: .92rem; white-space:nowrap; }
+.dash-tabs .nav-link:hover { color: #dee2e6; }
+.dash-tabs .nav-link.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+.dash-tabs .nav-link i { font-size: 1rem; vertical-align: -.05em; }
+@media (max-width: 480px) {
+    .dash-tabs .nav-link { padding: .6rem .75rem; font-size: .85rem; }
+    .dash-tabs .nav-link span.lbl { display: none; }
+    .dash-tabs .nav-link i { font-size: 1.1rem; }
+}
+.tab-pane.fade.show.active { animation: dashTabFade .25s ease-out; }
+@keyframes dashTabFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+<ul class="nav dash-tabs" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-overview"   role="tab"><i class="bi bi-grid-1x2-fill me-2"></i><span class="lbl"><?= htmlspecialchars($TEXT['dash_tab_overview'] ?? 'Overview') ?></span></a></li>
+    <li class="nav-item"><a class="nav-link"        data-bs-toggle="tab" href="#tab-characters" role="tab"><i class="bi bi-people-fill me-2"></i><span class="lbl"><?= htmlspecialchars($TEXT['dash_tab_characters'] ?? 'Characters') ?></span></a></li>
+    <li class="nav-item"><a class="nav-link"        data-bs-toggle="tab" href="#tab-account"    role="tab"><i class="bi bi-shield-lock-fill me-2"></i><span class="lbl"><?= htmlspecialchars($TEXT['dash_tab_account'] ?? 'Account & Security') ?></span></a></li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ═══════════════ TAB 1 — OVERVIEW ═══════════════ -->
+<div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+
 <!-- STAT CARDS -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md">
@@ -878,126 +914,70 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
 </section>
 <?php endif; ?>
 
-<!-- MIDDLE ROW -->
+<!-- Bottom row of Overview: playtime distribution + latest news.
+     Pair fills the horizontal vacuum the centered chart used to leave.
+     The 'Most time on' callout that lived here was redundant with the
+     'Most Played Character' stat card above and was dropped. -->
+<style>
+.playtime-chart-wrap { position: relative; height: 260px; }
+.news-feed { display:flex; flex-direction:column; gap:.5rem; }
+.news-item { display:flex; align-items:center; gap:.7rem; padding:.6rem .75rem; background: rgba(255,255,255,.025); border:1px solid rgba(var(--btn-bg-rgb),.25); border-radius:8px; text-decoration:none; color:inherit; transition: border-color .15s, background .15s; }
+.news-item:hover { border-color: rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.08); }
+.news-item .ic { width:36px; height:36px; border-radius:8px; background: rgba(var(--accent-rgb),.14); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.news-item .ic i { color: var(--accent); font-size:1.05rem; }
+.news-item .meta { min-width:0; flex:1; }
+.news-item .ttl { color:#dee2e6; font-weight:700; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.news-item .when { color:#8899aa; font-size:.75rem; margin-top:.1rem; }
+.news-empty { color:#6c7a8c; font-size:.85rem; padding:.6rem .2rem; }
+.news-seeall { display:inline-block; margin-top:.5rem; font-size:.82rem; color:var(--accent); text-decoration:none; }
+.news-seeall:hover { color: var(--accent); text-decoration:underline; }
+</style>
 <div class="row g-3 mb-4">
-
-    <!-- Account Info -->
-    <div class="col-lg-4">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-person-badge me-2"></i><?= $TEXT['account_details'] ?></div>
-            <div class="info-row">
-                <span class="info-key"><?= htmlspecialchars($TEXT['dash_account_id'] ?? 'Account ID') ?></span>
-                <span class="info-val"><?= (int)$user_id ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-key"><?= $TEXT['username'] ?></span>
-                <span class="info-val"><?= htmlspecialchars($user['username']) ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-key"><?= $TEXT['email'] ?></span>
-                <span class="info-val" style="font-size:.8rem"><?= htmlspecialchars($user['email']) ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-key"><?= $TEXT['join_date'] ?></span>
-                <span class="info-val"><?= date('Y-m-d', strtotime($user['joindate'])) ?></span>
-            </div>
-            <div class="info-row">
-                <span class="info-key"><?= htmlspecialchars($TEXT['dash_current_ip'] ?? 'Current IP') ?></span>
-                <span class="info-val" style="color:#5dd87c;font-family:monospace;font-size:.82rem"><?= htmlspecialchars($user['last_ip'] ?? '—') ?></span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="col-lg-4">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-lightning-charge me-2"></i><?= htmlspecialchars($TEXT['common_quick_actions'] ?? 'Quick Actions') ?></div>
-            <div class="d-flex flex-column gap-2">
-                <a href="/change_password" class="action-btn action-btn-primary">
-                    <i class="bi bi-key-fill"></i> <?= $TEXT['change_password'] ?>
-                </a>
-                <?php if ($tickets_enabled): ?>
-                <a href="/tickets" class="action-btn action-btn-secondary">
-                    <i class="bi bi-ticket-perforated"></i> <?= $TEXT['submit_ticket'] ?>
-                </a>
-                <?php endif; ?>
-                <?php if ($gm_level >= 9): ?>
-                <a href="/admin_dashboard" class="action-btn action-btn-secondary" style="color:#f87171;border-color:rgba(220,53,69,.4)">
-                    <i class="bi bi-shield-lock"></i> <?= $TEXT['admin_panel'] ?>
-                </a>
-                <?php endif; ?>
-            </div>
-            <?php if ($most_played_char): ?>
-            <div class="mt-3 p-2 rounded" style="background:rgba(var(--btn-bg-rgb), .12);border:1px solid rgba(var(--btn-bg-rgb), .3);font-size:.82rem;color:var(--accent);">
-                <i class="bi bi-star me-1"></i> <?= htmlspecialchars($TEXT['dash_most_time_on'] ?? 'Most time on') ?>
-                <strong style="color:<?= $class_colors[(int)$most_played_char['class']] ?? 'var(--accent)' ?>">
-                    <?= htmlspecialchars($most_played_char['name']) ?>
-                </strong>
-                (<?= format_playtime((int)$most_played_char['totaltime']) ?>)
-            </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Playtime Chart -->
-    <div class="col-lg-4">
-        <div class="dash-panel">
+    <?php if (!empty($chart_data)): ?>
+    <div class="col-lg-6">
+        <div class="dash-panel h-100">
             <div class="panel-title"><i class="bi bi-pie-chart me-2"></i><?= $TEXT['playtime_distribution_title'] ?></div>
-            <?php if (!empty($chart_data)): ?>
+            <div class="playtime-chart-wrap">
                 <canvas id="playtimePieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <div class="col-lg-<?= !empty($chart_data) ? '6' : '8 mx-auto' ?>">
+        <div class="dash-panel h-100">
+            <div class="panel-title"><i class="bi bi-megaphone-fill me-2"></i><?= htmlspecialchars($TEXT['dash_latest_news'] ?? 'Latest news') ?></div>
+            <?php if (!empty($latest_news)): ?>
+            <div class="news-feed">
+                <?php foreach ($latest_news as $post):
+                    $icon = !empty($post['icon']) ? htmlspecialchars($post['icon']) : 'bi-megaphone';
+                    $when = !empty($post['published_at']) ? date('M j, Y', strtotime($post['published_at'])) : '';
+                ?>
+                <a class="news-item" href="/news/<?= rawurlencode($post['slug']) ?>">
+                    <div class="ic"><i class="bi <?= $icon ?>"></i></div>
+                    <div class="meta">
+                        <div class="ttl"><?= htmlspecialchars($post['title']) ?></div>
+                        <?php if ($when): ?><div class="when"><?= htmlspecialchars($when) ?></div><?php endif; ?>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <a class="news-seeall" href="/news"><?= htmlspecialchars($TEXT['dash_news_see_all'] ?? 'See all news') ?> →</a>
             <?php else: ?>
-                <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:160px;color:#8899aa">
-                    <i class="bi bi-bar-chart-line" style="font-size:2.5rem;opacity:.3"></i>
-                    <p class="mt-2 mb-0" style="font-size:.9rem"><?= $TEXT['no_char_data_found'] ?></p>
-                </div>
+            <div class="news-empty">
+                <i class="bi bi-info-circle me-1"></i> <?= htmlspecialchars($TEXT['dash_news_empty'] ?? 'No news posts yet.') ?>
+            </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
 
-<!-- BOTTOM ROW: Login History + Characters -->
-<div class="row g-3">
+</div><!-- /tab-overview -->
 
-    <!-- Login History -->
-    <div class="col-lg-4">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['dash_login_history'] ?? 'Login History') ?></div>
-            <?php if (!empty($login_history)): ?>
-                <?php foreach (array_slice($login_history, 0, 5) as $i => $entry): ?>
-                <div class="login-row">
-                    <span class="login-idx <?= $i === 0 ? 'login-idx-0' : 'login-idx-n' ?>">
-                        <?= $i === 0 ? '✓' : ($i + 1) ?>
-                    </span>
-                    <span class="login-ip"><?= htmlspecialchars($entry['ip']) ?></span>
-                    <span class="login-time">
-                        <?php
-                            $diff = time() - (int)$entry['time'];
-                            if ($diff < 60)        echo htmlspecialchars($TEXT['common_just_now']  ?? 'just now');
-                            elseif ($diff < 3600)  echo floor($diff/60)   . ' ' . htmlspecialchars($TEXT['common_min_ago']   ?? 'm ago');
-                            elseif ($diff < 86400) echo floor($diff/3600) . ' ' . htmlspecialchars($TEXT['common_hours_ago'] ?? 'h ago');
-                            else                   echo date('M d, Y', (int)$entry['time']);
-                        ?>
-                    </span>
-                </div>
-                <?php endforeach; ?>
-                <?php if ($i === 0): ?>
-                    <p class="mt-2 mb-0" style="font-size:.78rem;color:#8899aa;">
-                        <i class="bi bi-info-circle me-1"></i> <?= htmlspecialchars($TEXT['dash_login_history_hint'] ?? 'History is recorded from your next login.') ?>
-                    </p>
-                <?php endif; ?>
-            <?php else: ?>
-                <div class="text-center py-3" style="color:#8899aa">
-                    <i class="bi bi-clock" style="font-size:2rem;opacity:.3"></i>
-                    <p class="mt-2 mb-0" style="font-size:.85rem"><?= htmlspecialchars($TEXT['dash_no_login_history'] ?? 'No login history yet.') ?><br><?= htmlspecialchars($TEXT['dash_no_login_history_hint'] ?? 'It will appear after your next login.') ?></p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Characters -->
-    <div class="col-lg-8">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-people me-2"></i><?= $TEXT['your_characters'] ?></div>
+<!-- ═══════════════ TAB 2 — CHARACTERS ═══════════════ -->
+<div class="tab-pane fade" id="tab-characters" role="tabpanel">
+    <div class="dash-panel">
+        <div class="panel-title"><i class="bi bi-people me-2"></i><?= $TEXT['your_characters'] ?></div>
 
             <?php if ($error_loading_chars): ?>
                 <div class="alert alert-warning py-2"><?= $TEXT['error_loading_characters'] ?></div>
@@ -1057,74 +1037,131 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
                     <p class="mt-2"><?= sprintf($TEXT['no_characters_found_realm'], htmlspecialchars($TEXT['realm1_name'])) ?></p>
                 </div>
             <?php endif; ?>
-        </div>
     </div>
+</div><!-- /tab-characters -->
 
-</div><!-- /row -->
+<!-- ═══════════════ TAB 3 — ACCOUNT & SECURITY ═══════════════ -->
+<?php $twofa_on = wl_2fa_is_enabled($pdo_auth, (int)$_SESSION['user_id']); ?>
+<div class="tab-pane fade" id="tab-account" role="tabpanel">
 
-<!-- ═══════════════ VOTE + QUICK LINKS ═══════════════ -->
-<div class="row g-3 mt-1">
-    <!-- Vote & Reward -->
-    <div class="col-lg-6">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?></div>
+    <div class="row g-3 mb-3">
+        <!-- Account info -->
+        <div class="col-lg-6">
+            <div class="dash-panel h-100">
+                <div class="panel-title"><i class="bi bi-person-badge me-2"></i><?= $TEXT['account_details'] ?></div>
+                <div class="info-row">
+                    <span class="info-key"><?= htmlspecialchars($TEXT['dash_account_id'] ?? 'Account ID') ?></span>
+                    <span class="info-val"><?= (int)$user_id ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key"><?= $TEXT['username'] ?></span>
+                    <span class="info-val"><?= htmlspecialchars($user['username']) ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key"><?= $TEXT['email'] ?></span>
+                    <span class="info-val" style="font-size:.82rem;display:flex;align-items:center;gap:.5rem;justify-content:flex-end">
+                        <?= htmlspecialchars($user['email']) ?>
+                        <a href="/change_email" class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.15rem .55rem"><?= htmlspecialchars($TEXT['change_email_short'] ?? 'Change') ?></a>
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key"><?= $TEXT['join_date'] ?></span>
+                    <span class="info-val"><?= date('Y-m-d', strtotime($user['joindate'])) ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-key"><?= htmlspecialchars($TEXT['dash_current_ip'] ?? 'Current IP') ?></span>
+                    <span class="info-val" style="color:#5dd87c;font-family:monospace;font-size:.82rem"><?= htmlspecialchars($user['last_ip'] ?? '—') ?></span>
+                </div>
+            </div>
+        </div>
 
-            <?php $vote_sites = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['vote_sites'] : ($config['vote_sites'] ?? []); ?>
-            <?php if (!empty($vote_sites)): ?>
-                <?php foreach ($vote_sites as $site): ?>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:.8rem;margin-bottom:.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;transition:all .2s">
-                    <div>
-                        <div style="font-weight:600;color:#e2e8f0;font-size:.92rem"><?= htmlspecialchars($site['name'] ?? 'Vote Site') ?></div>
-                        <div style="color:#4a5568;font-size:.72rem"><?= htmlspecialchars($TEXT['dash_cooldown_label'] ?? 'Cooldown') ?>: <?= $site['cooldown_hours'] ?? 12 ?>h</div>
-                    </div>
-                    <a href="<?= htmlspecialchars($site['url'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" style="
-                        display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;
-                        border-radius:8px;font-weight:600;font-size:.82rem;text-decoration:none;
-                        background:linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));color:#fff;
-                        transition:all .2s ease;
-                    ">
-                        <i class="bi bi-box-arrow-up-right"></i> <?= htmlspecialchars($TEXT['dash_vote_button'] ?? 'Vote') ?>
+        <!-- Security actions -->
+        <div class="col-lg-6">
+            <div class="dash-panel h-100">
+                <div class="panel-title"><i class="bi bi-shield-lock me-2"></i><?= htmlspecialchars($TEXT['dash_security_title'] ?? 'Security') ?></div>
+                <div class="d-flex flex-column gap-2">
+                    <a href="/change_password" class="action-btn action-btn-primary">
+                        <i class="bi bi-key-fill"></i> <?= $TEXT['change_password'] ?>
                     </a>
+                    <a href="/change_email" class="action-btn action-btn-secondary">
+                        <i class="bi bi-envelope-at"></i> <?= htmlspecialchars($TEXT['change_email_title'] ?? 'Change email address') ?>
+                    </a>
+                    <a href="/account_2fa" class="action-btn action-btn-secondary" style="<?= $twofa_on ? 'color:#5dd87c;border-color:rgba(93,216,124,.4)' : '' ?>">
+                        <i class="bi <?= $twofa_on ? 'bi-shield-check' : 'bi-shield-plus' ?>"></i>
+                        <?php if ($twofa_on): ?>
+                            <?= htmlspecialchars($TEXT['twofa_dash_on'] ?? '2FA · enabled') ?>
+                        <?php else: ?>
+                            <?= htmlspecialchars($TEXT['twofa_dash_off'] ?? 'Enable 2FA') ?>
+                        <?php endif; ?>
+                    </a>
+                    <?php if ($tickets_enabled): ?>
+                    <a href="/tickets" class="action-btn action-btn-secondary">
+                        <i class="bi bi-ticket-perforated"></i> <?= $TEXT['submit_ticket'] ?>
+                    </a>
+                    <?php endif; ?>
                 </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="text-align:center;padding:2rem 1rem">
-                    <div style="font-size:2.5rem;opacity:.3;margin-bottom:.5rem">🗳️</div>
-                    <p style="color:#8899aa;font-size:.9rem;margin:0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon'] ?? 'Vote sites coming soon!') ?></p>
-                    <p style="color:#4a5568;font-size:.78rem;margin:.3rem 0 0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon_hint'] ?? 'Vote for our server to earn rewards and help us grow.') ?></p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Quick Links -->
-    <div class="col-lg-6">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-link-45deg me-2"></i><?= htmlspecialchars($TEXT['dash_quick_links'] ?? 'Quick Links') ?></div>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="/armory" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
-                    <i class="bi bi-search"></i> <?= htmlspecialchars($TEXT['armory'] ?? 'Armory') ?>
-                </a>
-                <a href="/leaderboards" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
-                    <i class="bi bi-trophy-fill"></i> <?= htmlspecialchars($TEXT['leaderboards'] ?? 'Leaderboards') ?>
-                </a>
-                <?php if ($most_played_char): ?>
-                <a href="/armory/<?= rawurlencode($most_played_char['name']) ?>" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem;border-color:<?= ($class_colors[(int)$most_played_char['class']] ?? 'var(--accent)') ?>;color:<?= ($class_colors[(int)$most_played_char['class']] ?? 'var(--accent)') ?>">
-                    <i class="bi bi-person-fill"></i> <?= htmlspecialchars($TEXT['dash_view_my_armory'] ?? 'My Armory Profile') ?>
-                </a>
-                <?php endif; ?>
-                <?php if ($tickets_enabled): ?>
-                <a href="/tickets" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
-                    <i class="bi bi-ticket-perforated"></i> <?= htmlspecialchars($TEXT['dash_support_tickets'] ?? 'Support Tickets') ?>
-                </a>
-                <a href="/tickets?tab=history" class="action-btn action-btn-secondary" style="padding:.6rem 1.1rem;font-size:.85rem">
-                    <i class="bi bi-clock-history"></i> <?= htmlspecialchars($TEXT['dash_my_tickets'] ?? 'My Tickets') ?>
-                </a>
-                <?php endif; ?>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Login history -->
+    <div class="dash-panel">
+        <div class="panel-title"><i class="bi bi-clock-history me-2"></i><?= htmlspecialchars($TEXT['dash_login_history'] ?? 'Login History') ?></div>
+        <?php if (!empty($login_history)): ?>
+            <?php foreach (array_slice($login_history, 0, 10) as $i => $entry): ?>
+            <div class="login-row">
+                <span class="login-idx <?= $i === 0 ? 'login-idx-0' : 'login-idx-n' ?>">
+                    <?= $i === 0 ? '✓' : ($i + 1) ?>
+                </span>
+                <span class="login-ip"><?= htmlspecialchars($entry['ip']) ?></span>
+                <span class="login-time">
+                    <?php
+                        $diff = time() - (int)$entry['time'];
+                        if ($diff < 60)        echo htmlspecialchars($TEXT['common_just_now']  ?? 'just now');
+                        elseif ($diff < 3600)  echo floor($diff/60)   . ' ' . htmlspecialchars($TEXT['common_min_ago']   ?? 'm ago');
+                        elseif ($diff < 86400) echo floor($diff/3600) . ' ' . htmlspecialchars($TEXT['common_hours_ago'] ?? 'h ago');
+                        else                   echo date('M d, Y', (int)$entry['time']);
+                    ?>
+                </span>
+            </div>
+            <?php endforeach; ?>
+            <?php if ($i === 0): ?>
+                <p class="mt-2 mb-0" style="font-size:.78rem;color:#8899aa;">
+                    <i class="bi bi-info-circle me-1"></i> <?= htmlspecialchars($TEXT['dash_login_history_hint'] ?? 'History is recorded from your next login.') ?>
+                </p>
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="text-center py-3" style="color:#8899aa">
+                <i class="bi bi-clock" style="font-size:2rem;opacity:.3"></i>
+                <p class="mt-2 mb-0" style="font-size:.85rem"><?= htmlspecialchars($TEXT['dash_no_login_history'] ?? 'No login history yet.') ?><br><?= htmlspecialchars($TEXT['dash_no_login_history_hint'] ?? 'It will appear after your next login.') ?></p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+</div><!-- /tab-account -->
+
+</div><!-- /tab-content -->
+
+<!-- Persist the active tab in the URL hash so reload returns to it. -->
+<script>
+(function () {
+    var hash = (window.location.hash || '').replace(/^#/, '');
+    if (hash && document.querySelector('.dash-tabs a[href="#' + hash + '"]')) {
+        document.querySelectorAll('.dash-tabs .nav-link').forEach(function (a) {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + hash);
+        });
+        document.querySelectorAll('.tab-content .tab-pane').forEach(function (p) {
+            p.classList.toggle('show', '#' + p.id === '#' + hash);
+            p.classList.toggle('active', '#' + p.id === '#' + hash);
+        });
+    }
+    document.querySelectorAll('.dash-tabs .nav-link').forEach(function (a) {
+        a.addEventListener('shown.bs.tab', function (ev) {
+            history.replaceState(null, '', ev.target.getAttribute('href'));
+        });
+    });
+})();
+</script>
 
 </div><!-- /container -->
 
@@ -1150,6 +1187,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             cutout: '60%',
             plugins: {
                 legend: {

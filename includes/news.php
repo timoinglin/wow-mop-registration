@@ -1,6 +1,6 @@
 <?php
 /**
- * News helper — slug generation + fetchers for the `news_posts` table.
+ * News helper — slug generation + fetchers for the `web_news_posts` table.
  *
  * Posts are monolingual: admins write in whatever language fits their audience.
  * A starter post is seeded by sql/setup.sql on first install (idempotent).
@@ -29,7 +29,7 @@ if (!function_exists('news_unique_slug')) {
         $slug = $base;
         $i = 2;
         while (true) {
-            $sql = "SELECT id FROM news_posts WHERE slug = :s" . ($exclude_id ? " AND id != :ex" : "") . " LIMIT 1";
+            $sql = "SELECT id FROM web_news_posts WHERE slug = :s" . ($exclude_id ? " AND id != :ex" : "") . " LIMIT 1";
             $stmt = $pdo->prepare($sql);
             $params = ['s' => $slug];
             if ($exclude_id) $params['ex'] = $exclude_id;
@@ -46,7 +46,7 @@ if (!function_exists('news_latest_published')) {
         $limit = max(1, min(50, $limit));
         $stmt = $pdo->prepare(
             "SELECT id, slug, title, excerpt, icon, author_name, published_at
-             FROM news_posts
+             FROM web_news_posts
              WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= NOW()
              ORDER BY published_at DESC
              LIMIT $limit"
@@ -60,7 +60,7 @@ if (!function_exists('news_get_by_slug')) {
     function news_get_by_slug(PDO $pdo, string $slug, bool $include_drafts = false): ?array
     {
         $stmt = $pdo->prepare(
-            "SELECT * FROM news_posts WHERE slug = :slug"
+            "SELECT * FROM web_news_posts WHERE slug = :slug"
             . ($include_drafts ? "" : " AND status = 'published' AND published_at <= NOW()")
             . " LIMIT 1"
         );
@@ -73,7 +73,7 @@ if (!function_exists('news_get_by_slug')) {
 if (!function_exists('news_count_published')) {
     function news_count_published(PDO $pdo): int
     {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM news_posts WHERE status = 'published' AND published_at <= NOW()");
+        $stmt = $pdo->query("SELECT COUNT(*) FROM web_news_posts WHERE status = 'published' AND published_at <= NOW()");
         return (int)$stmt->fetchColumn();
     }
 }
@@ -86,7 +86,7 @@ if (!function_exists('news_published_page')) {
         $offset   = ($page - 1) * $per_page;
         $stmt = $pdo->prepare(
             "SELECT id, slug, title, excerpt, icon, author_name, published_at
-             FROM news_posts
+             FROM web_news_posts
              WHERE status = 'published' AND published_at <= NOW()
              ORDER BY published_at DESC
              LIMIT $per_page OFFSET $offset"

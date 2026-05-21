@@ -3,6 +3,7 @@ $config = require __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/recaptcha.php';
+require_once __DIR__ . '/../includes/wl_2fa.php';
 // header.php includes lang.php and starts the session
 require_once __DIR__ . '/../templates/header.php';
 
@@ -15,12 +16,17 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $errors = [];
 $successMessage = '';
+// When 2FA is enabled, the password-change form requires a current 2FA
+// code. Closes the session-hijack hole — a stolen cookie can no longer
+// silently rotate the password without the second factor.
+$twofa_required = wl_2fa_is_enabled($pdo_auth, (int)$user_id);
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $current_password = $_POST['current_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $twofa_code       = (string)($_POST['twofa_code'] ?? '');
 
     // --- Validation ---
     // reCAPTCHA (optional, authenticated page)
@@ -36,6 +42,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     if (strlen($new_password) < 6) { // Ensure new password meets requirements
         $errors[] = $TEXT['new_password_min_length'];
+    }
+    if (empty($errors) && $twofa_required) {
+        if (!wl_2fa_verify($pdo_auth, (int)$user_id, $twofa_code)) {
+            $errors[] = $TEXT['twofa_err_code_bad'] ?? 'That 2FA code is wrong. Try again.';
+        }
     }
 
     // --- Verification and Update --- (only if basic validation passes)
@@ -122,6 +133,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="confirm_password" class="form-label"><?= $TEXT['confirm_password'] ?></label>
             <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
         </div>
+        <?php if ($twofa_required): ?>
+        <div class="mb-3">
+            <label for="twofa_code" class="form-label">
+                <i class="bi bi-shield-lock-fill me-1" style="color:var(--accent)"></i>
+                <?= htmlspecialchars($TEXT['twofa_code_or_backup'] ?? '2FA code (or backup code)') ?>
+            </label>
+            <input type="text" class="form-control" id="twofa_code" name="twofa_code"
+                   inputmode="numeric" autocomplete="one-time-code" required
+                   style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.25em;text-align:center">
+        </div>
+        <?php endif; ?>
 
         <!-- Google reCAPTCHA -->
         <?php if (!empty($config['features']['recaptcha'])): ?>

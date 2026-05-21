@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo_auth->beginTransaction();
 
             $stmt = $pdo_auth->prepare(
-                "INSERT INTO tickets (user_id, username, email, category, subject, message, attachments, created_at)
+                "INSERT INTO web_tickets (user_id, username, email, category, subject, message, attachments, created_at)
                  VALUES (:uid, :uname, :email, :cat, :subj, :msg, :attach, NOW())"
             );
             $stmt->execute([
@@ -123,10 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $new_ticket_id = (int)$pdo_auth->lastInsertId();
 
-            // Mirror the initial user message into ticket_messages so the thread
+            // Mirror the initial user message into web_ticket_messages so the thread
             // view sees it immediately (older code skipped this — bug fixed).
             $msg_stmt = $pdo_auth->prepare(
-                "INSERT INTO ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
+                "INSERT INTO web_ticket_messages (ticket_id, sender_type, sender_username, message, attachments, created_at)
                  VALUES (:tid, 'user', :uname, :msg, :attach, NOW())"
             );
             $msg_stmt->execute([
@@ -178,13 +178,13 @@ $my_tickets = [];
 try {
     $stmt = $pdo_auth->prepare(
         "SELECT t.id, t.subject, t.category, t.status, t.created_at, t.updated_at,
-                (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id) AS msg_count,
-                (SELECT MAX(created_at) FROM ticket_messages tm WHERE tm.ticket_id = t.id) AS last_message_at,
-                (SELECT sender_type FROM ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY created_at DESC, id DESC LIMIT 1) AS last_sender,
-                (SELECT COUNT(*) FROM ticket_messages tm WHERE tm.ticket_id = t.id AND tm.attachments IS NOT NULL AND tm.attachments != '') AS attach_count
-         FROM tickets t
+                (SELECT COUNT(*) FROM web_ticket_messages tm WHERE tm.ticket_id = t.id) AS msg_count,
+                (SELECT MAX(created_at) FROM web_ticket_messages tm WHERE tm.ticket_id = t.id) AS last_message_at,
+                (SELECT sender_type FROM web_ticket_messages tm WHERE tm.ticket_id = t.id ORDER BY created_at DESC, id DESC LIMIT 1) AS last_sender,
+                (SELECT COUNT(*) FROM web_ticket_messages tm WHERE tm.ticket_id = t.id AND tm.attachments IS NOT NULL AND tm.attachments != '') AS attach_count
+         FROM web_tickets t
          WHERE t.user_id = :uid
-         ORDER BY COALESCE((SELECT MAX(created_at) FROM ticket_messages tm WHERE tm.ticket_id = t.id), t.created_at) DESC
+         ORDER BY COALESCE((SELECT MAX(created_at) FROM web_ticket_messages tm WHERE tm.ticket_id = t.id), t.created_at) DESC
          LIMIT 50"
     );
     $stmt->execute(['uid' => $_SESSION['user_id']]);

@@ -22,7 +22,7 @@ if (!function_exists('avatar_get')) {
     {
         try {
             $stmt = $pdo->prepare(
-                "SELECT filename, mime_type, uploaded_at FROM user_avatars WHERE account_id = :id LIMIT 1"
+                "SELECT filename, mime_type, uploaded_at FROM web_user_avatars WHERE account_id = :id LIMIT 1"
             );
             $stmt->execute(['id' => $account_id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -49,7 +49,7 @@ if (!function_exists('avatar_get_many')) {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $stmt = $pdo->prepare(
                 "SELECT account_id, filename, mime_type, uploaded_at
-                 FROM user_avatars WHERE account_id IN ($placeholders)"
+                 FROM web_user_avatars WHERE account_id IN ($placeholders)"
             );
             $stmt->execute($ids);
             $out = [];
