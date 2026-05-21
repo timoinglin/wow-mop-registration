@@ -921,48 +921,23 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
 </div>
 <?php endif; ?>
 
+<!-- Playtime distribution chart — centered + height-capped so the
+     doughnut sits in a calm visual block (was full-row-tall before). -->
+<?php if (!empty($chart_data)): ?>
 <div class="row g-3 mb-4">
-    <!-- Playtime distribution chart -->
-    <div class="col-lg-6">
+    <div class="col-md-8 col-lg-6 mx-auto">
         <div class="dash-panel">
             <div class="panel-title"><i class="bi bi-pie-chart me-2"></i><?= $TEXT['playtime_distribution_title'] ?></div>
-            <?php if (!empty($chart_data)): ?>
+            <div class="playtime-chart-wrap">
                 <canvas id="playtimePieChart"></canvas>
-            <?php else: ?>
-                <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:160px;color:#8899aa">
-                    <i class="bi bi-bar-chart-line" style="font-size:2.5rem;opacity:.3"></i>
-                    <p class="mt-2 mb-0" style="font-size:.9rem"><?= $TEXT['no_char_data_found'] ?></p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Vote & Support -->
-    <div class="col-lg-6">
-        <div class="dash-panel">
-            <div class="panel-title"><i class="bi bi-trophy me-2"></i><?= htmlspecialchars($TEXT['dash_vote_support_us'] ?? 'Vote & Support Us') ?></div>
-            <?php $vote_sites = function_exists('settings_get') ? settings_get($pdo_auth ?? null, $config)['vote_sites'] : ($config['vote_sites'] ?? []); ?>
-            <?php if (!empty($vote_sites)): ?>
-                <?php foreach ($vote_sites as $site): ?>
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem;margin-bottom:.5rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px">
-                    <div>
-                        <div style="font-weight:600;color:#e2e8f0;font-size:.92rem"><?= htmlspecialchars($site['name'] ?? 'Vote Site') ?></div>
-                        <div style="color:#4a5568;font-size:.72rem"><?= htmlspecialchars($TEXT['dash_cooldown_label'] ?? 'Cooldown') ?>: <?= $site['cooldown_hours'] ?? 12 ?>h</div>
-                    </div>
-                    <a href="<?= htmlspecialchars($site['url'] ?? '#') ?>" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;border-radius:8px;font-weight:600;font-size:.82rem;text-decoration:none;background:linear-gradient(135deg,var(--btn-bg),var(--btn-bg-hover));color:#fff">
-                        <i class="bi bi-box-arrow-up-right"></i> <?= htmlspecialchars($TEXT['dash_vote_button'] ?? 'Vote') ?>
-                    </a>
-                </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div style="text-align:center;padding:1.5rem 1rem">
-                    <div style="font-size:2.2rem;opacity:.3;margin-bottom:.4rem">🗳️</div>
-                    <p style="color:#8899aa;font-size:.9rem;margin:0"><?= htmlspecialchars($TEXT['dash_vote_coming_soon'] ?? 'Vote sites coming soon!') ?></p>
-                </div>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
+<style>
+.playtime-chart-wrap { position: relative; height: 260px; }
+</style>
+<?php endif; ?>
 
 </div><!-- /tab-overview -->
 
@@ -1179,6 +1154,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAvatarM
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             cutout: '60%',
             plugins: {
                 legend: {
