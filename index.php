@@ -161,6 +161,11 @@ $hp_blocks['hero'] = ob_get_clean();
 $hp_hero_on = true;
 foreach ($hp_layout as $hp_s) { if ($hp_s['type'] === 'hero') { $hp_hero_on = !empty($hp_s['on']); break; } }
 if ($hp_hero_on) echo $hp_blocks['hero'];
+
+// Discord widget — renders only when config.discord.server_id is set
+// AND Discord's widget JSON resolves. Fail-silent otherwise.
+require_once __DIR__ . '/includes/discord_widget.php';
+echo wl_discord_widget_render($config);
 ?>
 
 <!-- Main Content Area (Starts After Full-Screen Header) -->

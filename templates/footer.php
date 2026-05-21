@@ -64,6 +64,14 @@ foreach ($footer_cfg['custom'] as $row) {
         </div>
         <?php endif; ?>
 
+        <!-- Developer link — always-on, hardcoded (the public API docs are
+             public on purpose and not part of the admin-customizable list). -->
+        <div class="mb-3" style="font-size:.78rem">
+            <a href="/api" class="footer-link" style="opacity:.75">
+                <i class="bi bi-braces-asterisk me-1"></i><?= htmlspecialchars($TEXT['footer_api_link'] ?? 'Developer API') ?>
+            </a>
+        </div>
+
         <div class="mb-3" style="font-size:.85rem; color: rgba(255,255,255,.6);">
             <?= htmlspecialchars($TEXT['footer_disclaimer'] ?? 'Notice: This is a private fan server. We are not affiliated with Blizzard Entertainment.') ?>
         </div>
