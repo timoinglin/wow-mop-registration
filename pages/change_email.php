@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $subject = "[{$server}] " . ($TEXT['email_subject_email_change'] ?? 'Confirm your email change');
 
             if (send_email($current_email, $subject, $body)) {
-                audit_log($pdo_auth, $user_id, $username, 'email_change_request', $new_email, null);
+                log_admin_action($pdo_auth, $user_id, $username, 'email_change_request', $new_email, null);
                 $flash = sprintf(
                     $TEXT['email_change_sent']
                         ?? 'Check %s — we sent a confirmation link there. Click it within 1 hour to finish the change.',

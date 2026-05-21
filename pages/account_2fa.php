@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // pick up the pending row and show the QR/verify form.
         $secret = wl_totp_generate_secret();
         if (wl_2fa_setup_begin($pdo_auth, $user_id, $secret)) {
-            audit_log($pdo_auth, $user_id, $username, '2fa_setup_begin', null, null);
+            log_admin_action($pdo_auth, $user_id, $username, '2fa_setup_begin', null, null);
             header('Location: /account_2fa');
             exit;
         }
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors) && $action === 'cancel_setup') {
         // Abandon a pending setup — wipes the row outright.
         wl_2fa_disable($pdo_auth, $user_id);
-        audit_log($pdo_auth, $user_id, $username, '2fa_setup_cancel', null, null);
+        log_admin_action($pdo_auth, $user_id, $username, '2fa_setup_cancel', null, null);
         header('Location: /account_2fa');
         exit;
     }
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $plain = wl_2fa_generate_backup_codes(8);
             if (wl_2fa_setup_finalize($pdo_auth, $user_id, $plain)) {
-                audit_log($pdo_auth, $user_id, $username, '2fa_enable', null, null);
+                log_admin_action($pdo_auth, $user_id, $username, '2fa_enable', null, null);
                 $show_codes_once = $plain;
                 $flash = $TEXT['twofa_flash_enabled'] ?? '2FA is now enabled on your account.';
             } else {
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!wl_2fa_verify($pdo_auth, $user_id, $code)) {
             $errors[] = $TEXT['twofa_err_code_bad'] ?? 'That 2FA code is wrong. Try again.';
         } elseif (wl_2fa_disable($pdo_auth, $user_id)) {
-            audit_log($pdo_auth, $user_id, $username, '2fa_disable', null, null);
+            log_admin_action($pdo_auth, $user_id, $username, '2fa_disable', null, null);
             $flash = $TEXT['twofa_flash_disabled'] ?? '2FA has been turned off for your account.';
         } else {
             $errors[] = $TEXT['twofa_err_setup'] ?? 'Could not disable 2FA. Please try again.';
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $show_codes_once = wl_2fa_regenerate_backup_codes($pdo_auth, $user_id, 8);
             if (!empty($show_codes_once)) {
-                audit_log($pdo_auth, $user_id, $username, '2fa_regen_codes', null, null);
+                log_admin_action($pdo_auth, $user_id, $username, '2fa_regen_codes', null, null);
                 $flash = $TEXT['twofa_flash_regen'] ?? 'New backup codes generated. The previous codes no longer work.';
             } else {
                 $errors[] = $TEXT['twofa_err_setup'] ?? 'Could not generate new backup codes. Please try again.';

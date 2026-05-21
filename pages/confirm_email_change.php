@@ -77,7 +77,7 @@ if ($pending && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo_auth->prepare("SELECT username FROM account WHERE id = :id");
                 $stmt->execute(['id' => $account_id]);
                 $u_name = (string)($stmt->fetchColumn() ?: '');
-                audit_log($pdo_auth, $account_id, $u_name, 'email_change_confirm', $pending['new_email'], null);
+                log_admin_action($pdo_auth, $account_id, $u_name, 'email_change_confirm', $pending['new_email'], null);
 
                 $flash   = $TEXT['email_change_confirmed'] ?? 'Your email has been changed.';
                 $pending = null;
