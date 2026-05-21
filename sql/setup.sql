@@ -503,6 +503,42 @@ CREATE TABLE IF NOT EXISTS web_site_settings (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 18. Email-change tokens. Same pattern as web_password_resets but holds
+-- the proposed new email too, so a click on the link sent to the OLD
+-- address can both authenticate the request AND know what to commit.
+-- One pending change per account at a time (PK = account_id) — a new
+-- request overwrites any previous pending change.
+CREATE TABLE IF NOT EXISTS web_email_changes (
+  account_id INT NOT NULL PRIMARY KEY,
+  current_email VARCHAR(255) NOT NULL,
+  new_email VARCHAR(255) NOT NULL,
+  token_key VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 19. Two-Factor Auth (TOTP) — one row per account that has set up 2FA.
+-- `secret`: base32-encoded TOTP shared secret (16 chars = 80 bits, RFC 4226).
+-- `enabled`: 0 while the user is mid-setup (secret generated but not yet
+--   verified with a code); 1 after a successful first code confirms the
+--   authenticator is paired. The login flow only gates when enabled = 1.
+-- `backup_codes`: JSON array of sha256-hashed single-use recovery codes
+--   (8 codes, 8 chars each). When a backup code is used to log in, the
+--   helper removes that hash from the array. Empty array = no codes left.
+-- `enabled_at`: when the user successfully confirmed setup. NULL during
+--   the setup window. Useful for the dashboard "2FA on since X" line.
+-- The row is DELETED outright when the user disables 2FA (no soft-delete:
+--   disabling means they want the secret gone, and a fresh enable should
+--   produce a new secret).
+CREATE TABLE IF NOT EXISTS web_account_2fa (
+  account_id INT NOT NULL PRIMARY KEY,
+  secret VARCHAR(64) NOT NULL,
+  enabled TINYINT NOT NULL DEFAULT 0,
+  backup_codes TEXT DEFAULT NULL,
+  enabled_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed a default "General Discussion" category on first install. Idempotent —
 -- the INSERT is guarded by NOT EXISTS so it only fires when the table is
 -- completely empty (admins who delete it won't see it reappear on re-run).
