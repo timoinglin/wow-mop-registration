@@ -188,6 +188,8 @@ Then run `sql/setup.sql` once (it's idempotent — safe to re-run). These fold i
 - **Armory Glyphs panel** — 3 major + 3 minor slots per spec, Wowhead chips for chosen glyphs, "Unlocked at Lv N" hint for empty unlocked slots. Repack-defensive (hides if `character_glyphs` is absent).
 - **Armory Professions — icons** — each profession row now shows the in-game tradeskill icon (Wowhead CDN) alongside the skill name + value bar, matching the visual rhythm of the equipment slots.
 - **Portal tables get a `web_` prefix** — every table the registration portal owns is now namespaced (`web_forum_posts`, `web_tickets`, `web_news_posts`, …) so it's visually distinct from the worldserver's auth/character/world tables that live in the same database. `sql/setup.sql` auto-renames any pre-v0.7.x unprefixed tables in place (`RENAME TABLE` preserves data + indexes — no rebuild, no row-by-row copy). Idempotent: re-running setup.sql is a no-op on already-migrated installs.
+- **Armory Achievements + Reputation panels** — Achievements: total earned + the 12 most recent as Wowhead-tooltip chips (click any chip for full detail). Reputation: 17 major MoP factions (Klaxxi, Shado-Pan Assault, Black Prince, August Celestials, …) with rank-coloured progress bars (Hated → Exalted, "Maxed" gold for Exalted). Both are repack-defensive — hide when the underlying table is absent.
+- **Navbar character search** — debounced autocomplete input in the header. Type a few letters → dropdown of up to 8 matches with race icon, class-coloured name, level, and class label. Click or Enter on a row → `/armory/<name>`. Keyboard navigation (↑/↓/Enter/Esc) supported. Backed by a public `/api/search/chars?q=…` JSON endpoint.
 
 *Empty = the latest tagged release is fully current.*
 

@@ -202,6 +202,107 @@ if (!empty($config['features']['maintenance'])) {
             display: inline-block;
             vertical-align: middle;
         }
+
+        /* Navbar character search — compact input with a debounced
+           autocomplete dropdown. Sits in the collapsed nav on mobile
+           (full-width row), inline on desktop (240px). */
+        .nav-charsearch { display: flex; align-items: center; }
+        .charsearch-form { width: 100%; margin: 0; }
+        .charsearch-wrap {
+            position: relative;
+            width: 100%;
+        }
+        @media (min-width: 992px) {
+            .charsearch-wrap { width: 240px; }
+        }
+        .charsearch-icon {
+            position: absolute;
+            left: .65rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,.45);
+            font-size: .9rem;
+            pointer-events: none;
+        }
+        .charsearch-input {
+            width: 100%;
+            padding: .42rem .75rem .42rem 2rem;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(var(--accent-rgb),.25);
+            border-radius: 20px;
+            color: #dee2e6;
+            font-size: .88rem;
+            transition: border-color .15s, background .15s, box-shadow .15s;
+            outline: none;
+        }
+        .charsearch-input::placeholder { color: rgba(255,255,255,.4); }
+        .charsearch-input:focus {
+            border-color: rgba(var(--accent-rgb),.7);
+            background: rgba(255,255,255,.08);
+            box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.12);
+        }
+        .charsearch-results {
+            position: absolute;
+            top: calc(100% + .35rem);
+            left: 0;
+            right: 0;
+            background: #1a1f2b;
+            border: 1px solid rgba(var(--accent-rgb),.3);
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(0,0,0,.55);
+            max-height: 60vh;
+            overflow-y: auto;
+            z-index: 2000;
+            padding: .3rem;
+        }
+        .charsearch-row {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            padding: .5rem .65rem;
+            border-radius: 7px;
+            color: #dee2e6;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background .12s;
+        }
+        .charsearch-row:hover,
+        .charsearch-row.is-active {
+            background: rgba(var(--accent-rgb),.14);
+        }
+        .charsearch-row img.r-ico {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid rgba(var(--accent-rgb),.4);
+            flex-shrink: 0;
+            background: #0d1116;
+        }
+        .charsearch-row .nm {
+            font-weight: 700;
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .charsearch-row .meta {
+            color: #8899aa;
+            font-size: .72rem;
+            font-variant-numeric: tabular-nums;
+            flex-shrink: 0;
+        }
+        .charsearch-row .lvl {
+            color: var(--accent);
+            font-weight: 700;
+            margin-right: .4rem;
+        }
+        .charsearch-empty {
+            padding: .65rem .8rem;
+            color: #6c7a8c;
+            font-size: .82rem;
+            font-style: italic;
+        }
     </style>
     <?php
     // Admin theme override — comes AFTER style.css so the :root custom-prop
@@ -282,6 +383,24 @@ if (!empty($config['features']['maintenance'])) {
                     </a>
                 </li>
                 <?php endif; ?>
+
+                <!-- Character search — debounced autocomplete that calls
+                     /api/search/chars and renders a dropdown of up to 8
+                     matches. Enter on the input goes to /armory/<typed-name>.
+                     Mobile: stays in the collapsed nav as a full-width row. -->
+                <li class="nav-item nav-charsearch ms-lg-2">
+                    <form class="charsearch-form" role="search" autocomplete="off"
+                          onsubmit="return wlCharSearchSubmit(event)">
+                        <div class="charsearch-wrap">
+                            <i class="bi bi-search charsearch-icon" aria-hidden="true"></i>
+                            <input type="text" id="wlCharSearch" class="charsearch-input"
+                                   placeholder="<?= htmlspecialchars($TEXT['nav_search_placeholder'] ?? 'Find a character…') ?>"
+                                   aria-label="<?= htmlspecialchars($TEXT['nav_search_aria'] ?? 'Find a character') ?>"
+                                   maxlength="12" spellcheck="false" autocomplete="off">
+                            <div id="wlCharSearchResults" class="charsearch-results" role="listbox" hidden></div>
+                        </div>
+                    </form>
+                </li>
             </ul>
             <div class="navbar-nav ms-auto align-items-center">
                 <!-- User Menu Dropdown -->
@@ -384,4 +503,147 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<script>
+/* Navbar character search — debounced autocomplete that hits
+   /api/search/chars and renders a dropdown of up to 8 matches.
+   Keyboard: ↑/↓ to move, Enter to open, Esc to close.
+   The form's onsubmit fires wlCharSearchSubmit() so pressing Enter
+   without a highlighted row still goes to /armory/<typed-name>. */
+(function () {
+    var input = document.getElementById('wlCharSearch');
+    var box   = document.getElementById('wlCharSearchResults');
+    if (!input || !box) return;
+
+    var classColors = {
+        1:'#C79C6E', 2:'#F58CBA', 3:'#ABD473', 4:'#FFF569',
+        5:'#FFFFFF', 6:'#C41F3B', 7:'#0070DE', 8:'#69CCF0',
+        9:'#9482C9', 10:'#00FF96', 11:'#FF7D0A'
+    };
+    var classNames = {
+        1:'Warrior', 2:'Paladin', 3:'Hunter', 4:'Rogue',
+        5:'Priest',  6:'Death Knight', 7:'Shaman', 8:'Mage',
+        9:'Warlock', 10:'Monk', 11:'Druid'
+    };
+
+    function raceIcon(race, gender) {
+        var g = (gender === 1) ? 1 : 0;
+        return '/assets/img/race/' + race + '-' + g + '.gif';
+    }
+
+    var debounceTimer = null;
+    var activeIdx = -1;
+    var lastQuery = '';
+
+    function close() {
+        box.hidden = true;
+        box.innerHTML = '';
+        activeIdx = -1;
+    }
+
+    function open() { box.hidden = false; }
+
+    function setActive(idx) {
+        var rows = box.querySelectorAll('.charsearch-row');
+        rows.forEach(function (r, i) { r.classList.toggle('is-active', i === idx); });
+        activeIdx = idx;
+        if (idx >= 0 && rows[idx]) rows[idx].scrollIntoView({block: 'nearest'});
+    }
+
+    var T = {
+        no_results: <?= json_encode($TEXT['nav_search_no_results'] ?? 'No characters found') ?>
+    };
+
+    function render(results) {
+        if (!results.length) {
+            box.innerHTML = '<div class="charsearch-empty">' + escapeHtml(T.no_results) + '</div>';
+            open();
+            return;
+        }
+        var html = '';
+        results.forEach(function (c) {
+            var color = classColors[c.class] || '#dee2e6';
+            var cname = classNames[c.class] || 'Unknown';
+            // Race icon falls back gracefully via onerror (the assets/img/race/0-0
+            // path won't exist; an empty src + bordered circle is fine).
+            html += '<a class="charsearch-row" href="/armory/' + encodeURIComponent(c.name) + '">'
+                  +   '<img class="r-ico" src="' + raceIcon(c.race, c.gender) + '" alt="" onerror="this.style.visibility=\'hidden\'">'
+                  +   '<span class="nm" style="color:' + color + '">' + escapeHtml(c.name) + '</span>'
+                  +   '<span class="meta"><span class="lvl">' + c.level + '</span>' + escapeHtml(cname) + '</span>'
+                  + '</a>';
+        });
+        box.innerHTML = html;
+        open();
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+        });
+    }
+
+    function fetchSuggestions(q) {
+        lastQuery = q;
+        fetch('/api/search/chars?q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: {'Accept': 'application/json'}
+        })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (data) {
+            // Only render if the user hasn't typed something newer in the meantime.
+            if (lastQuery !== q) return;
+            render(Array.isArray(data) ? data : []);
+        })
+        .catch(function () { close(); });
+    }
+
+    input.addEventListener('input', function () {
+        var q = input.value.trim();
+        clearTimeout(debounceTimer);
+        if (q.length < 1 || !/^[A-Za-z]+$/.test(q)) { close(); return; }
+        debounceTimer = setTimeout(function () { fetchSuggestions(q); }, 200);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        var rows = box.querySelectorAll('.charsearch-row');
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (!rows.length) return;
+            setActive(Math.min(activeIdx + 1, rows.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!rows.length) return;
+            setActive(Math.max(activeIdx - 1, 0));
+        } else if (e.key === 'Escape') {
+            close();
+            input.blur();
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!input.contains(e.target) && !box.contains(e.target)) close();
+    });
+
+    input.addEventListener('focus', function () {
+        if (box.innerHTML.trim() !== '') open();
+    });
+
+    // Make submit handler globally reachable from the <form onsubmit=...>.
+    window.wlCharSearchSubmit = function (ev) {
+        ev.preventDefault();
+        var rows = box.querySelectorAll('.charsearch-row');
+        // If a row is highlighted, follow it.
+        if (activeIdx >= 0 && rows[activeIdx]) {
+            window.location.href = rows[activeIdx].getAttribute('href');
+            return false;
+        }
+        // Otherwise: jump straight to /armory/<typed-name> if it's a valid name shape.
+        var q = (input.value || '').trim();
+        if (/^[A-Za-z]{1,12}$/.test(q)) {
+            window.location.href = '/armory/' + encodeURIComponent(q);
+        }
+        return false;
+    };
+})();
 </script>

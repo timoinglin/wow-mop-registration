@@ -26,6 +26,9 @@ RewriteRule ^armory/([^/]+)/?$ pages/armory.php?char=$1 [B,L,QSA]
 #     without it Apache returns 403 (AH10411) for any multi-word guild.
 RewriteRule ^guild/([^/]+)/?$ pages/guild.php?name=$1 [B,L,QSA]
 
+# 2a-ter. Character-search autocomplete (navbar): /api/search/chars?q=...
+RewriteRule ^api/search/chars/?$ pages/api_search_chars.php [L,QSA]
+
 # 2b. Ticket detail (user side): /tickets/{id} → pages/ticket_view.php?id={id}
 RewriteRule ^tickets/(\d+)/?$ pages/ticket_view.php?id=$1 [L,QSA]
 
