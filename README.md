@@ -1,3 +1,10 @@
+> ### 🐉 New from me — **WOW Legends**: a free WotLK 3.3.5a repack
+> Building a WoW server with this portal? You might like my latest project too — run your own living **Wrath of the Lich King (3.3.5a)** world in a few clicks, with hundreds of AI-driven bots, an AI companion that chats back, hardcore mode and a one-click installer.
+>
+> **▶ Check it out → [wow-legends.eu](https://wow-legends.eu)**
+
+---
+
 # WoW Mists of Pandaria Registration Portal
 
 A complete, secure, and modern registration portal for **World of Warcraft: Mists of Pandaria (5.4.8)** private servers. Built for TrinityCore-based cores (including repacks).
